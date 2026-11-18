@@ -26,13 +26,13 @@
 <body>
 <canvas id="c" width="480" height="270" tabindex="0"></canvas>
 <div id="help">
-  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> sauter (puis <kbd>J</kbd> : coup de pied) · <kbd>L</kbd> spécial · <kbd>P</kbd> pause<br>
+  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>Espace</kbd> sauter (puis <kbd>J</kbd> en l'air : coup de pied) · <kbd>L</kbd> spécial (quand la jauge SP est pleine) · <kbd>P</kbd> pause<br>
   <b>En ligne</b> : mêmes touches, chacun sur son ordinateur (un joueur crée la partie, l'autre saisit le code)
 </div>
 <div id="touch">
   <div id="pad"><div id="knob"></div></div>
   <div class="tb" id="bP" data-k="KeyJ">Frapper</div>
-  <div class="tb" id="bJ" data-k="KeyK">Saut</div>
+  <div class="tb" id="bJ" data-k="Space">Saut</div>
   <div class="tb" id="bS" data-k="KeyL">Spécial</div>
   <div class="tb s" id="bOk" data-k="Enter">OK</div>
   <div class="tb s" id="bPause" data-k="KeyP">Pause</div>
@@ -80,10 +80,11 @@ g.imageSmoothingEnabled = false;
 cv.addEventListener('pointerdown', () => { cv.focus(); unlockAudio(); });
 
 /* ---------- entrées ---------- */
+const SP_COST_VIVE = 50;
 const ACT = ['left', 'right', 'up', 'down', 'punch', 'jump', 'special'];
 const KEYS_SOLO = {
   left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
-  punch: ['KeyJ', 'KeyF', 'KeyZ'], jump: ['KeyK', 'KeyG', 'KeyX', 'Space'], special: ['KeyL', 'KeyH', 'KeyC']
+  punch: ['KeyJ', 'KeyF', 'KeyZ'], jump: ['Space'], special: ['KeyL', 'KeyH', 'KeyC']
 };
 const KEYS_P1 = { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], punch: ['KeyF'], jump: ['KeyG'], special: ['KeyH'] };
 const KEYS_P2 = {
@@ -149,39 +150,70 @@ function unlockAudio() {
     if (AC.state === 'suspended') AC.resume();
   } catch (e) { AC = null; }
 }
-function tone(f, d, type, v, slide) {
+/* Sons : synthèse en couches (impact grave + craquement filtré + souffle), sans aucun fichier audio.
+   IMPORTANT : l'audio n'utilise jamais le générateur aléatoire de la simulation (sinon désynchro en ligne). */
+let MASTER = null, NBUF = null;
+function out() {
+  if (!MASTER) {
+    const comp = AC.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.12;
+    MASTER = AC.createGain(); MASTER.gain.value = 0.9;
+    MASTER.connect(comp); comp.connect(AC.destination);
+  }
+  return MASTER;
+}
+function nbuf() {
+  if (!NBUF) {
+    NBUF = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const d = NBUF.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return NBUF;
+}
+const jit = (v, p) => v * (1 + (Math.random() * 2 - 1) * p);
+/* tone : oscillateur avec attaque courte et chute exponentielle, glissando facultatif */
+function tone(f, d, type, v, slide, delay) {
   if (!AC) return;
   try {
-    const t = AC.currentTime, o = AC.createOscillator(), gn = AC.createGain();
+    const t = AC.currentTime + (delay || 0), o = AC.createOscillator(), gn = AC.createGain();
     o.type = type || 'square';
     o.frequency.setValueAtTime(f, t);
     if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
-    gn.gain.setValueAtTime(v || 0.05, t);
-    gn.gain.exponentialRampToValueAtTime(0.001, t + d);
-    o.connect(gn); gn.connect(AC.destination);
-    o.start(t); o.stop(t + d);
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.linearRampToValueAtTime(v || 0.05, t + 0.004);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(gn); gn.connect(out());
+    o.start(t); o.stop(t + d + 0.02);
   } catch (e) { /* ignoré */ }
 }
-function noise(d, v) {
+/* nz : bruit filtré (type, fréquence de départ -> fin), enveloppe percussive */
+function nz(d, v, ftype, f0, f1, q, delay) {
   if (!AC) return;
   try {
-    const n = Math.floor(AC.sampleRate * d), buf = AC.createBuffer(1, n, AC.sampleRate), data = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) data[i] = (rng() * 2 - 1) * (1 - i / n);
-    const s = AC.createBufferSource(), gn = AC.createGain();
-    s.buffer = buf; gn.gain.value = v || 0.08;
-    s.connect(gn); gn.connect(AC.destination); s.start();
+    const t = AC.currentTime + (delay || 0), s = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain();
+    s.buffer = nbuf(); s.loop = true;
+    fl.type = ftype; fl.Q.value = q || 0.8;
+    fl.frequency.setValueAtTime(f0, t);
+    fl.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + d);
+    gn.gain.setValueAtTime(0.0001, t);
+    gn.gain.linearRampToValueAtTime(v, t + 0.003);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    s.connect(fl); fl.connect(gn); gn.connect(out());
+    s.start(t, Math.random() * 0.5); s.stop(t + d + 0.02);
   } catch (e) { /* ignoré */ }
 }
+/* thump : impact grave (sinus qui chute de f0 à f1) */
+function thump(f0, f1, d, v, delay) { tone(f0, d, 'sine', v, f1 - f0, delay); }
 const SFX = {
-  hit() { noise(0.06, 0.1); tone(190, 0.06, 'square', 0.04, -90); },
-  big() { noise(0.16, 0.16); tone(110, 0.16, 'sawtooth', 0.07, -70); },
-  whoosh() { tone(420, 0.08, 'triangle', 0.03, -250); },
-  jump() { tone(260, 0.12, 'square', 0.03, 220); },
-  pick() { tone(660, 0.08, 'square', 0.04, 0); setTimeout(() => tone(990, 0.1, 'square', 0.04, 0), 70); },
-  brk() { noise(0.2, 0.12); tone(140, 0.12, 'square', 0.04, -60); },
-  special() { tone(300, 0.3, 'sawtooth', 0.05, 500); },
-  ko() { tone(220, 0.4, 'sawtooth', 0.06, -170); },
-  move() { tone(520, 0.04, 'square', 0.025, 0); }
+  hit() { const k = jit(1, 0.12); thump(170 * k, 55, 0.11, 0.5); nz(0.07, 0.35, 'lowpass', 2600 * k, 500, 0.7); nz(0.025, 0.2, 'bandpass', 3200, 2000, 1.2); },
+  big() { const k = jit(1, 0.08); thump(130 * k, 32, 0.28, 0.8); nz(0.22, 0.45, 'lowpass', 1500, 180, 0.7); nz(0.04, 0.3, 'bandpass', 2600, 1400, 1.1); tone(70, 0.2, 'triangle', 0.12, -25); },
+  whoosh() { nz(0.16, 0.12, 'bandpass', jit(500, 0.15), jit(2600, 0.15), 1.4); },
+  jump() { nz(0.12, 0.07, 'bandpass', 300, 900, 1.0); thump(120, 200, 0.08, 0.12); },
+  pick() { tone(880, 0.22, 'triangle', 0.1, 0); tone(1320, 0.3, 'sine', 0.09, 0, 0.07); tone(1760, 0.35, 'sine', 0.04, 0, 0.07); },
+  brk() { thump(110, 50, 0.16, 0.5); nz(0.1, 0.35, 'bandpass', 1400, 600, 1.0); for (let i = 0; i < 4; i++) nz(0.03, 0.25, 'bandpass', jit(2400, 0.4), 1200, 2.0, 0.03 + i * 0.045); },
+  special() { nz(0.45, 0.22, 'bandpass', 250, 3200, 1.6); thump(90, 40, 0.4, 0.6); tone(220, 0.4, 'sawtooth', 0.05, 300); tone(330, 0.4, 'triangle', 0.05, 440, 0.03); },
+  ko() { thump(150, 38, 0.45, 0.8); nz(0.3, 0.3, 'lowpass', 1200, 150, 0.7); tone(240, 0.5, 'triangle', 0.08, -170); },
+  move() { tone(700, 0.05, 'triangle', 0.05, 0); }
 };
 
 /* ---------- données ---------- */
@@ -216,10 +248,10 @@ for (const k of HERO_KEYS) {
     dur: Math.round(a.dur * h.rate), act: a.act.map(x => Math.round(x * h.rate)), reach: a.reach + h.reach,
     dmg: Math.max(1, Math.round(a.dmg * h.dmg)), kd: a.kd, ext: a.ext + h.reach
   }));
-  h.kick = { reach: KICK.reach + h.reach, dmg: Math.round(KICK.dmg * h.dmg), kd: false };
+  h.kick = { reach: KICK.reach + h.reach, dmg: Math.round(KICK.dmg * h.dmg), kd: false, zr: 52 };
 }
 const LV = {
-  barrels: [[330, 190], [760, 175], [1300, 222], [1650, 185]],
+  barrels: [[300, 190], [520, 220], [760, 175], [1000, 205], [1300, 222], [1500, 182], [1650, 185], [1880, 212]],
   waves: [
     { cam: 120, spawn: [['thug', 1], ['thug', -1]] },
     { cam: 560, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
@@ -251,7 +283,7 @@ function mkPlayer(hero, slot) {
   const hr = HEROES[hero];
   return { kind: 'p', hero, slot, x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
     st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
-    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false };
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50 };
 }
 function mkEnemy(type, x, y) {
   const d = T[type], hp = Math.round(d.hp * (nPlayers === 2 ? 1.5 : 1));
@@ -281,17 +313,17 @@ const livePlayers = () => PS.filter(p => !p.out && !p.dying);
 function strike(att, a) {
   const x0 = att.x, x1 = att.x + att.face * a.reach;
   const lo = Math.min(x0, x1) - 5, hi = Math.max(x0, x1) + 5;
-  const list = att.kind === 'p' ? E.concat(B) : livePlayers();
+  const list = att.kind === 'p' ? E.concat(B, livePlayers().filter(q => q !== att)) : livePlayers();
   for (const t of list) {
     if (t.gone || t.dying || att.hit.has(t)) continue;
     if (t.kind !== 'b' && (t.st === 'down' || t.inv > 0)) continue;
-    if (t.x < lo || t.x > hi || Math.abs(t.y - att.y) > 13 || Math.abs(t.z - att.z) > 26) continue;
+    if (t.x < lo || t.x > hi || Math.abs(t.y - att.y) > 13 || Math.abs(t.z - att.z) > (a.zr || 26)) continue;
     att.hit.add(t);
     hurt(t, att, a, att.face);
   }
 }
 function strikeArea(att, a) {
-  for (const t of E.concat(B)) {
+  for (const t of E.concat(B, livePlayers().filter(q => q !== att))) {
     if (t.gone || t.dying || att.hit.has(t)) continue;
     if (t.kind !== 'b' && (t.st === 'down' || t.inv > 0)) continue;
     if (Math.abs(t.x - att.x) > a.r || Math.abs(t.y - att.y) > 22 || Math.abs(t.z - att.z) > 30) continue;
@@ -304,11 +336,15 @@ function knock(t, dir) {
 }
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
-  t.hp -= a.dmg; t.flash = 8;
+  const ff = att.kind === 'p' && t.kind === 'p';
+  t.hp -= ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg; t.flash = 8;
+  if (ff && t.hp < 1) t.hp = 1;
+  if (!ff && att.kind === 'p' && att.st !== 'special') att.sp = Math.min(100, att.sp + a.dmg * 2.2);
+  if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6);
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
   if (a.kd) { shake = Math.max(shake, 6); SFX.big(); } else SFX.hit();
-  if (att.kind === 'p') { att.score += 10; if (t.kind === 'e') { tgt = t; tgtT = 150; } }
+  if (att.kind === 'p' && !ff) { att.score += 10; if (t.kind === 'e') { tgt = t; tgtT = 150; } }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
     if (t.kind === 'e' && att.kind === 'p') att.score += T[t.type].score;
@@ -325,8 +361,8 @@ function breakBarrel(b) {
   b.gone = true; SFX.brk();
   for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
   const r = rng();
-  if (r < 0.5) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
-  else if (r < 0.72) IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
+  if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
 }
 
 /* ---------- joueurs ---------- */
@@ -348,10 +384,11 @@ function updPlayer(p) {
       if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd; }
       if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
       else if (Pp.special) {
-        if (p.hero === 'vive') {
-          if (p.cd <= 0) { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
-        } else if (p.hp > 10) {
-          p.hp -= p.hero === 'costaud' ? 10 : 8; p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; p.refund = true; SFX.special();
+        const cost = p.hero === 'vive' ? SP_COST_VIVE : 100;
+        if (p.sp >= cost) {
+          p.sp -= cost;
+          if (p.hero === 'vive') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
+          else { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
         }
       } else if (Pp.punch) startAttack(p, 0);
       break;
@@ -370,7 +407,7 @@ function updPlayer(p) {
     case 'air': {
       p.x += p.vx; p.y += p.vy; p.vz -= 0.22; p.z += p.vz;
       if (Pp.punch && !p.kick) { p.kick = true; p.kt = 0; p.hit = new Set(); SFX.whoosh(); }
-      if (p.kick) { p.kt++; if (p.kt >= 2 && p.kt <= 18) strike(p, hr.kick); }
+      if (p.kick) { p.kt++; if (p.kt >= 1 && p.kt <= 24) strike(p, hr.kick); }
       if (p.z <= 0) { p.z = 0; p.st = 'free'; p.kick = false; p.vx = 0; p.vy = 0; }
       break;
     }
@@ -1253,15 +1290,24 @@ function bar(x, y, w, h, r, col) {
   g.fillStyle = col || (r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'));
   g.fillRect(x, y, Math.max(0, Math.round(w * r)), h);
 }
+function spBar(p, x, y, w) {
+  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost, r = p.sp / 100;
+  const flash = ready && ((tick >> 3) & 1);
+  bar(x, y, w, 4, r, ready ? (flash ? '#fff7b0' : '#ffd34d') : '#4aa8ff');
+  if (cost < 100) { g.fillStyle = '#000'; g.fillRect(x + Math.round(w * cost / 100), y, 1, 4); }
+}
 function hudPlayer(p, i) {
   const left = i === 0, col = left ? '#8cf' : '#fb7', r = p.hp / p.maxhp;
   const life = p.out ? 'HORS JEU' : 'x' + p.lives;
+  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost;
   if (left) {
     txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
-    txt(String(p.score).padStart(6, '0'), 8, 30, 9, '#fff');
+    spBar(p, 26, 19, 90); txt(ready ? 'SPÉCIAL !' : 'SP', 122, 24, 8, ready ? '#ffd34d' : '#9ab');
+    txt(String(p.score).padStart(6, '0'), 8, 38, 9, '#fff');
   } else {
     txt('J2', W - 8, 16, 10, col, 'right'); bar(W - 116, 8, 90, 8, r); txt(life, W - 122, 16, 10, p.out ? '#e66' : '#fff', 'right');
-    txt(String(p.score).padStart(6, '0'), W - 8, 30, 9, '#fff', 'right');
+    spBar(p, W - 116, 19, 90); txt(ready ? 'SPÉCIAL !' : 'SP', W - 122, 24, 8, ready ? '#ffd34d' : '#9ab', 'right');
+    txt(String(p.score).padStart(6, '0'), W - 8, 38, 9, '#fff', 'right');
   }
 }
 function hud() {
