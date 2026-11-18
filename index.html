@@ -605,6 +605,14 @@ let online = false, localSlot = 0, olStage = 'menu', olIdx = 0, codeBuf = '', ho
 let frameNo = 0, sentF = 0, localBuf = {}, remoteBuf = {}, prevM = [0, 0], myHash = {}, theirHash = {}, desync = false, stallT = 0;
 const maskOf = h => ACT.reduce((m, n) => m | (h[n] ? BITS[n] : 0), 0);
 
+const PEER_OPTS = {
+  config: {
+    iceServers: [
+      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:global.stun.twilio.com:3478'] },
+      { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' }
+    ]
+  }
+};
 function netClose() {
   try { if (conn) conn.close(); } catch (e) { /* ignoré */ }
   try { if (peer) peer.destroy(); } catch (e) { /* ignoré */ }
@@ -626,7 +634,7 @@ function hostGame() {
   netClose();
   olStage = 'hosting'; hostCode = newCode();
   try {
-    peer = new Peer('nfer-' + hostCode);
+    peer = new Peer('nfer-' + hostCode, PEER_OPTS);
     peer.on('connection', c => { if (conn) { c.close(); return; } conn = c; setupConn(0); });
     peer.on('error', err => {
       if (err && err.type === 'unavailable-id') hostGame();
@@ -639,10 +647,10 @@ function joinGame(code) {
   netClose();
   olStage = 'connecting';
   try {
-    peer = new Peer();
+    peer = new Peer(undefined, PEER_OPTS);
     peer.on('open', () => { conn = peer.connect('nfer-' + code, { reliable: true }); setupConn(1); });
     peer.on('error', err => netFail(err && err.type === 'peer-unavailable' ? 'Code introuvable. Vérifiez le code.' : 'Erreur réseau : ' + ((err && err.type) || 'inconnue')));
-    setTimeout(() => { if (olStage === 'connecting' && !online) netFail('Connexion impossible (délai dépassé).'); }, 15000);
+    setTimeout(() => { if (olStage === 'connecting' && !online) netFail('Connexion impossible (délai dépassé : les deux réseaux n’arrivent pas à se connecter en direct).'); }, 30000);
   } catch (e) { netFail('Le mode en ligne est indisponible ici.'); }
 }
 function setupConn(slot) {
