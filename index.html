@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Nuit de Fer — prototype</title>
 <style>
   html,body{margin:0;height:100%;background:#0b0b14;color:#aab;font-family:ui-monospace,Menlo,Consolas,monospace}
@@ -10,6 +10,17 @@
   canvas{width:min(100vw,calc((100vh - 48px) * 16 / 9));aspect-ratio:16/9;image-rendering:pixelated;background:#000;display:block;outline:none}
   #help{font-size:12px;text-align:center;padding:0 8px;line-height:1.5}
   kbd{background:#22223a;border:1px solid #3a3a5a;border-radius:3px;padding:0 5px;color:#dde}
+
+  #touch{display:none;position:fixed;left:0;right:0;bottom:0;height:46vh;max-height:230px;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  body.touch #touch{display:block}
+  body.touch #help{display:none}
+  #pad{position:absolute;left:2vw;bottom:14px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.25)}
+  #knob{position:absolute;left:50px;top:50px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
+  .tb{position:absolute;width:66px;height:66px;border-radius:50%;background:rgba(255,200,60,.22);border:2px solid rgba(255,220,120,.6);color:#fff;font:bold 12px ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
+  .tb.s{width:44px;height:30px;border-radius:8px;font-size:11px;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
+  .tb.on{background:rgba(255,220,120,.6)}
+  #bP{right:94px;bottom:70px} #bJ{right:12px;bottom:112px} #bS{right:12px;bottom:28px}
+  #bOk{left:calc(50% - 50px);bottom:14px} #bPause{left:calc(50% + 4px);bottom:14px}
 </style>
 </head>
 <body>
@@ -18,6 +29,44 @@
   <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> sauter (puis <kbd>J</kbd> : coup de pied) · <kbd>L</kbd> spécial · <kbd>P</kbd> pause<br>
   <b>En ligne</b> : mêmes touches, chacun sur son ordinateur (un joueur crée la partie, l'autre saisit le code)
 </div>
+<div id="touch">
+  <div id="pad"><div id="knob"></div></div>
+  <div class="tb" id="bP" data-k="KeyJ">Frapper</div>
+  <div class="tb" id="bJ" data-k="KeyK">Saut</div>
+  <div class="tb" id="bS" data-k="KeyL">Spécial</div>
+  <div class="tb s" id="bOk" data-k="Enter">OK</div>
+  <div class="tb s" id="bPause" data-k="KeyP">Pause</div>
+</div>
+<script>
+(function () {
+  var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
+  window.IS_TOUCH = touch;
+  if (!touch) return;
+  document.body.classList.add('touch');
+  var K = function () { return window.__keys; };
+  var pad = document.getElementById('pad'), knob = document.getElementById('knob');
+  function setDir(dx, dy) {
+    var k = K(); if (!k) return;
+    k.ArrowLeft = dx < -0.3; k.ArrowRight = dx > 0.3; k.ArrowUp = dy < -0.3; k.ArrowDown = dy > 0.3;
+    knob.style.transform = 'translate(' + (dx * 30) + 'px,' + (dy * 30) + 'px)';
+  }
+  function padMove(e) {
+    var r = pad.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2), m = Math.hypot(dx, dy);
+    if (m > 1) { dx /= m; dy /= m; }
+    setDir(dx, dy);
+  }
+  pad.addEventListener('pointerdown', function (e) { pad.setPointerCapture(e.pointerId); if (window.unlockAudio) unlockAudio(); padMove(e); e.preventDefault(); });
+  pad.addEventListener('pointermove', function (e) { if (pad.hasPointerCapture(e.pointerId)) padMove(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { pad.addEventListener(t, function () { setDir(0, 0); }); });
+  Array.prototype.forEach.call(document.querySelectorAll('.tb'), function (b) {
+    var code = b.getAttribute('data-k');
+    b.addEventListener('pointerdown', function (e) { b.setPointerCapture(e.pointerId); if (window.unlockAudio) unlockAudio(); var k = K(); if (k) k[code] = true; b.classList.add('on'); e.preventDefault(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, function () { var k = K(); if (k) k[code] = false; b.classList.remove('on'); }); });
+  });
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+})();
+</script>
 <script>
 (function () {
   var srcs = ['peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'], i = 0;
@@ -55,7 +104,7 @@ const KEYS_P2 = {
   left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
   punch: ['Comma', 'Numpad1'], jump: ['Period', 'Numpad2'], special: ['Slash', 'Numpad3']
 };
-const keys = {};
+const keys = {}; window.__keys = keys;
 let nPlayers = 1;
 const HLD = [{}, {}], PRS = [{}, {}], OLD = [{}, {}];
 let START = false, PAUSE = false, oldS = false, oldP = false;
@@ -707,6 +756,10 @@ function updOnline() {
     if (PRS[0].up || PRS[0].down) { olIdx = 1 - olIdx; SFX.move(); }
     if (START || PRS[0].punch || PRS[0].jump) { unlockAudio(); if (olIdx === 0) hostGame(); else { olStage = 'joining'; codeBuf = ''; } }
   } else if (olStage === 'joining') {
+    if (START && codeBuf.length < 4 && window.IS_TOUCH) {
+      const v = window.prompt('Code de la partie (5 caractères) :', '');
+      if (v) codeBuf = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    }
     if (START && codeBuf.length >= 4) joinGame(codeBuf);
   } else if (olStage === 'error') {
     if (START) { olStage = 'menu'; netMsg = ''; }
