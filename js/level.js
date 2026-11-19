@@ -1,14 +1,14 @@
 'use strict';
 /* ====================================================================
-   RENDU
+   NIVEAU : données, démarrage, vagues, caméra et décor
    ==================================================================== */
 function hash(n) {
   n = Math.imul(n ^ 61, 0x45d9f3b); n ^= n >>> 16; n = Math.imul(n, 0x45d9f3b); n ^= n >>> 16;
   return (n >>> 0) / 4294967296;
 }
 const skyG = g.createLinearGradient(0, 0, 0, 150);
-skyG.addColorStop(0, '#0e0b24'); skyG.addColorStop(1, '#43275a');
-
+skyG.addColorStop(0, '#0e0b24');
+skyG.addColorStop(1, '#43275a');
 function drawBG(c) {
   g.fillStyle = skyG; g.fillRect(0, 0, W, 150);
   g.fillStyle = '#e8e0c0';
@@ -50,10 +50,38 @@ function drawBG(c) {
     g.globalAlpha = 0.13; g.beginPath(); g.arc(lx + 1, 106, 36, 0, 7); g.fill(); g.globalAlpha = 1;
   }
 }
-
-function txt(s, x, y, size, col, al) {
-  g.font = 'bold ' + size + 'px monospace'; g.textAlign = al || 'left';
-  g.fillStyle = '#000'; g.fillText(s, x + 1, y + 1);
-  g.fillStyle = col; g.fillText(s, x, y);
+const LV = {
+  weapons: [[170, 232, 'tuyau'], [330, 205, 'batte'], [640, 228, 'couteau'], [900, 205, 'batte'], [1180, 235, 'tuyau'], [1450, 215, 'couteau'], [1700, 200, 'batte'], [2000, 228, 'tuyau']],
+  barrels: [[300, 190], [520, 220], [760, 175], [1000, 205], [1300, 222], [1500, 182], [1650, 185], [1880, 212]],
+  waves: [
+    { cam: 120, spawn: [['thug', 1], ['thug', -1]] },
+    { cam: 560, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
+    { cam: 980, spawn: [['brute', 1], ['thug', -1]] },
+    { cam: 1380, spawn: [['thrower', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
+    { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['thug', 1]] },
+    { cam: 1920, boss: true, spawn: [['boss', 1]] }
+  ]
+};
+function startGame() {
+  PS = SEL.slice(0, nPlayers).map((s, i) => mkPlayer(HERO_KEYS[s.c], i));
+  E = []; PJ = []; FX = []; IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
+  B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
+  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false;
+  hitstop = 0; shake = 0; tgt = null; tgtT = 0; goT = 0; endT = 0; paused = false;
+  seedRng(online ? netSeed : (Date.now() >>> 0));
+  state = 'play';
 }
-
+function updWaves() {
+  const w = LV.waves[waveI];
+  if (waveActive) {
+    if (E.every(e => e.gone || e.dying)) {
+      waveActive = false; camLimit = LEN - W; goT = 240;
+      if (w && w.boss) endT = 150;
+      waveI++;
+    }
+  } else if (w && cam >= w.cam - 0.01) {
+    waveActive = true; camLimit = cam; goT = 0;
+    for (const [k, s] of w.spawn) spawn(k, s);
+    if (nPlayers === 2 && !w.boss) spawn('thug', rng() < 0.5 ? 1 : -1);
+  }
+}

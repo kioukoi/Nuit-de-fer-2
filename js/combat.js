@@ -1,5 +1,7 @@
 'use strict';
-/* ---------- combat ---------- */
+/* ====================================================================
+   COMBAT : coups, dégâts, projection (commun à tous les éléments)
+   ==================================================================== */
 function strike(att, a) {
   const x0 = att.x, x1 = att.x + att.face * a.reach;
   const lo = Math.min(x0, x1) - 5, hi = Math.max(x0, x1) + 5;
@@ -56,12 +58,3 @@ function hurt(t, att, a, dir) {
   if (a.kd || t.z > 0) knock(t, dir);
   else { t.st = 'hurt'; t.t = 0; t.vx = dir * 1.4; t.hit = new Set(); }
 }
-function breakBarrel(b) {
-  b.gone = true; SFX.brk();
-  for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
-  const r = rng();
-  if (r < 0.14) { const wt = WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
-  else if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
-  else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
-}
-

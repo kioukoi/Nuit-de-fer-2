@@ -1,5 +1,38 @@
 'use strict';
-/* ---------- joueurs ---------- */
+/* ====================================================================
+   HÉROS : données, création, mise à jour, attaques et HUD des joueurs
+   ==================================================================== */
+const ATK = [
+  { dur: 15, act: [4, 7], reach: 24, dmg: 6, kd: false, ext: 10 },
+  { dur: 15, act: [4, 7], reach: 26, dmg: 7, kd: false, ext: 12 },
+  { dur: 24, act: [7, 10], reach: 30, dmg: 11, kd: true, ext: 15 }
+];
+const SP_COST_VIVE = 50; // coût de la jauge SP du spécial de « vive » (les autres héros : 100)
+const KICK = { reach: 24, dmg: 8, kd: false, zr: 52 };
+const HERO_KEYS = ['cogneur', 'vive', 'costaud'];
+const HEROES = {
+  cogneur: { name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0,
+    col: { shirt: '#2f6fd0', pants: '#3b4f8a', skin: '#e6b48c', hair: '#3a2418', acc: '#e03030', acc2: '#f2f2f2', shoe: '#f2f2f2' } },
+  vive: { name: 'LA VIVE', role: 'Rapide', special: 'Roulade', sc: 1, hp: 80, spd: 1.95, jump: 4.9, dmg: 0.8, reach: 0, rate: 0.8, slam: 0,
+    col: { shirt: '#2fb59a', pants: '#22222e', skin: '#e8b894', hair: '#e0a030', acc: '#f5d442', acc2: '#ffffff', shoe: '#f5f5f5' } },
+  costaud: { name: 'LE COSTAUD', role: 'Lourd', special: 'Coup de masse', sc: 1.15, hp: 130, spd: 1.1, jump: 3.9, dmg: 1.45, reach: 4, rate: 1.25, slam: 14,
+    col: { shirt: '#d9622b', pants: '#3b4036', skin: '#b07850', hair: '#1a1210', acc: '#d9a21b', shoe: '#2a2a2a' } }
+};
+for (const k of HERO_KEYS) {
+  const h = HEROES[k];
+  h.atk = ATK.map(a => ({
+    dur: Math.round(a.dur * h.rate), act: a.act.map(x => Math.round(x * h.rate)), reach: a.reach + h.reach,
+    dmg: Math.max(1, Math.round(a.dmg * h.dmg)), kd: a.kd, ext: a.ext + h.reach
+  }));
+  h.kick = { reach: KICK.reach + h.reach, dmg: Math.round(KICK.dmg * h.dmg), kd: false, zr: 52 };
+}
+function mkPlayer(hero, slot) {
+  const hr = HEROES[hero];
+  return { kind: 'p', hero, slot, x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
+    st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0 };
+}
+const livePlayers = () => PS.filter(p => !p.out && !p.dying);
 function startAttack(p, stage) {
   p.st = 'attack'; p.stage = stage; p.t = 0; p.buf = false; p.hit = new Set(); SFX.whoosh();
 }
@@ -108,4 +141,31 @@ function updPlayer(p) {
     IT = IT.filter(i => !i.got);
   }
 }
-
+function durBar(p, x, y) {
+  const r = p.wd / WEAPONS[p.weapon].uses, low = p.wd <= 3;
+  bar(x, y, 50, 4, r, low ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050');
+}
+function spBar(p, x, y, w) {
+  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost;
+  const flash = ready && ((tick >> 3) & 1);
+  bar(x, y, w, 6, p.sp / 100, ready ? (flash ? '#fff7b0' : '#ffd34d') : '#4aa8ff');
+  if (ready) { g.strokeStyle = flash ? '#fff' : '#ffd34d'; g.lineWidth = 1; g.strokeRect(x - 1.5, y - 1.5, w + 3, 9); }
+  if (cost < 100) { g.fillStyle = '#000'; g.fillRect(x + Math.round(w * cost / 100), y, 1, 6); }
+}
+function hudPlayer(p, i) {
+  const left = i === 0, col = left ? '#8cf' : '#fb7', r = p.hp / p.maxhp;
+  const life = p.out ? 'HORS JEU' : 'x' + p.lives;
+  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost;
+  const lab = ready ? 'SPÉCIAL PRÊT !' : 'SPÉCIAL', lc = ready ? '#ffd34d' : '#cfe0ff';
+  if (left) {
+    txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
+    spBar(p, 26, 20, 90); txt(lab, 122, 27, 8, lc);
+    txt(String(p.score).padStart(6, '0'), 8, 42, 9, '#fff');
+    if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [E] lancer', 8, 54, 8, '#ffd34d'); durBar(p, 8, 58); }
+  } else {
+    txt('J2', W - 8, 16, 10, col, 'right'); bar(W - 116, 8, 90, 8, r); txt(life, W - 122, 16, 10, p.out ? '#e66' : '#fff', 'right');
+    spBar(p, W - 116, 20, 90); txt(lab, W - 122, 27, 8, lc, 'right');
+    txt(String(p.score).padStart(6, '0'), W - 8, 42, 9, '#fff', 'right');
+    if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [T] lancer', W - 8, 54, 8, '#ffd34d', 'right'); durBar(p, W - 58, 58); }
+  }
+}

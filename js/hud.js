@@ -1,89 +1,17 @@
 'use strict';
-function drawBarrel(b) {
-  const sx = Math.round(b.x - cam), sy = Math.round(b.y);
-  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(sx, sy + 1, 9, 3, 0, 0, 7); g.fill();
-  g.fillStyle = '#7a4a22'; g.fillRect(sx - 7, sy - 20, 14, 20);
-  g.fillStyle = '#4a4a52'; g.fillRect(sx - 7, sy - 16, 14, 2); g.fillRect(sx - 7, sy - 6, 14, 2);
-  g.fillStyle = '#8f5a2a'; g.fillRect(sx - 5, sy - 20, 3, 20);
+/* ====================================================================
+   INTERFACE : texte, HUD, menus et écrans, boucle de rendu
+   ==================================================================== */
+function txt(s, x, y, size, col, al) {
+  g.font = 'bold ' + size + 'px monospace'; g.textAlign = al || 'left';
+  g.fillStyle = '#000'; g.fillText(s, x + 1, y + 1);
+  g.fillStyle = col; g.fillText(s, x, y);
 }
 function bar(x, y, w, h, r, col) {
   g.fillStyle = '#000'; g.fillRect(x - 1, y - 1, w + 2, h + 2);
   g.fillStyle = '#3a1a1a'; g.fillRect(x, y, w, h);
   g.fillStyle = col || (r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'));
   g.fillRect(x, y, Math.max(0, Math.round(w * r)), h);
-}
-function durBar(p, x, y) {
-  const r = p.wd / WEAPONS[p.weapon].uses, low = p.wd <= 3;
-  bar(x, y, 50, 4, r, low ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050');
-}
-function spBar(p, x, y, w) {
-  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost;
-  const flash = ready && ((tick >> 3) & 1);
-  bar(x, y, w, 6, p.sp / 100, ready ? (flash ? '#fff7b0' : '#ffd34d') : '#4aa8ff');
-  if (ready) { g.strokeStyle = flash ? '#fff' : '#ffd34d'; g.lineWidth = 1; g.strokeRect(x - 1.5, y - 1.5, w + 3, 9); }
-  if (cost < 100) { g.fillStyle = '#000'; g.fillRect(x + Math.round(w * cost / 100), y, 1, 6); }
-}
-function hudPlayer(p, i) {
-  const left = i === 0, col = left ? '#8cf' : '#fb7', r = p.hp / p.maxhp;
-  const life = p.out ? 'HORS JEU' : 'x' + p.lives;
-  const cost = p.hero === 'vive' ? SP_COST_VIVE : 100, ready = p.sp >= cost;
-  const lab = ready ? 'SPÉCIAL PRÊT !' : 'SPÉCIAL', lc = ready ? '#ffd34d' : '#cfe0ff';
-  if (left) {
-    txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
-    spBar(p, 26, 20, 90); txt(lab, 122, 27, 8, lc);
-    txt(String(p.score).padStart(6, '0'), 8, 42, 9, '#fff');
-    if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [E] lancer', 8, 54, 8, '#ffd34d'); durBar(p, 8, 58); }
-  } else {
-    txt('J2', W - 8, 16, 10, col, 'right'); bar(W - 116, 8, 90, 8, r); txt(life, W - 122, 16, 10, p.out ? '#e66' : '#fff', 'right');
-    spBar(p, W - 116, 20, 90); txt(lab, W - 122, 27, 8, lc, 'right');
-    txt(String(p.score).padStart(6, '0'), W - 8, 42, 9, '#fff', 'right');
-    if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [T] lancer', W - 8, 54, 8, '#ffd34d', 'right'); durBar(p, W - 58, 58); }
-  }
-}
-function drawItem(it) {
-  if (it.got) return;
-  if (it.ttl !== undefined && it.ttl < 180 && ((tick >> 2) & 1)) return;
-  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
-  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, it.weapon ? 9 : 6, 2, 0, 0, 7); g.fill();
-  if (it.weapon) {
-    const pulse = 0.5 + 0.5 * Math.sin(tick * 0.12), by = sy - 4 - Math.round(pulse * 2);
-    g.fillStyle = 'rgba(255,220,100,' + (0.18 + pulse * 0.16) + ')'; g.beginPath(); g.ellipse(sx, sy - 2, 18, 6, 0, 0, 7); g.fill();
-    g.save(); g.translate(sx - 14, by); g.rotate(-0.12); g.scale(1.5, 1.5);
-    drawWeaponGround(it.type);
-    g.restore();
-    txt(WEAPONS[it.type].name, sx, by - 12 - Math.round(pulse * 2), 7, '#ffd34d', 'center');
-    return;
-  }
-  if (it.type === 'apple') {
-    g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
-    g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
-  } else {
-    g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
-    g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
-  }
-}
-function drawWeaponGround(name) {
-  g.lineJoin = 'round';
-  if (name === 'tuyau') { g.fillStyle = '#8a9099'; g.strokeStyle = OL; g.lineWidth = 0.8; g.beginPath(); g.roundRect(0, -1.6, 19, 3.2, 1.4); g.fill(); g.stroke(); g.fillStyle = '#c9ced6'; g.fillRect(1, -1, 17, 0.9); }
-  else if (name === 'batte') { g.fillStyle = '#b9803f'; g.strokeStyle = OL; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, -1.1); g.lineTo(10, -1.5); g.quadraticCurveTo(17, -3.2, 19, -2); g.quadraticCurveTo(20, 0, 19, 2); g.quadraticCurveTo(17, 3.2, 10, 1.5); g.lineTo(0, 1.1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#222'; g.fillRect(0.5, -1, 4, 2); }
-  else { g.fillStyle = '#3a2a20'; g.fillRect(0, -1.1, 5, 2.2); g.fillStyle = '#dfe6ee'; g.strokeStyle = OL; g.lineWidth = 0.7; g.beginPath(); g.moveTo(5, -1.2); g.lineTo(13, -0.7); g.quadraticCurveTo(15.2, 0.1, 14, 0.9); g.lineTo(5, 1.2); g.closePath(); g.fill(); g.stroke(); }
-}
-function drawProj(b) {
-  const sx = Math.round(b.x - cam), sy = Math.round(b.y - b.z);
-  g.save(); g.translate(sx, sy); g.rotate(b.rot);
-  if (b.wtype) { g.translate(-9, 0); drawWeaponGround(b.wtype); }
-  else { g.fillStyle = '#6c6'; g.fillRect(-2, -5, 4, 10); g.fillStyle = '#cfc'; g.fillRect(-1, -7, 2, 3); }
-  g.restore();
-}
-function drawFX(f) {
-  const sx = Math.round(f.x - cam), sy = Math.round(f.y - f.z), k = f.t / f.life;
-  if (f.txt) { g.globalAlpha = 1 - k * k; txt(f.txt, sx, sy - f.t * 0.6, 9, '#ff9a5a', 'center'); g.globalAlpha = 1; return; }
-  g.globalAlpha = 1 - k;
-  g.fillStyle = f.big ? '#ffd34d' : '#ffffff';
-  const r = (f.big ? 5 : 3) + f.t * 0.8;
-  g.fillRect(sx - r, sy - 1, r * 2, 2); g.fillRect(sx - 1, sy - r, 2, r * 2);
-  g.fillRect(sx - r * 0.6, sy - r * 0.6, 2, 2); g.fillRect(sx + r * 0.6, sy + r * 0.6, 2, 2);
-  g.globalAlpha = 1;
 }
 function drawMenu() {
   g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(0, 0, W, H);
@@ -112,7 +40,6 @@ function hud() {
   if (online && stallT > 20) txt('En attente de l\'autre joueur...', W / 2, 52, 10, '#ffd34d', 'center');
   if (online && desync) txt('DÉSYNCHRONISÉ : relancez la partie', W / 2, 64, 10, '#f66', 'center');
 }
-
 let PREV = null;
 function drawTitle() {
   g.fillStyle = 'rgba(5,3,15,.55)'; g.fillRect(0, 0, W, H);
@@ -195,7 +122,6 @@ function drawSelect() {
 function endScores() {
   PS.forEach((p, i) => txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0'), W / 2, 148 + i * 14, 12, i ? '#fb7' : '#8cf', 'center'));
 }
-
 function render() {
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
@@ -238,4 +164,3 @@ function render() {
     }
   }
 }
-

@@ -1,4 +1,7 @@
 'use strict';
+/* ====================================================================
+   PERSONNAGES : rendu vectoriel (héros et ennemis)
+   ==================================================================== */
 /* ---------- personnages : rendu vectoriel lissé (haute définition) ----------
    Chaque personnage est dessiné en vectoriel (courbes, dégradés, contours fins) dans un canvas
    suréchantillonné (SS fois), puis réduit en douceur sur le jeu, qui tourne lui-même en 3x. */
@@ -21,8 +24,11 @@ function pal(d) {
   };
   return d._p;
 }
-const sprC = document.createElement('canvas'); sprC.width = 128 * SS; sprC.height = 128 * SS;
-const sg = sprC.getContext('2d'); sg.imageSmoothingEnabled = true;
+const sprC = document.createElement('canvas');
+sprC.width = 128 * SS;
+sprC.height = 128 * SS;
+const sg = sprC.getContext('2d');
+sg.imageSmoothingEnabled = true;
 function lg(x0, y0, x1, y1, stops) {
   const gr = g.createLinearGradient(x0, y0, x1, y1);
   stops.forEach(([o, c]) => gr.addColorStop(o, c));
@@ -76,26 +82,6 @@ function drawLeg(hx, hy, fx, fy, pants, shoe, toe, calf) {
   g.fillStyle = toe; g.beginPath(); g.ellipse(fx + 4, fy - 1, 1.2, 1.1, 0, 0, 7); g.fill();
   g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(fx - 2.6, fy + 0.2, 7, 0.6);
 }
-
-
-/* armes tenues en main : dessinées dans le repère du personnage, orientées par un angle (0 = vers l'avant) */
-function drawWeapon(name, hx, hy, ang) {
-  g.save(); g.translate(hx, hy); g.rotate(ang);
-  if (name === 'tuyau') {
-    rrect(-4, -1.3, 25, 2.6, 1.2, lg(0, -1.3, 0, 1.3, [[0, '#c9ced6'], [0.5, '#8a9099'], [1, '#5c626b']]));
-    g.fillStyle = '#4a4f57'; g.fillRect(18.2, -1.3, 1.1, 2.6); g.fillRect(-1, -1.3, 1, 2.6);
-  } else if (name === 'batte') {
-    g.beginPath(); g.moveTo(-4, -1); g.lineTo(9, -1.3); g.quadraticCurveTo(19, -3.1, 22.5, -2); g.quadraticCurveTo(24, 0, 22.5, 2); g.quadraticCurveTo(19, 3.1, 9, 1.3); g.lineTo(-4, 1); g.closePath();
-    g.fillStyle = lg(0, -3, 0, 3, [[0, '#d9a25c'], [1, '#8a5a28']]); g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.lineJoin = 'round'; g.stroke();
-    g.fillStyle = '#222'; g.fillRect(-3.6, -1, 5, 2);
-  } else {
-    rrect(-3.5, -1.1, 6, 2.2, 0.9, '#3a2a20');
-    g.beginPath(); g.moveTo(2.2, -1.3); g.lineTo(11, -0.8); g.quadraticCurveTo(13.6, 0.1, 12.2, 0.9); g.lineTo(2.2, 1.3); g.closePath();
-    g.fillStyle = lg(0, -1.3, 0, 1.3, [[0, '#f2f6fa'], [1, '#aab4be']]); g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
-  }
-  g.restore();
-}
-
 function drawChar(e) {
   const isP = e.kind === 'p', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = pal(d), type = isP ? e.hero : e.type;
   const sx = Math.round(e.x - cam), sy = Math.round(e.y - e.z);
@@ -338,4 +324,3 @@ function drawChar(e) {
     g.fillStyle = '#ffd34d'; g.fillRect(sx - 2, my, 4, 7); g.fillRect(sx - 2, my + 8, 4, 2);
   }
 }
-

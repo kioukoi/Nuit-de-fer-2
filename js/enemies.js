@@ -1,5 +1,30 @@
 'use strict';
-/* ---------- ennemis ---------- */
+/* ====================================================================
+   ENNEMIS : données, création, apparition, comportement
+   ==================================================================== */
+const T = {
+  thug: { hp: 30, sp: 0.8, sc: 1, col: { shirt: '#b3412f', pants: '#3a3a52', skin: '#e0b090', hair: '#2a1a1a', acc: '#d4a017', shoe: '#1a1a1a' },
+    atk: { reach: 22, dmg: 8, tele: 24, dur: 14, act: [5, 8] }, score: 100, name: 'VOYOU' },
+  brute: { hp: 70, sp: 0.45, sc: 1.3, armor: true, col: { shirt: '#5a3a1a', pants: '#2f2f2f', skin: '#c99a74', hair: '#2a1a0a', acc: '#c9c9c9', shoe: '#111' },
+    atk: { reach: 28, dmg: 16, tele: 38, dur: 22, act: [8, 12], kd: true }, score: 250, name: 'COSTAUD' },
+  thrower: { hp: 24, sp: 0.7, sc: 1, ranged: true, col: { shirt: '#6a3fa0', pants: '#2a2a40', skin: '#e0b090', hair: '#4a9a3a', acc: '#66cc66', acc2: '#e8e8f0', shoe: '#dddddd' },
+    atk: { reach: 22, dmg: 7, tele: 30, dur: 14, act: [5, 8] }, score: 150, name: 'LANCEUR' },
+  boss: { hp: 220, sp: 1.0, sc: 1.4, armor: true, col: { shirt: '#26262e', pants: '#1a1a22', skin: '#d9a07a', hair: '#d02828', acc: '#d02828', shoe: '#111' },
+    atk: { reach: 30, dmg: 10, tele: 22, dur: 16, act: [5, 8] }, score: 2000, name: 'LE CHEF' }
+};
+function mkEnemy(type, x, y) {
+  const d = T[type], hp = Math.round(d.hp * (nPlayers === 2 ? 1.5 : 1));
+  return { kind: 'e', type, x, y, z: 0, vx: 0, vy: 0, vz: 0, face: -1, hp, maxhp: hp, st: 'move', t: 0,
+    cool: rnd(20, 70), side: rng() < 0.5 ? -1 : 1, slot: rnd(0, 30), hit: new Set(), inv: 0, flash: 0, walk: 0,
+    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7 };
+}
+function spawn(type, side) {
+  const x = side > 0 ? cam + W + 16 : cam - 16;
+  const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
+  e.face = side > 0 ? -1 : 1;
+  E.push(e);
+  return e;
+}
 function targetOf(e) {
   let best = null, bd = 1e9;
   for (const p of PS) {
@@ -132,56 +157,3 @@ function separate() {
     }
   }
 }
-function updItems() {
-  for (const it of IT) if (it.ttl !== undefined && !it.got && --it.ttl <= 0) it.got = true;
-  IT = IT.filter(i => !i.got);
-}
-function dropWeapon(b, hitX) {
-  if (!b.wtype || b.spent) return;
-  b.spent = true;
-  const wd = b.wd - (hitX !== undefined ? 3 : 0);
-  if (wd > 0) IT.push({ x: clamp(hitX !== undefined ? hitX : b.x, cam + 12, cam + W - 12), y: clamp(b.y, Y0, Y1), type: b.wtype, weapon: true, wd, got: false, ttl: 720 });
-  else { SFX.brk(); FX.push({ x: b.x, y: b.y, z: b.z, t: 0, life: 14, big: true }); }
-}
-function updProj() {
-  for (const b of PJ) {
-    b.x += b.vx; b.life--; b.rot += b.wtype ? 0.55 : 0.4;
-    if (b.own) {                       // arme lancée par un joueur : touche ennemis et barils
-      for (const t of E.concat(B)) {
-        if (t.gone || t.dying) continue;
-        if (t.kind !== 'b' && t.st === 'down') continue;
-        if (Math.abs(b.x - t.x) < 11 && Math.abs(b.y - t.y) < 10 && Math.abs(b.z - (t.z + 14)) < 28) {
-          hurt(t, b.own, { dmg: Math.round(9 * WEAPONS[b.wtype].mul), kd: true }, Math.sign(b.vx));
-          dropWeapon(b, t.x); b.life = 0; break;
-        }
-      }
-    } else {
-      for (const p of livePlayers()) {
-        if (p.inv <= 0 && p.st !== 'down' && Math.abs(b.x - p.x) < 8 && Math.abs(b.y - p.y) < 10 && Math.abs(b.z - (p.z + 16)) < 22) {
-          hurt(p, { kind: 'e' }, { dmg: b.wtype ? 10 : 7, kd: !!b.wtype }, Math.sign(b.vx));
-          dropWeapon(b, p.x); b.life = 0; break;
-        }
-      }
-    }
-    if (b.x < cam - 20 || b.x > cam + W + 20) b.life = 0;
-    if (b.life <= 0) dropWeapon(b);
-  }
-  PJ = PJ.filter(b => b.life > 0);
-}
-
-/* ---------- vagues et caméra ---------- */
-function updWaves() {
-  const w = LV.waves[waveI];
-  if (waveActive) {
-    if (E.every(e => e.gone || e.dying)) {
-      waveActive = false; camLimit = LEN - W; goT = 240;
-      if (w && w.boss) endT = 150;
-      waveI++;
-    }
-  } else if (w && cam >= w.cam - 0.01) {
-    waveActive = true; camLimit = cam; goT = 0;
-    for (const [k, s] of w.spawn) spawn(k, s);
-    if (nPlayers === 2 && !w.boss) spawn('thug', rng() < 0.5 ? 1 : -1);
-  }
-}
-
