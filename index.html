@@ -83,7 +83,6 @@ g.imageSmoothingEnabled = false;
 cv.addEventListener('pointerdown', () => { cv.focus(); unlockAudio(); });
 
 /* ---------- entrées ---------- */
-const SP_COST_VIVE = 50;
 const ACT = ['left', 'right', 'up', 'down', 'punch', 'jump', 'special', 'throw'];
 const KEYS_SOLO = {
   left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
@@ -287,6 +286,7 @@ const ATK = [
   { dur: 15, act: [4, 7], reach: 26, dmg: 7, kd: false, ext: 12 },
   { dur: 24, act: [7, 10], reach: 30, dmg: 11, kd: true, ext: 15 }
 ];
+const SP_COST_VIVE = 50; // coût de la jauge SP du spécial de « vive » (les autres héros : 100)
 const KICK = { reach: 24, dmg: 8, kd: false, zr: 52 };
 const WEAPONS = {
   tuyau: { name: 'TUYAU', reach: 14, mul: 1.7, uses: 10 },
@@ -1469,32 +1469,6 @@ function drawBarrel(b) {
   g.fillStyle = '#7a4a22'; g.fillRect(sx - 7, sy - 20, 14, 20);
   g.fillStyle = '#4a4a52'; g.fillRect(sx - 7, sy - 16, 14, 2); g.fillRect(sx - 7, sy - 6, 14, 2);
   g.fillStyle = '#8f5a2a'; g.fillRect(sx - 5, sy - 20, 3, 20);
-}
-function drawItem(it) {
-  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
-  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 6, 2, 0, 0, 7); g.fill();
-  if (it.type === 'apple') {
-    g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
-    g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
-  } else {
-    g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
-    g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
-  }
-}
-function drawProj(b) {
-  const sx = Math.round(b.x - cam), sy = Math.round(b.y - b.z);
-  g.save(); g.translate(sx, sy); g.rotate(b.rot);
-  g.fillStyle = '#6c6'; g.fillRect(-2, -5, 4, 10); g.fillStyle = '#cfc'; g.fillRect(-1, -7, 2, 3);
-  g.restore();
-}
-function drawFX(f) {
-  const sx = Math.round(f.x - cam), sy = Math.round(f.y - f.z), k = f.t / f.life;
-  g.globalAlpha = 1 - k;
-  g.fillStyle = f.big ? '#ffd34d' : '#ffffff';
-  const r = (f.big ? 5 : 3) + f.t * 0.8;
-  g.fillRect(sx - r, sy - 1, r * 2, 2); g.fillRect(sx - 1, sy - r, 2, r * 2);
-  g.fillRect(sx - r * 0.6, sy - r * 0.6, 2, 2); g.fillRect(sx + r * 0.6, sy + r * 0.6, 2, 2);
-  g.globalAlpha = 1;
 }
 function bar(x, y, w, h, r, col) {
   g.fillStyle = '#000'; g.fillRect(x - 1, y - 1, w + 2, h + 2);
