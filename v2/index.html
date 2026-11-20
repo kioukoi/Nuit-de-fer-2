@@ -479,7 +479,7 @@ function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèê
 function setMyName(s) { const n = cleanName(s); if (n) { myName = n; lsSet('nfer_name', n); NAMES[online ? localSlot : 0] = n; } }
 /* classement mondial (Supabase) : renseigner SB_URL et SB_KEY (clé « anon public », sans danger dans une page web) ; vide = classement local seulement */
 const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobHNvY2xyamF1anJ2bHhnc3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjY0NjQsImV4cCI6MjExMDc0MjQ2NH0.SJHSrMGDHjFNdoQFVtnHxuDZiViZfFptLD5CsRFjLaY';
-let gScores = null, gStatus = 'idle', scoresTab = 0;
+let gScores = null, gStatus = 'idle';
 const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
 const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
 function sbPost(ent) {
@@ -495,19 +495,12 @@ function sbLoad() {
       .then(rows => { gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })); gStatus = 'ok'; }, () => { gStatus = 'err'; });
   } catch (e) { gStatus = 'err'; }
 }
-function loadScores() { try { const l = JSON.parse(lsGet('nfer_scores', '[]')); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
 function recordScores() {
   if (recorded) return;
-  recorded = true;
+  recorded = true; lastRank = -1;
   const p = PS[online ? localSlot : 0];
-  if (!p || p.score <= 0) { lastRank = -1; return; }
-  const list = loadScores(), ent = { n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero, d: new Date().toISOString().slice(0, 10) };
-  sbPost(ent);
-  list.push(ent);
-  list.sort((x, y) => y.s - x.s);
-  lastRank = list.indexOf(ent);
-  lsSet('nfer_scores', JSON.stringify(list.slice(0, 10)));
-  if (lastRank >= 10) lastRank = -1;
+  if (!p || p.score <= 0) return;
+  sbPost({ n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero });
 }
 
 /* ---------- état du jeu ---------- */
@@ -1677,7 +1670,7 @@ function step() {
         SFX.pick();
         if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); }
         else { nameBuf = ''; state = 'name'; }
-      } else if (menuIdx === 4) { state = 'scores'; scoresTab = sbOn() ? 0 : 1; if (sbOn()) sbLoad(); SFX.pick(); }
+      } else if (menuIdx === 4) { state = 'scores'; sbLoad(); SFX.pick(); }
     }
     return;
   }
@@ -1687,7 +1680,6 @@ function step() {
     return;
   }
   if (state === 'scores') {
-    if (sbOn() && (PRS[0].left || PRS[0].right)) { scoresTab ^= 1; SFX.move(); if (!scoresTab) sbLoad(); }
     if (START || MENUK || PRS[0].punch || PRS[0].jump) { state = 'title'; SFX.move(); }
     return;
   }
@@ -2728,7 +2720,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 14h50 · classement mondial actif', W / 2, 264, 7, '#667', 'center');
+  txt('version 14h50 · classement mondial · persos', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2741,21 +2733,19 @@ function drawNameEntry() {
 }
 function drawScores() {
   g.fillStyle = 'rgba(5,3,15,.85)'; g.fillRect(0, 0, W, H);
-  txt('MEILLEURS SCORES', W / 2, 26, 18, '#ffcf4a', 'center');
-  const on = sbOn();
-  if (on) {
-    txt((scoresTab === 0 ? '[ MONDIAL ]' : '  MONDIAL  ') + '   ' + (scoresTab === 1 ? '[ CET APPAREIL ]' : '  CET APPAREIL  '), W / 2, 42, 9, '#cbd', 'center');
-  }
-  const l = scoresTab === 0 && on ? (gScores || []) : loadScores();
-  txt('#   NOM         SCORE   NIV', W / 2, 56, 9, '#8a8ab0', 'center');
-  if (scoresTab === 0 && on && gStatus === 'load' && !gScores) txt('Chargement…', W / 2, 130, 11, '#cbd', 'center');
-  else if (scoresTab === 0 && on && gStatus === 'err' && !gScores) txt('Classement mondial injoignable', W / 2, 130, 11, '#f88', 'center');
+  txt('CLASSEMENT MONDIAL', W / 2, 26, 18, '#ffcf4a', 'center');
+  const on = sbOn(), l = gScores || [];
+  txt('#  NOM         SCORE  NIV  PERSONNAGE', W / 2, 50, 9, '#8a8ab0', 'center');
+  if (!on) txt('Classement indisponible', W / 2, 130, 11, '#f88', 'center');
+  else if (gStatus === 'load' && !gScores) txt('Chargement…', W / 2, 130, 11, '#cbd', 'center');
+  else if (gStatus === 'err' && !gScores) txt('Classement mondial injoignable', W / 2, 130, 11, '#f88', 'center');
   else if (!l.length) txt('Aucun score pour le moment', W / 2, 130, 11, '#cbd', 'center');
   l.slice(0, 10).forEach((s, i) => {
-    const y = 72 + i * 17, col = i === 0 ? '#ffd34d' : (i < 3 ? '#e8e8f0' : '#9aa');
-    txt(String(i + 1).padStart(2, ' ') + '  ' + String(s.n).padEnd(10, ' ') + '  ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv), W / 2, y, 11, col, 'center');
+    const y = 68 + i * 17, col = i === 0 ? '#ffd34d' : (i < 3 ? '#e8e8f0' : '#9aa');
+    const hn = (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, '');
+    txt(String(i + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, y, 11, col, 'center');
   });
-  txt((on ? '← → : changer de classement · ' : 'Classement enregistré sur cet appareil · ') + 'ENTRÉE : retour', W / 2, 258, 8, '#8a8ab0', 'center');
+  txt('ENTRÉE : retour', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 function drawRelays(y) {
   if (!rel) return;
