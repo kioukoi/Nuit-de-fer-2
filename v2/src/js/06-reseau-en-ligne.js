@@ -79,7 +79,7 @@ function relClose() {
 }
 function netReset() {
   online = false; startMsg = null; room = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null;
-  pend = null; joins = []; dropAt = []; allLog = []; act = [true, false, false, false]; netPaused = 0; waitMsg = ''; joinBuilt = false;
+  lobbyU = {}; pend = null; joins = []; dropAt = []; allLog = []; act = [true, false, false, false]; netPaused = 0; waitMsg = ''; joinBuilt = false;
 }
 function netClose() {
   if (rel && online) netSend({ t: 'bye', p: localSlot });
@@ -124,12 +124,29 @@ function becomeHost() {
 function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; startRelay(code); }
 
 /* ----- arrivée d'un joueur ----- */
+/* salle d'attente : tant que l'hôte est sur l'écran de choix, les amis arrivent sur ce même écran et choisissent ensemble */
+let lobbyU = {};
+function lobbyWelcome(u, slot) {
+  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0 });
+}
+function lobbyHello(m) {
+  if (lobbyU[m.u] !== undefined && act[lobbyU[m.u]]) { lobbyWelcome(m.u, lobbyU[m.u]); return; }     // bonjour répété : même place
+  if (nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
+  if (roomPending && !online) {                         // le premier ami arrive : l'hôte passe en mode « en ligne » sans quitter l'écran de choix
+    roomPending = false; hostCode = ROOM_CODE; room = true; online = true; localSlot = 0; act = [true, false, false, false]; lobbyU = {};
+    lastRx = [tick, tick, tick, tick]; rxT = tick; startMsg = null; pend = null; joins = []; allLog = [];
+  }
+  const slot = nPlayers, nm = cleanName(m.n) || 'JOUEUR ' + (slot + 1);
+  lobbyU[m.u] = slot; act[slot] = true; nPlayers = slot + 1; NAMES[slot] = nm; lastRx[slot] = tick; selT = 0;
+  let c = 0; while (SEL.slice(0, slot).some(o => o.c === c)) c = (c + 1) % HERO_KEYS.length;
+  SEL[slot].c = c; SEL[slot].lock = false;
+  lobbyWelcome(m.u, slot); netSend({ t: 'lob', p: 0, slot, n: nm }); sendSel(); toast(nm + ' a rejoint !');
+}
 function hostHello(m) {
-  if (roomPending && !online) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
+  if ((roomPending && !online) || (online && room && localSlot === 0 && state === 'select')) { lobbyHello(m); return; }
   if (!(online && room && localSlot === 0)) return;
   const nm = cleanName(m.n) || 'JOUEUR';
   if (nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
-  if (roomPending && !online) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!pend || pend.u !== m.u) pend = { u: m.u, slot: nPlayers, n: nm, t: tick };
   pend.t = tick;
@@ -139,6 +156,16 @@ function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
   if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
   if (m.wait) { gotWait = true; waitMsg = 'La partie est occupée (un ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
+  if (m.lobby) {                                        // l'hôte est encore sur l'écran de choix : on choisit tous ensemble
+    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
+    initSelect(); act = [false, false, false, false]; hostCode = ROOM_CODE;
+    for (let i = 0; i < localSlot; i++) { act[i] = !!(m.acts && m.acts[i]); NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); if (m.sel && m.sel[i]) { SEL[i].c = m.sel[i][0] | 0; SEL[i].lock = !!m.sel[i][1]; } }
+    act[localSlot] = true; NAMES[localSlot] = myName;
+    let c = 0; while (SEL.slice(0, localSlot).some(o => o.c === c)) c = (c + 1) % HERO_KEYS.length;
+    SEL[localSlot].c = c; SEL[localSlot].lock = false;
+    lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = ''; sendSel();
+    return;
+  }
   online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
   initSelect();
   for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
@@ -249,7 +276,12 @@ function netIn(m) {
     for (let i = 0; i < m.a.length; i++) { const f = m.s + i; if (f >= frameNo - 1 && rbuf[p][f] === undefined) rbuf[p][f] = m.a[i]; }
     if (p === 0) { if (m.j) mergeJoins(m.j); if (m.dr) mergeDrops(m.dr); }
   } else if (t === 'sel') {
-    if (state === 'select' && p !== undefined && p !== localSlot && SEL[p]) { SEL[p].c = m.c; SEL[p].lock = m.lock; }
+    if (state === 'select' && p !== undefined && p !== localSlot && SEL[p]) {
+      SEL[p].c = m.c; SEL[p].lock = m.lock;
+      if (m.lock && SEL[localSlot].lock && SEL[localSlot].c === m.c && p < localSlot) { SEL[localSlot].lock = false; sendSel(); }     // même héros validé en même temps : le plus petit numéro le garde
+    }
+  } else if (t === 'lob') {
+    if (state === 'select' && m.slot > 0 && m.slot < MAXP && m.slot !== localSlot) { act[m.slot] = true; nPlayers = Math.max(nPlayers, m.slot + 1); NAMES[m.slot] = cleanName(m.n) || 'JOUEUR ' + (m.slot + 1); lastRx[m.slot] = tick; SEL[m.slot].lock = false; selT = 0; toast(NAMES[m.slot] + ' a rejoint !'); }
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));

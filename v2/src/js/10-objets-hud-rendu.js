@@ -247,7 +247,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 22h50 · barres méchants, boss en bas', W / 2, 264, 7, '#667', 'center');
+  txt('version 23h15 · salle d'attente commune', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -347,7 +347,7 @@ function drawSelect() {
     txt(String(NAMES[i] || 'J' + (i + 1)).slice(0, 8) + (s.lock ? ' ✔' : ''), i < 2 ? cx - 30 : cx + 30, y0 + 19, 6, col, i < 2 ? 'left' : 'right');
   }
   { const hk = HERO_KEYS[(SEL[online ? localSlot : 0] || SEL[0]).c], hh = HEROES[hk]; txt(hh.name + ' — ' + hh.role, W / 2, 242, 8, '#ffd34d', 'center'); txt('Spécial : ' + hh.special + '  ·  ' + hh.trait, W / 2, 254, 7, '#8fe0a8', 'center'); }
-  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : vos amis (jusqu\'à 3) cliquent sur EN LIGNE pour vous rejoindre' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
+  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : vos amis (jusqu\'à 3) cliquent sur EN LIGNE et choisissent avec vous' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
 }
 /* ---------- pièges ---------- */
 const trapC = t => (simF + (t.ph || 0)) % (t.per || 1);
