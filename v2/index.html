@@ -629,7 +629,7 @@ function updPlayer(p) {
       if (dx && dy) { dx *= 0.8; dy *= 0.8; }
       p.x += dx * hr.spd * sm; p.y += dy * hr.spd * 0.7;
       if (p.hero === 'papy' && !p.cane && (dx || dy)) {                      // sans canne : il titube, dévie, et finit par trébucher
-        p.x += Math.sin(simF * 0.23) * 0.9; p.y += Math.cos(simF * 0.17 + p.slot) * 0.7;
+        p.x += Math.sin(simF * 0.11) * 0.28; p.y += Math.cos(simF * 0.08 + p.slot) * 0.3;
         if ((simF + p.slot * 41) % 150 === 0) { p.st = 'hurt'; p.t = 0; p.vx = p.face * 1.6; p.hit = new Set(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'oups…', col: '#ffe08a' }); }
       }
       if (dx) p.face = dx > 0 ? 1 : -1;
@@ -749,7 +749,7 @@ function updPlayer(p) {
     for (const it of IT) {
       if (!it.got && Math.abs(it.x - p.x) < 12 && Math.abs(it.y - p.y) < 10) {
         if (it.cane) { if (p.hero === 'papy' && !p.cane && (p.st === 'free' || p.st === 'air')) { p.cane = true; it.got = true; SFX.pick(); } continue; }
-        if (p.hero === 'papy') continue;                                    // le papy ne ramasse rien d'autre
+        if (p.hero === 'papy' && it.weapon) continue;                      // le papy ne ramasse pas d'armes (mais bien pommes, viande, potions)
         if (it.weapon) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
         } else { p.hp = Math.min(p.maxhp, p.hp + it.heal); it.got = true; SFX.pick(); }
@@ -2032,7 +2032,11 @@ function drawChar(e) {
   }
   if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }
   if (kind === 'papy' && !down) { lean += 2.4; if (st === 'free' || moving) hdx += 1.2; }
-  if (kind === 'papy' && !down && !e.cane && st !== 'hurt') { const w = Math.sin(tick * 0.22); lean += w * 2.6; fhx += 4 + w * 3; fhy = -33 + w * 3; bhx -= 5 - w * 3; bhy = -31 - w * 3; ffx += w * 2; bfx -= w * 2; }
+  if (kind === 'papy' && !down && !e.cane && (st === 'free' || st === 'attack') && !air) {   // sans canne : démarche hésitante, bras écartés pour l'équilibre
+    if (moving) { lean += 1.4 + sw * 1.1; ffx = 2 + sw * 3.6; bfx = -2 - sw * 3.6; ffy = -Math.max(0, cw) * 1.4; bfy = -Math.max(0, -cw) * 1.4; hipY = -14 - (Math.abs(sw) > 0.6 ? 0 : 0.6); }
+    else lean += Math.sin(tick * 0.07) * 1.1;
+    if (st === 'free') { fhx = 8 + (moving ? cw * 1.6 : 0); fhy = -23 + (moving ? sw * 1.2 : 0); bhx = -4 - (moving ? cw * 1.6 : 0); bhy = -23 - (moving ? sw * 1.2 : 0); }
+  }
 
   /* --- dimensions du tronc selon le personnage --- */
   const shY = hipY - 14;
@@ -2526,7 +2530,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 13h20 · papy : canne à lancer et à reprendre', W / 2, 264, 7, '#667', 'center');
+  txt('version 13h35 · papy : démarche et potions', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
