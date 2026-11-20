@@ -485,7 +485,7 @@ function mkPlayer(hero, slot) {
   const hr = HEROES[hero];
   return { kind: 'p', hero, slot, name: '', x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
     st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
-    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0 };
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy' };
 }
 function mkEnemy(type, x, y) {
   const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (nPlayers === 2 ? 1.5 : 1) * (type === 'boss' ? 1 : LV.hpM));
@@ -614,6 +614,11 @@ function updPlayer(p) {
     PJ.push({ x: p.x + p.face * 12, y: p.y, z: p.z + 22, vx: p.face * 5.2, life: 56, rot: 0, wtype: p.weapon, wd: p.wd, own: p });
     p.weapon = null; p.wd = 0; SFX.whoosh();
   }
+  if (Pp.throw && p.hero === 'papy' && p.cane && (p.st === 'free' || p.st === 'air' || p.st === 'attack')) {
+    PJ.push({ x: p.x + p.face * 12, y: p.y, z: p.z + 22, vx: p.face * 5.6, life: 48, rot: 0, cane: true, dmg: 15, own: p });
+    p.cane = false; SFX.whoosh();
+  }
+  if (p.hero === 'papy' && !p.cane) for (const it of IT) if (it.cane) it.x = clamp(it.x, cam + 14, cam + W - 14);   // la canne ne reste pas hors écran
   switch (p.st) {
     case 'free': {
       let dx = (I.right ? 1 : 0) - (I.left ? 1 : 0), dy = (I.down ? 1 : 0) - (I.up ? 1 : 0);
@@ -623,12 +628,17 @@ function updPlayer(p) {
       const sm = p.sprint ? 1.7 : 1;
       if (dx && dy) { dx *= 0.8; dy *= 0.8; }
       p.x += dx * hr.spd * sm; p.y += dy * hr.spd * 0.7;
+      if (p.hero === 'papy' && !p.cane && (dx || dy)) {                      // sans canne : il titube, dévie, et finit par trébucher
+        p.x += Math.sin(simF * 0.23) * 0.9; p.y += Math.cos(simF * 0.17 + p.slot) * 0.7;
+        if ((simF + p.slot * 41) % 150 === 0) { p.st = 'hurt'; p.t = 0; p.vx = p.face * 1.6; p.hit = new Set(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'oups…', col: '#ffe08a' }); }
+      }
       if (dx) p.face = dx > 0 ? 1 : -1;
       if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd * (p.sprint ? 1.5 : 1); }
       if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd * sm; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
       else if (Pp.special || p.bs > 0) {
         const cost = hr.cost;
-        if (p.sp >= cost) {
+        if (p.hero === 'papy' && !p.cane) { p.bs = 0; if (Pp.special) FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'sans canne !', col: '#ffe08a' }); }
+        else if (p.sp >= cost) {
           p.sp -= cost; p.bs = 0;
           if (p.hero === 'ombre') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 12; SFX.whoosh(); }
           else if (p.hero === 'vive') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
@@ -738,6 +748,8 @@ function updPlayer(p) {
   if (p.st !== 'down') {
     for (const it of IT) {
       if (!it.got && Math.abs(it.x - p.x) < 12 && Math.abs(it.y - p.y) < 10) {
+        if (it.cane) { if (p.hero === 'papy' && !p.cane && (p.st === 'free' || p.st === 'air')) { p.cane = true; it.got = true; SFX.pick(); } continue; }
+        if (p.hero === 'papy') continue;                                    // le papy ne ramasse rien d'autre
         if (it.weapon) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
         } else { p.hp = Math.min(p.maxhp, p.hp + it.heal); it.got = true; SFX.pick(); }
@@ -1050,6 +1062,10 @@ function updItems() {
   for (const it of IT) if (it.ttl !== undefined && !it.got && --it.ttl <= 0) it.got = true;
   IT = IT.filter(i => !i.got);
 }
+function dropCane(b, hitX) {
+  if (b.spent) return; b.spent = true;
+  IT.push({ x: clamp(hitX !== undefined ? hitX : b.x, cam + 14, cam + W - 14), y: clamp(b.y, Y0, Y1), type: 'canne', cane: true, got: false });
+}
 function dropWeapon(b, hitX) {
   if (!b.wtype || b.spent) return;
   b.spent = true;
@@ -1066,6 +1082,7 @@ function updProj() {
         if (t.kind !== 'b' && t.st === 'down') continue;
         if (Math.abs(b.x - t.x) < 11 && Math.abs(b.y - t.y) < 10 && Math.abs(b.z - (t.z + 14)) < 28) {
           if (b.star) { hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); b.life = 0; break; }
+          if (b.cane) { hurt(t, b.own, { dmg: b.dmg, kd: true }, Math.sign(b.vx)); dropCane(b, t.x); b.life = 0; break; }
           hurt(t, b.own, { dmg: Math.round(9 * WEAPONS[b.wtype].mul), kd: true }, Math.sign(b.vx));
           dropWeapon(b, t.x); b.life = 0; break;
         }
@@ -1081,7 +1098,7 @@ function updProj() {
       }
     }
     if (b.x < cam - 20 || b.x > cam + W + 20) b.life = 0;
-    if (b.life <= 0 && !b.star) dropWeapon(b);
+    if (b.life <= 0 && !b.star) { if (b.cane) dropCane(b); else dropWeapon(b); }
   }
   PJ = PJ.filter(b => b.life > 0);
 }
@@ -2015,6 +2032,7 @@ function drawChar(e) {
   }
   if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }
   if (kind === 'papy' && !down) { lean += 2.4; if (st === 'free' || moving) hdx += 1.2; }
+  if (kind === 'papy' && !down && !e.cane && st !== 'hurt') { const w = Math.sin(tick * 0.22); lean += w * 2.6; fhx += 4 + w * 3; fhy = -33 + w * 3; bhx -= 5 - w * 3; bhy = -31 - w * 3; ffx += w * 2; bfx -= w * 2; }
 
   /* --- dimensions du tronc selon le personnage --- */
   const shY = hipY - 14;
@@ -2255,7 +2273,7 @@ function drawChar(e) {
     limb([[6, hipY + 3], [10.5, -3.4]], 1.2, ['#33353d', '#33353d']); ell(10.8, -2.6, 2.1, 2.1, '#2c2e35');
     rrect(7.6, -6.8, 5.4, 1.2, 0.5, '#33353d');
   }
-  if (!down && (kind === 'aveugle' || kind === 'papy') && st !== 'attack' && st !== 'special' && st !== 'roll') {
+  if (!down && (kind === 'aveugle' || (kind === 'papy' && e.cane)) && st !== 'attack' && st !== 'special' && st !== 'roll') {
     if (kind === 'aveugle') {
       const sw2 = Math.sin(tick * 0.18) * 3, tx = fhx + 12 + sw2, ty2 = -1;
       g.strokeStyle = OL; g.lineWidth = 2; g.beginPath(); g.moveTo(fhx, fhy); g.lineTo(tx, ty2); g.stroke();
@@ -2267,7 +2285,7 @@ function drawChar(e) {
       g.strokeStyle = S.acc; g.lineWidth = 1.2; g.beginPath(); g.moveTo(bhx - 1.5, bhy - 3); g.quadraticCurveTo(bhx - 3, bhy - 6, bhx, bhy - 5.4); g.moveTo(bhx, bhy - 5); g.lineTo(gx, -0.5); g.stroke();
     }
   }
-  if (kind === 'papy' && !down && (st === 'attack' || st === 'special')) {
+  if (kind === 'papy' && e.cane && !down && (st === 'attack' || st === 'special')) {
     let ang = -0.95;
     if (st === 'special') ang = e.t < 14 ? -2.0 : 0.7;
     else { const wa = HEROES.papy.atk[e.stage]; ang = e.t < wa.act[0] ? -2.1 : (e.t <= wa.act[1] ? -0.3 + 0.9 * (e.t - wa.act[0]) / Math.max(1, wa.act[1] - wa.act[0]) : 1.05); }
@@ -2387,6 +2405,13 @@ function drawItem(it) {
   if (it.ttl !== undefined && it.ttl < 180 && ((tick >> 2) & 1)) return;
   const sx = Math.round(it.x - cam), sy = Math.round(it.y);
   g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, it.weapon ? 9 : 6, 2, 0, 0, 7); g.fill();
+  if (it.cane) {
+    const pulse = 0.5 + 0.5 * Math.sin(tick * 0.15), by = sy - 5 - Math.round(pulse * 2);
+    g.fillStyle = 'rgba(255,220,100,' + (0.2 + pulse * 0.2) + ')'; g.beginPath(); g.ellipse(sx, sy - 2, 20, 6, 0, 0, 7); g.fill();
+    g.save(); g.translate(sx - 4, by); g.rotate(-0.1); g.scale(1.3, 1.3); drawWeapon('canne', -9, 0, 0); g.restore();
+    txt('CANNE', sx, by - 10 - Math.round(pulse * 2), 7, '#ffd34d', 'center');
+    return;
+  }
   if (it.weapon) {
     const pulse = 0.5 + 0.5 * Math.sin(tick * 0.12), by = sy - 4 - Math.round(pulse * 2);
     g.fillStyle = 'rgba(255,220,100,' + (0.18 + pulse * 0.16) + ')'; g.beginPath(); g.ellipse(sx, sy - 2, 18, 6, 0, 0, 7); g.fill();
@@ -2430,6 +2455,7 @@ function drawProj(b) {
     g.beginPath(); for (let k = 0; k < 8; k++) { const r = k % 2 ? 2.2 : 6, a = k * Math.PI / 4; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.stroke();
     g.fillStyle = '#d03030'; g.beginPath(); g.arc(0, 0, 1.2, 0, 7); g.fill();
   } else if (b.wtype) { g.translate(-9, 0); drawWeaponGround(b.wtype); }
+  else if (b.cane) { g.scale(1.3, 1.3); drawWeapon('canne', -9, 0, 0); }
   else { g.fillStyle = '#6c6'; g.fillRect(-2, -5, 4, 10); g.fillStyle = '#cfc'; g.fillRect(-1, -7, 2, 3); }
   g.restore();
 }
@@ -2500,7 +2526,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 13h00 · 10 héros, réseau plus fluide', W / 2, 264, 7, '#667', 'center');
+  txt('version 13h20 · papy : canne à lancer et à reprendre', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
