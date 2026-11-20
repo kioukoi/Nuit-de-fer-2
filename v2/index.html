@@ -84,6 +84,7 @@ cv.addEventListener('pointerdown', () => { cv.focus(); unlockAudio(); });
 
 /* ---------- entrées ---------- */
 const SP_COST_VIVE = 50;
+let REPLAY = false;          // vrai pendant le rattrapage d'une partie en cours (aucun son)
 const ACT = ['left', 'right', 'up', 'down', 'punch', 'jump', 'special', 'throw'];
 const KEYS_SOLO = {
   left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
@@ -185,7 +186,7 @@ function nbuf() {
 const jit = (v, p) => v * (1 + (Math.random() * 2 - 1) * p);
 /* tone : oscillateur avec attaque courte et chute exponentielle, glissando facultatif */
 function tone(f, d, type, v, slide, delay) {
-  if (!AC || (!sfxOn && !BUSOVR)) return;
+  if (REPLAY || !AC || (!sfxOn && !BUSOVR)) return;
   try {
     const t = AC.currentTime + (delay || 0), o = AC.createOscillator(), gn = AC.createGain();
     o.type = type || 'square';
@@ -200,7 +201,7 @@ function tone(f, d, type, v, slide, delay) {
 }
 /* nz : bruit filtré (type, fréquence de départ -> fin), enveloppe percussive */
 function nz(d, v, ftype, f0, f1, q, delay) {
-  if (!AC || (!sfxOn && !BUSOVR)) return;
+  if (REPLAY || !AC || (!sfxOn && !BUSOVR)) return;
   try {
     const t = AC.currentTime + (delay || 0), s = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain();
     s.buffer = nbuf(); s.loop = true;
@@ -1088,6 +1089,17 @@ const BITS = { left: 1, right: 2, up: 4, down: 8, punch: 16, jump: 32, special: 
 let online = false, localSlot = 0, olStage = 'menu', olIdx = 0, codeBuf = '', hostCode = '', netMsg = '', netSeed = 0;
 let frameNo = 0, sentF = 0, localBuf = {}, remoteBuf = {}, prevM = [0, 0], myHash = {}, theirHash = {}, desync = false, stallT = 0;
 let lastRelays = '', rel = null, rxT = 0, startMsg = null, peerNeeds = 0;
+/* salle ouverte : l'hôte joue tout de suite, un ami peut la rejoindre à tout moment (même en cours de partie).
+   L'invité rejoue en accéléré les touches de l'hôte depuis le début (simulation déterministe), puis les deux jouent en synchro. */
+let room = false, peerIn = false, roomJoin = false, roomPending = false, joinBusy = false, joinK = 0, joinId = 0, joinT = 0, joinMsgs = [];
+let hostLog = [], jselSent = false, catchParts = null, catchReady = null, pendingJoin = '', toastT = 0, toastMsg = '';
+try { const mj = /[?&]join=([A-Za-z0-9]{4,6})/.exec(location.search); if (mj) pendingJoin = mj[1].toUpperCase(); } catch (e) { /* ignoré */ }
+addEventListener('paste', e => {
+  if (state === 'online' && olStage === 'joining') {
+    const t = (e.clipboardData && e.clipboardData.getData('text')) || '', m = /join=([A-Za-z0-9]{4,6})/.exec(t);
+    codeBuf = (m ? m[1] : t).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+  }
+});
 const maskOf = h => ACT.reduce((m, n) => m | (h[n] ? BITS[n] : 0), 0);
 
 /* Transport : relais MQTT public par WebSocket (wss). Aucun serveur à installer, passe les réseaux mobiles
@@ -1137,7 +1149,7 @@ function relClose() {
   if (rel) for (const c of rel.bs) { try { c.ws && c.ws.close(); } catch (e) { /* ignoré */ } }
   rel = null;
 }
-function netClose() { relClose(); online = false; startMsg = null; }
+function netClose() { relClose(); online = false; startMsg = null; room = false; peerIn = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null; }
 function netFail(msg) { netClose(); netMsg = msg; olStage = 'error'; state = 'online'; }
 function netLost(msg) { netClose(); netMsg = msg; state = 'title'; nPlayers = 1; }
 function newCode() {
@@ -1157,16 +1169,22 @@ function startRelay(role, code) {
   const onMsg = (c, m) => {
     if (!rel) return;
     if (role === 0 && m.t === 'hello') {
-      if (!online || rel.active === c) { rel.active = c; NAMES[1] = cleanName(m.n) || 'JOUEUR 2'; NAMES[0] = myName; netSend({ t: 'welcome', n: myName }); if (!online) goOnline(0); }
+      if (room && !peerIn && !joinBusy && (!rel.active || rel.active === c)) {
+        rel.active = c; NAMES[1] = cleanName(m.n) || 'JOUEUR 2'; NAMES[0] = myName;
+        netSend({ t: 'welcome', n: myName, h0: HERO_KEYS[SEL[0].c] });
+      }
       return;
     }
-    if (role === 1 && m.t === 'welcome') { NAMES[0] = cleanName(m.n) || 'JOUEUR 1'; NAMES[1] = myName; if (!online) goOnline(1); return; }
+    if (role === 1 && m.t === 'welcome') {
+      NAMES[0] = cleanName(m.n) || 'JOUEUR 1'; NAMES[1] = myName;
+      if (!online) { goOnline(1); roomJoin = true; jselSent = false; SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.h0)); SEL[0].lock = true; SEL[1].c = SEL[0].c === 0 ? 1 : 0; }
+      return;
+    }
     if (online && c === rel.active) { rxT = tick; onNet(m); }
   };
   rel.bs = BROKERS.map(u => openBroker(u, inT, onMsg));
 }
 function goOnline(slot) { online = true; localSlot = slot; nPlayers = 2; rxT = tick; initSelect(); state = 'select'; SFX.pick(); }
-function hostGame() { olStage = 'hosting'; hostCode = newCode(); startRelay(0, hostCode); }
 function joinGame(code) { olStage = 'connecting'; startRelay(1, code); }
 function relTick() {
   if (!rel) return;
@@ -1175,7 +1193,7 @@ function relTick() {
   if (!online) {
     if (olStage === 'hosting' && age > 600 && !anyReady) netFail('Impossible de joindre le serveur de mise en relation (réseau bloqué ?). Essayez un autre réseau.');
     if (olStage === 'connecting') {
-      if (age > 1500) { netFail('Partie introuvable ou serveur injoignable. Vérifiez le code et que l\'autre joueur attend bien à l\'écran « Code de la partie ».'); return; }
+      if (age > 1500) { netFail('Partie introuvable ou serveur injoignable. Vérifiez le code (ou le lien) et que l\'hôte a bien créé sa partie.'); return; }
       if (age - rel.helloT >= 45) {
         rel.helloT = age;
         const ready = rel.bs.filter(b => b.ready);
@@ -1188,6 +1206,18 @@ function relTick() {
   if (tick % 1200 === 0) for (const b of rel.bs) { try { if (b.ready) b.ws.send(U8([0xC0, 0])); } catch (e) { /* ignoré */ } }
   if (state === 'select' && tick % 30 === 0) sendSel();
   if (startMsg && state === 'play' && frameNo < DELAY + 4 && tick % 15 === 0) netSend(startMsg);
+  if (joinBusy) {                                   // hôte : l'invité est en train de rattraper la partie
+    if ((tick - joinT) % 90 === 0) joinMsgs.forEach(netSend);
+    if (tick - joinT > 1800) { joinBusy = false; rel.active = null; toast('L\'ami n\'a pas pu rejoindre'); }
+    return;
+  }
+  if (roomJoin && !peerIn) {                        // invité : choix du héros puis synchronisation
+    if (!jselSent) rxT = tick;
+    else if (tick % 60 === 0) netSend({ t: 'jsel', c: SEL[1].c });
+    if (jselSent && tick - rxT > 1500) netLost('Impossible de rejoindre la partie (l\'hôte ne répond plus).');
+    return;
+  }
+  if (room && !peerIn) return;                      // hôte seul : rien ne peut expirer
   if (rel.active && rel.active.dead) netLost('Connexion perdue.');
   else if (tick - rxT > 600) netLost('Connexion perdue (plus de nouvelles de l\'autre joueur).');
 }
@@ -1202,10 +1232,87 @@ function onNet(m) {
     SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[0])); SEL[1].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[1]));
     startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0));
     beginOnline(m.seed);
+  } else if (m.t === 'jsel') {
+    if (room && !peerIn && !joinBusy && state === 'play') startJoin(m.c | 0);
+  } else if (m.t === 'caught') {
+    if (joinBusy && m.id === joinId) finishJoinHost();
+  } else if (m.t === 'cu') {
+    if (!roomJoin || peerIn || catchReady) return;
+    if (!catchParts || catchParts.id !== m.id) catchParts = { id: m.id, n: m.n, d: {}, meta: null };
+    catchParts.d[m.i] = m.d; if (m.meta) catchParts.meta = m.meta;
+    if (catchParts.meta && Object.keys(catchParts.d).length === catchParts.n) {
+      let rle = []; for (let i = 0; i < catchParts.n; i++) rle = rle.concat(catchParts.d[i]);
+      catchReady = { id: catchParts.id, meta: catchParts.meta, rle };
+    }
   } else if (m.t === 'h') {
     theirHash[m.f] = m.v;
     if (myHash[m.f] !== undefined && myHash[m.f] !== m.v) desync = true;
   }
+}
+
+function toast(s) { toastMsg = s; toastT = 200; }
+function inviteLink() { try { return location.href.split(/[?#]/)[0] + '?join=' + hostCode; } catch (e) { return hostCode; } }
+function copyInvite() {
+  const u = inviteLink();
+  try {
+    if (navigator.share && window.IS_TOUCH) { navigator.share({ title: 'Nuit de fer', text: 'Rejoins ma partie !', url: u }); toast('Invitation prête'); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(u); toast('Lien copié ! Envoyez-le à votre ami'); }
+    else toast('Code : ' + hostCode);
+  } catch (e) { toast('Code : ' + hostCode); }
+}
+function startRoom() {
+  roomPending = false; hostCode = newCode(); startRelay(0, hostCode);
+  room = true; peerIn = false; joinBusy = false; online = true; localSlot = 0; nPlayers = 1; hostLog = []; NAMES[0] = myName;
+  beginOnline((Math.random() * 4294967296) >>> 0);
+  toast('Partie ouverte ! Échap → inviter un ami');
+}
+function addPlayer2() {
+  const p0 = PS[0], p = mkPlayer(HERO_KEYS[SEL[1].c], 1);
+  p.name = NAMES[1] || 'JOUEUR 2'; p.x = clamp(p0.x - 26, cam + 16, cam + W - 16); p.y = clamp(p0.y + 14, Y0, Y1); p.inv = 90;
+  PS.push(p); nPlayers = 2;
+}
+function buildCatch() {
+  const K = joinK, rle = []; let pm = -1, c = 0;
+  for (let f = 0; f < K; f++) { const m = hostLog[f] | 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
+  if (c) rle.push(pm, c);
+  const tail = []; for (let f = K; f <= sentF; f++) tail.push(localBuf[f] | 0);
+  const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH));
+  joinMsgs = [];
+  for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', id: joinId, i, n, d: rle.slice(i * CH, (i + 1) * CH),
+    meta: i === 0 ? { seed: netSeed, lvl: startLevel, h0: HERO_KEYS[SEL[0].c], h1: HERO_KEYS[SEL[1].c], n0: NAMES[0], K, tail } : undefined });
+}
+function startJoin(c1) {
+  SEL[1].c = Math.max(0, Math.min(HERO_KEYS.length - 1, c1)); if (SEL[1].c === SEL[0].c) SEL[1].c = (SEL[0].c + 1) % HERO_KEYS.length;
+  joinBusy = true; joinT = tick; joinK = frameNo; joinId = (Math.random() * 65535) | 0;
+  while (sentF < frameNo + DELAY) { sentF++; localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]); }
+  buildCatch(); joinMsgs.forEach(netSend);
+}
+function finishJoinHost() {
+  addPlayer2(); peerIn = true; joinBusy = false; rxT = tick; theirHash = {}; peerNeeds = joinK;
+  for (let f = joinK; f <= sentF; f++) remoteBuf[f] = 0;
+  prevM[1] = 0; toast(NAMES[1] + ' a rejoint la partie !');
+}
+function runCatchUp() {
+  const c = catchReady, meta = c.meta; catchReady = null;
+  SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); SEL[1].c = Math.max(0, HERO_KEYS.indexOf(meta.h1));
+  NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1'; NAMES[1] = myName;
+  startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  nPlayers = 1; online = true; localSlot = 1;
+  beginOnline(meta.seed);
+  const log = []; for (let i = 0; i < c.rle.length; i += 2) for (let k = 0; k < c.rle[i + 1]; k++) log.push(c.rle[i]);
+  REPLAY = true; let prev = 0;
+  try {
+    for (let f = 0; f < meta.K; f++) {
+      const m = log[f] | 0;
+      for (const n of ACT) { const held = !!(m & BITS[n]); HLD[0][n] = held; PRS[0][n] = held && !(prev & BITS[n]); HLD[1][n] = false; PRS[1][n] = false; }
+      prev = m; simStep();
+    }
+  } finally { REPLAY = false; }
+  frameNo = meta.K; localBuf = {}; remoteBuf = {}; prevM = [prev, 0]; myHash = {}; theirHash = {}; desync = false; stallT = 0;
+  sentF = meta.K + meta.tail.length - 1; peerNeeds = meta.K;
+  for (let i = 0; i < meta.tail.length; i++) { remoteBuf[meta.K + i] = meta.tail[i]; localBuf[meta.K + i] = 0; }
+  addPlayer2(); peerIn = true; roomJoin = false; rxT = tick; state = 'play'; menuOpen = false;
+  netSend({ t: 'caught', id: c.id }); toast('Vous avez rejoint la partie !');
 }
 function sendSel() { netSend({ t: 'sel', c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
@@ -1215,22 +1322,27 @@ function beginOnline(seed) {
   startGame();
 }
 function sendIn() {
+  if (room && !peerIn) return;
   const s = Math.max(sentF - 80, Math.min(sentF - 9, peerNeeds)), a = [];
   for (let f = s; f <= sentF; f++) a.push(localBuf[f] === undefined ? 0 : localBuf[f]);
   netSend({ t: 'in', s, a, r: frameNo });
 }
 function netFrameReady() {
+  if (joinBusy) return false;
+  if (room && !peerIn) remoteBuf[frameNo] = 0;
   const target = frameNo + DELAY;
   while (sentF < target) {
     sentF++;
     localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]);
     if (sentF % 2 === 0) sendIn();
   }
+  if (room && !peerIn) for (let f = frameNo; f <= sentF; f++) remoteBuf[f] = 0;
   if (remoteBuf[frameNo] === undefined || localBuf[frameNo] === undefined) { stallT++; if (stallT % 6 === 0) sendIn(); return false; }
   stallT = 0;
   return true;
 }
 function applyNetInputs() {
+  if (room) hostLog[frameNo] = localBuf[frameNo] | 0;
   for (let s = 0; s < 2; s++) {
     const m = (s === localSlot ? localBuf : remoteBuf)[frameNo], prev = prevM[s];
     for (const n of ACT) {
@@ -1260,7 +1372,7 @@ function netAfterFrame() {
 }
 
 /* ---------- menus ---------- */
-function toTitle() { state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; peerIn = false; roomJoin = false; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }]; selT = 0; cam = 0;
 }
@@ -1280,14 +1392,17 @@ function updSelect() {
       if (PRS[i].left) { s.c = (s.c + 2) % 3; SFX.move(); changed = true; }
       if (PRS[i].right) { s.c = (s.c + 1) % 3; SFX.move(); changed = true; }
       if ((PRS[i].punch || PRS[i].jump) && tryLock(i)) changed = true;
-    } else if (PRS[i].special) { s.lock = false; changed = true; }
+    } else if (PRS[i].special && !jselSent) { s.lock = false; changed = true; }
   }
   if (START) { const f = slots.find(i => !SEL[i].lock); if (f !== undefined && tryLock(f)) changed = true; }
-  if (changed && online) sendSel();
+  if (changed && online && !roomJoin) sendSel();
+  if (roomJoin) { if (SEL[1].lock && !jselSent) { jselSent = true; rxT = tick; netSend({ t: 'jsel', c: SEL[1].c }); } return; }
   if (SEL.slice(0, nPlayers).every(o => o.lock)) {
     selT++;
     if (selT > 14) {
-      if (!online) startGame();
+      if (roomPending) startRoom();
+      else if (!online) startGame();
+      else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
         const seed = (Math.random() * 4294967296) >>> 0;
         startMsg = { t: 'start', seed, heroes: [HERO_KEYS[SEL[0].c], HERO_KEYS[SEL[1].c]], lvl: startLevel };
@@ -1301,7 +1416,11 @@ function updOnline() {
   if (PAUSE || MENUK) { netClose(); toTitle(); return; }
   if (olStage === 'menu') {
     if (PRS[0].up || PRS[0].down) { olIdx = 1 - olIdx; SFX.move(); }
-    if (START || PRS[0].punch || PRS[0].jump) { unlockAudio(); if (olIdx === 0) hostGame(); else { olStage = 'joining'; codeBuf = ''; } }
+    if (START || PRS[0].punch || PRS[0].jump) {
+      unlockAudio();
+      if (olIdx === 0) { roomPending = true; nPlayers = 1; online = false; NAMES[0] = myName; initSelect(); state = 'select'; SFX.pick(); }
+      else { olStage = 'joining'; codeBuf = ''; }
+    }
   } else if (olStage === 'joining') {
     if (START && codeBuf.length < 4 && window.IS_TOUCH) {
       const v = window.prompt('Code de la partie (5 caractères) :', '');
@@ -1349,8 +1468,9 @@ function simStep() {
 
 
 /* ---------- menu en jeu (touche Échap) : ajouter une option = ajouter une ligne dans MENU_ITEMS ---------- */
-const MENU_ITEMS = [
+const MENU_ALL = [
   { label: () => 'REPRENDRE', act: () => { menuOpen = false; } },
+  { label: () => 'INVITER UN AMI (COPIER LE LIEN)', show: () => room && !peerIn, act: () => { copyInvite(); menuOpen = false; } },
   { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
   { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; } },
   { label: () => 'PLEIN ÉCRAN : ' + (document.fullscreenElement ? 'OUI' : 'NON'), act: () => {
@@ -1358,10 +1478,12 @@ const MENU_ITEMS = [
   } },
   { label: () => 'RETOUR À L\'ACCUEIL', act: () => { if (online) { netClose(); netMsg = ''; } menuOpen = false; toTitle(); } }
 ];
+const menuList = () => MENU_ALL.filter(m => !m.show || m.show());
 function updMenu() {
-  if (RAW.up) { menuIdx2 = (menuIdx2 + MENU_ITEMS.length - 1) % MENU_ITEMS.length; SFX.move(); }
-  if (RAW.down) { menuIdx2 = (menuIdx2 + 1) % MENU_ITEMS.length; SFX.move(); }
-  if (START || RAW.punch || RAW.jump) { SFX.pick(); MENU_ITEMS[menuIdx2].act(); }
+  const L = menuList();
+  if (RAW.up) { menuIdx2 = (menuIdx2 + L.length - 1) % L.length; SFX.move(); }
+  if (RAW.down) { menuIdx2 = (menuIdx2 + 1) % L.length; SFX.move(); }
+  if (START || RAW.punch || RAW.jump) { SFX.pick(); L[menuIdx2 % L.length].act(); }
 }
 
 /* ---------- boucle de mise à jour ---------- */
@@ -1371,6 +1493,9 @@ function step() {
   RAW = Object.assign({}, PRS[online ? localSlot : 0]);
   musicTick();
   relTick();
+  if (toastT > 0) toastT--;
+  if (catchReady) runCatchUp();
+  if (pendingJoin && state === 'title') { const pc = pendingJoin; pendingJoin = ''; NAMES[0] = myName; state = 'online'; olStage = 'connecting'; joinGame(pc); return; }
   if (state === 'play' && MENUK) { menuOpen = !menuOpen; menuIdx2 = 0; }
   if (state !== 'play') menuOpen = false;
   if (state === 'title') {
@@ -1411,7 +1536,7 @@ function step() {
     endT++;
     const ls = online ? localSlot : 0;
     if (endT > 60 && (START || PRS[ls].punch)) {
-      if (online) { state = 'select'; selT = 0; sendSel(); } else toTitle();
+      if (online && !(room && !peerIn)) { state = 'select'; selT = 0; sendSel(); } else { netClose(); toTitle(); }
     }
     return;
   }
@@ -2219,11 +2344,11 @@ function drawFX(f) {
 }
 function drawMenu() {
   g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(0, 0, W, H);
-  const bw = 230, bh = 40 + MENU_ITEMS.length * 22 + 26, bx = (W - bw) / 2, by = (H - bh) / 2;
+  const ML = menuList(), bw = 230, bh = 40 + ML.length * 22 + 26, bx = (W - bw) / 2, by = (H - bh) / 2;
   g.fillStyle = 'rgba(24,20,48,.96)'; g.fillRect(bx, by, bw, bh);
   g.strokeStyle = '#4a4690'; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   txt('MENU', W / 2, by + 20, 14, '#ffcf4a', 'center');
-  MENU_ITEMS.forEach((it, i) => {
+  ML.forEach((it, i) => {
     const on = i === menuIdx2;
     txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, by + 46 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
@@ -2249,7 +2374,14 @@ function hud() {
     g.globalAlpha = 1;
   }
   if (goT > 0 && waveI < LV.waves.length && ((tick >> 4) & 1)) txt('GO >>', W - 14, 60, 16, '#ffd34d', 'right');
-  if (online && stallT > 20) txt('En attente de l\'autre joueur...', W / 2, 52, 10, '#ffd34d', 'center');
+  if (online && room && !peerIn && !joinBusy) {
+    const okR = rel && rel.bs.some(b => b.ready);
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, H - 11, W, 11);
+    txt(okR ? 'Ami : code ' + hostCode + ' · Échap → copier le lien d\'invitation' : (rel && tick - rel.t0 > 600 ? 'Serveur de rencontre injoignable (réseau bloqué ?)' : 'Connexion au relais en ligne…'), W / 2, H - 3, 8, okR ? '#9fd' : '#f99', 'center');
+  }
+  if (joinBusy) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 100, W, 44); txt('Un ami rejoint la partie…', W / 2, 126, 14, '#ffd34d', 'center'); }
+  if (toastT > 0) { g.globalAlpha = Math.min(1, toastT / 30); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(W / 2 - 150, 46, 300, 16); txt(toastMsg, W / 2, 58, 9, '#fff', 'center'); g.globalAlpha = 1; }
+  if (online && stallT > 20 && !joinBusy) txt('En attente de l\'autre joueur...', W / 2, 52, 10, '#ffd34d', 'center');
   if (online && desync) txt('DÉSYNCHRONISÉ : relancez la partie', W / 2, 64, 10, '#f66', 'center');
 }
 
@@ -2267,7 +2399,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 11h50 · boss : spéciaux et ultimes', W / 2, 264, 7, '#667', 'center');
+  txt('version 12h20 · multi simplifié, rejoindre en cours', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2301,20 +2433,14 @@ function drawOnline() {
   if (olStage === 'menu') {
     ['CRÉER UNE PARTIE', 'REJOINDRE UNE PARTIE'].forEach((o, i) => {
       const on = i === olIdx;
-      txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 110 + i * 26, 15, on ? '#fff' : '#889', 'center');
+      txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 100 + i * 26, 15, on ? '#fff' : '#889', 'center');
     });
-    txt('Chacun joue sur son ordinateur. Un joueur crée la partie', W / 2, 190, 9, '#aab', 'center');
-    txt('et donne le code à l\'autre.', W / 2, 202, 9, '#aab', 'center');
+    txt('Créer : vous jouez tout de suite, un ami peut vous rejoindre', W / 2, 172, 9, '#aab', 'center');
+    txt('à tout moment, même en cours de partie (lien ou code).', W / 2, 184, 9, '#aab', 'center');
+    txt('Rejoindre : ouvrez le lien reçu, ou tapez le code.', W / 2, 202, 9, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
-  } else if (olStage === 'hosting') {
-    txt('Code de la partie', W / 2, 96, 12, '#cbd', 'center');
-    txt(hostCode, W / 2, 140, 38, '#fff', 'center');
-    txt('Donnez ce code à l\'autre joueur.', W / 2, 176, 10, '#aab', 'center');
-    if ((tick >> 5) & 1) txt('En attente de l\'autre joueur...', W / 2, 210, 11, '#ffd34d', 'center');
-    drawRelays(236);
-    txt('P : annuler', W / 2, 250, 9, '#889', 'center');
   } else if (olStage === 'joining') {
-    txt('Entrez le code de la partie', W / 2, 96, 12, '#cbd', 'center');
+    txt('Entrez le code de la partie (ou collez le lien)', W / 2, 96, 12, '#cbd', 'center');
     txt((codeBuf + '_____').slice(0, 5).split('').join(' '), W / 2, 140, 34, '#fff', 'center');
     txt('ENTRÉE pour se connecter', W / 2, 190, 10, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
@@ -2356,7 +2482,7 @@ function drawSelect() {
     txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : ''), cx - 34 + i * 30, 31, 8, col);
     if (s.lock) txt('J' + (i + 1) + ' PRÊT', cx, 232 + i * 9, 8, col, 'center');
   }
-  txt(online ? 'En ligne : la partie démarre quand les deux joueurs sont prêts' : 'Gauche / Droite : choisir · Frapper : valider · Spécial : annuler', W / 2, 264, 8, '#aab', 'center');
+  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : un ami pourra vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand les deux joueurs sont prêts' : 'Gauche / Droite : choisir · Frapper : valider · Spécial : annuler', W / 2, 264, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
 }
 /* ---------- pièges ---------- */
 const trapC = t => (simF + (t.ph || 0)) % (t.per || 1);
