@@ -540,7 +540,7 @@ function mkPlayer(hero, slot) {
   const hr = HEROES[hero];
   return { kind: 'p', hero, slot, name: '', x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
     st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
-    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy' };
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
 }
 function mkEnemy(type, x, y) {
   const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM));
@@ -559,7 +559,7 @@ function loadLevel(i) {
 function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
-  hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1;
+  hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
   simF = 0;
   seedRng(online ? netSeed : (Date.now() >>> 0));
   state = 'play';
@@ -627,11 +627,68 @@ function heroBonus(att, t, a) {
   if (txt) FX.push({ x: t.x, y: t.y, z: t.z + 50, t: 0, life: 26, txt, col });
   return m === 1 ? a : Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * m)) });
 }
+/* ---------- expérience et spécialisations ---------- */
+const xpNeed = l => 80 + 60 * l;
+function gainXp(p, n) {
+  if (p.out || n <= 0) return;
+  p.xp += n;
+  while (p.xp >= xpNeed(p.xl)) {
+    p.xp -= xpNeed(p.xl); p.xl++;
+    p.maxhp += 4; p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.25));
+    FX.push({ x: p.x, y: p.y, z: p.z + 58, t: 0, life: 46, txt: 'NIVEAU ' + (p.xl + 1) + ' !', col: '#7dff9a' });
+    SFX.pick();
+  }
+}
+/* trois spécialisations par héros, proposées à la fin de chaque niveau ; effets : dgt = dégâts, vit = vitesse, spe = jauge spéciale, vol = vie volée, def = dégâts reçus en moins, pv = vie max */
+const SPECS = {
+  cogneur: [['Régénérateur', '+15 PV max', { pv: 15 }], ['Cogneur d\'élite', '+10% de dégâts', { dmg: 0.10 }], ['Endurci', '-8% de dégâts reçus', { dr: 0.08 }]],
+  vive: [['Foudroyante', '+10% de vitesse', { spd: 0.10 }], ['Coups volants', '+12% de dégâts', { dmg: 0.12 }], ['Esquiveuse', '-8% de dégâts reçus', { dr: 0.08 }]],
+  costaud: [['Mur de béton', '-10% de dégâts reçus', { dr: 0.10 }], ['Marteau', '+12% de dégâts', { dmg: 0.12 }], ['Colosse', '+20 PV max', { pv: 20 }]],
+  ombre: [['Assassin', '+14% de dégâts', { dmg: 0.14 }], ['Furtif', '+12% de vitesse', { spd: 0.12 }], ['Vampire', 'vole 8% des dégâts', { ls: 0.08 }]],
+  boxeur: [['Poings d\'acier', '+12% de dégâts', { dmg: 0.12 }], ['Garde haute', '-8% de dégâts reçus', { dr: 0.08 }], ['Second souffle', 'spécial +25% plus vite', { sp: 0.25 }]],
+  medic: [['Soins de guerre', 'vole 10% des dégâts', { ls: 0.10 }], ['Réserve', '+18 PV max', { pv: 18 }], ['Charge rapide', 'spécial +30% plus vite', { sp: 0.30 }]],
+  fauteuil: [['Turbo', '+14% de vitesse', { spd: 0.14 }], ['Blindage', '-12% de dégâts reçus', { dr: 0.12 }], ['Roues d\'acier', '+12% de dégâts', { dmg: 0.12 }]],
+  papy: [['Canne ferrée', '+15% de dégâts', { dmg: 0.15 }], ['Vieux de la vieille', '+15 PV max, -6% reçus', { pv: 15, dr: 0.06 }], ['Sagesse', 'spécial +30% plus vite', { sp: 0.30 }]],
+  dalto: [['Œil de lynx', '+10% de dégâts', { dmg: 0.10 }], ['Chanceux', '+8% de vitesse', { spd: 0.08 }], ['Résistant', '-8% de dégâts reçus', { dr: 0.08 }]],
+  aveugle: [['Ouïe fine', '+12% de vitesse', { spd: 0.12 }], ['Écholocation', 'spécial +30% plus vite', { sp: 0.30 }], ['Instinct', '+12% de dégâts', { dmg: 0.12 }]]
+};
+let specOn = false, specT = 0, specCh = [0, 0, 0, 0], specLk = [false, false, false, false];
+const specSkip = p => p.absent || (online && !act[p.slot]);
+function startSpec() { specOn = true; specT = 0; specCh = [0, 0, 0, 0]; specLk = [false, false, false, false]; }
+function pickSpec(p, i) {
+  const sp = SPECS[p.hero][i], e = sp[2];
+  p.specs[i] = (p.specs[i] | 0) + 1;
+  if (e.pv) { p.maxhp += e.pv; p.hp = Math.min(p.maxhp, p.hp + e.pv); }
+  for (const k of ['dmg', 'spd', 'sp', 'ls', 'dr']) if (e[k]) p.mods[k] += e[k];
+}
+function updSpec() {
+  specT++;
+  let all = true;
+  for (const p of PS) {
+    if (specSkip(p)) continue;
+    const s = p.slot;
+    if (specLk[s]) continue;
+    all = false;
+    const P = PRS[s];
+    if (P.left) specCh[s] = (specCh[s] + 2) % 3;
+    if (P.right) specCh[s] = (specCh[s] + 1) % 3;
+    if (P.punch || P.jump) { specLk[s] = true; SFX.pick(); }
+  }
+  if (all || specT > 1500) {
+    for (const p of PS) if (!specSkip(p)) pickSpec(p, specCh[p.slot]);
+    specOn = false; nextLevel();
+  }
+}
+
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
   const ff = att.kind === 'p' && t.kind === 'p';
   if (ff && !FRIENDLY) return;
-  if (att.kind === 'p' && !ff) a = heroBonus(att, t, a);
+  if (att.kind === 'p' && !ff) {
+    a = heroBonus(att, t, a);
+    const dm = att.mods.dmg + att.xl * 0.02;
+    if (dm > 0) a = Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * (1 + dm))) });
+  }
   if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
   if (att.weapon && att.st === 'attack') {
     att.wd--;
@@ -642,16 +699,20 @@ function hurt(t, att, a, dir) {
     }
   }
   const hp0 = t.hp;
-  t.hp -= ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg; t.flash = 8;
+  let dmgIn = ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg;
+  if (t.kind === 'p' && t.mods.dr > 0) dmgIn = Math.max(1, Math.round(dmgIn * (1 - t.mods.dr)));
+  t.hp -= dmgIn; t.flash = 8;
+  if (!ff && att.kind === 'p' && t.kind === 'e' && att.mods.ls > 0 && att.hp > 0) att.hp = Math.min(att.maxhp, att.hp + Math.max(1, Math.round(Math.min(dmgIn, hp0) * att.mods.ls)));
   if (ff && t.hp < 1) t.hp = 1;
-  if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2);
-  if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6);
+  if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
+  if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6 * (1 + t.mods.sp));
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
   if (a.kd) { shake = Math.max(shake, 6); SFX.big(); } else SFX.hit();
   if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5); tgt = t; tgtT = 150; }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
+    if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4));
     SFX.ko();
     return;
   }
@@ -702,14 +763,14 @@ function updPlayer(p) {
       if (!dx || (p.sprint && dx !== p.dtD)) p.sprint = false;
       const sm = p.sprint ? (p.hero === 'costaud' ? 1.35 : p.hero === 'fauteuil' ? 2.2 : 1.7) : 1;
       if (dx && dy) { dx *= 0.8; dy *= 0.8; }
-      p.x += dx * hr.spd * sm; p.y += dy * hr.spd * 0.7;
+      p.x += dx * hr.spd * (1 + p.mods.spd) * sm; p.y += dy * hr.spd * (1 + p.mods.spd) * 0.7;
       if (p.hero === 'papy' && !p.cane && (dx || dy)) {                      // sans canne : il titube, dévie, et finit par trébucher
         p.x += Math.sin(simF * 0.11) * 0.28; p.y += Math.cos(simF * 0.08 + p.slot) * 0.3;
         if ((simF + p.slot * 41) % 150 === 0) { p.st = 'hurt'; p.t = 0; p.vx = p.face * 1.6; p.hit = new Set(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'oups…', col: '#ffe08a' }); }
       }
       if (dx) p.face = dx > 0 ? 1 : -1;
-      if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd * (p.sprint ? 1.5 : 1); }
-      if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd * sm; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
+      if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd * (1 + p.mods.spd) * (p.sprint ? 1.5 : 1); }
+      if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd * (1 + p.mods.spd) * sm; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
       else if (Pp.special || p.bs > 0) {
         const cost = hr.cost;
         if (p.hero === 'papy' && !p.cane) { p.bs = 0; if (Pp.special) FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'sans canne !', col: '#ffe08a' }); }
@@ -1228,7 +1289,7 @@ function updWaves() {
   } else if (w && cam >= w.cam - 0.01) {
     waveActive = true; camLimit = cam; goT = 0;
     for (const [k, s] of w.spawn) spawn(k, s);
-    if (nPlayers === 2 && !w.boss) spawn('thug', rng() < 0.5 ? 1 : -1);
+    if (nPlayers >= 2 && !w.boss) for (let k = 1; k < Math.min(4, nPlayers); k++) spawn('thug', rng() < 0.5 ? 1 : -1);
   }
 }
 
@@ -1627,8 +1688,8 @@ function applyNetInputs() {
   if (localSlot === 0) allLog[frameNo] = packM(ms);
   applyMasks(ms);
   netPaused = 0; pauseBy = '';
-  for (let s = 0; s < MAXP; s++) if (ms[s] & 256) { netPaused = 1; pauseBy = pauseBy || (NAMES[s] || ''); }
-  return netPaused;
+  for (let s = 0; s < MAXP; s++) if ((ms[s] & 256) && PS[s] && act[s]) { PS[s].inv = Math.max(PS[s].inv, 3); pauseBy = pauseBy || (NAMES[s] || ''); }   // menu ouvert : le héros est protégé, les autres continuent
+  return 0;
 }
 function stateHash() {
   let h = rngS | 0;
@@ -1763,6 +1824,7 @@ function updOnline() {
 
 /* ---------- simulation d'une image de jeu (identique chez les deux joueurs en ligne) ---------- */
 function simStep() {
+  if (specOn) { updSpec(); return; }
   if (shake > 0) shake -= 0.5;
   if (tgtT > 0) tgtT--;
   if (goT > 0) goT--;
@@ -1791,7 +1853,7 @@ function simStep() {
   cam = Math.min(camLimit, Math.max(cam, lead - W * 0.42));
   if (waveI >= LV.waves.length && !waveActive && endT > 0) {
     endT--;
-    if (endT === 0) { if (levelIdx < LEVELS.length - 1) nextLevel(); else endGame('win'); }
+    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else endGame('win'); }
   }
 }
 
@@ -2771,21 +2833,43 @@ function hudPlayer(p, i) {
     const x0 = 4 + i * 119;
     txt('J' + (i + 1), x0, 14, 9, col); bar(x0 + 16, 7, 62, 7, r); txt(life, x0 + 82, 14, 8, p.out ? '#e66' : '#fff');
     spBar(p, x0 + 16, 17, 62); if (ready) txt('SP !', x0 + 82, 24, 7, '#ffd34d');
-    txt(String(p.score).padStart(6, '0'), x0, 33, 8, '#fff');
+    txt(String(p.score).padStart(6, '0') + '  N' + (p.xl + 1), x0, 33, 8, '#fff'); g.fillStyle = '#2a2a55'; g.fillRect(x0, 36, 100, 2); g.fillStyle = '#7dff9a'; g.fillRect(x0, 36, Math.round(100 * p.xp / xpNeed(p.xl)), 2);
     if (p.weapon) txt(WEAPONS[p.weapon].name, x0 + 50, 33, 7, '#ffd34d');
     return;
   }
   if (left) {
     txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
     spBar(p, 26, 20, 90); txt(lab, 122, 27, 8, lc);
-    txt(String(p.score).padStart(6, '0'), 8, 42, 9, '#fff');
+    txt(String(p.score).padStart(6, '0') + '  NIV ' + (p.xl + 1), 8, 42, 9, '#fff'); g.fillStyle = '#2a2a55'; g.fillRect(8, 45, 90, 2); g.fillStyle = '#7dff9a'; g.fillRect(8, 45, Math.round(90 * p.xp / xpNeed(p.xl)), 2);
     if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [L] lancer', 8, 54, 8, '#ffd34d'); durBar(p, 8, 58); }
   } else {
     txt('J2', W - 8, 16, 10, col, 'right'); bar(W - 116, 8, 90, 8, r); txt(life, W - 122, 16, 10, p.out ? '#e66' : '#fff', 'right');
     spBar(p, W - 116, 20, 90); txt(lab, W - 122, 27, 8, lc, 'right');
-    txt(String(p.score).padStart(6, '0'), W - 8, 42, 9, '#fff', 'right');
+    txt('NIV ' + (p.xl + 1) + '  ' + String(p.score).padStart(6, '0'), W - 8, 42, 9, '#fff', 'right'); g.fillStyle = '#2a2a55'; g.fillRect(W - 98, 45, 90, 2); g.fillStyle = '#7dff9a'; g.fillRect(W - 98, 45, Math.round(90 * p.xp / xpNeed(p.xl)), 2);
     if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [L] lancer', W - 8, 54, 8, '#ffd34d', 'right'); durBar(p, W - 58, 58); }
   }
+}
+function drawSpec() {
+  g.fillStyle = 'rgba(5,3,15,.88)'; g.fillRect(0, 0, W, H);
+  txt('NIVEAU TERMINÉ · CHOISISSEZ UNE SPÉCIALISATION', W / 2, 20, 11, '#ffcf4a', 'center');
+  const ps = PS.filter(p => !specSkip(p)), n = ps.length, pw = n > 2 ? 116 : 220, gap = n > 2 ? 3 : 10;
+  const x00 = Math.round((W - (n * pw + (n - 1) * gap)) / 2);
+  ps.forEach((p, k) => {
+    const s = p.slot, x0 = x00 + k * (pw + gap), col = PCOL[s & 3];
+    g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(x0, 34, pw, 206);
+    g.strokeStyle = specLk[s] ? '#7dff9a' : col; g.lineWidth = 1; g.strokeRect(x0 + 0.5, 34.5, pw - 1, 205);
+    txt('J' + (s + 1) + ' · ' + HEROES[p.hero].name, x0 + pw / 2, 48, n > 2 ? 7 : 9, col, 'center');
+    txt('niveau ' + (p.xl + 1) + (online && s === localSlot ? ' (vous)' : ''), x0 + pw / 2, 59, 7, '#9ab', 'center');
+    SPECS[p.hero].forEach((sp, i) => {
+      const y = 68 + i * 54, on = specCh[s] === i;
+      g.fillStyle = on ? (specLk[s] ? 'rgba(60,140,80,.55)' : 'rgba(90,80,200,.55)') : 'rgba(20,18,44,.8)'; g.fillRect(x0 + 4, y, pw - 8, 48);
+      g.strokeStyle = on ? '#fff' : '#3a3670'; g.strokeRect(x0 + 4.5, y + 0.5, pw - 9, 47);
+      txt(sp[0] + (p.specs[i] ? ' ×' + (p.specs[i] + 1) : ''), x0 + pw / 2, y + 15, n > 2 ? 7 : 9, on ? '#fff' : '#bbd', 'center');
+      txt(sp[1], x0 + pw / 2, y + 32, 6, on ? '#8fe0a8' : '#778', 'center');
+    });
+    txt(specLk[s] ? 'PRÊT' : '← → choisir · Frapper', x0 + pw / 2, 234, 7, specLk[s] ? '#7dff9a' : '#aab', 'center');
+  });
+  txt('La suite démarre quand tous sont prêts (' + Math.max(0, Math.ceil((1500 - specT) / 60)) + ' s)', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 function drawItem(it) {
   if (it.got) return;
@@ -2871,7 +2955,7 @@ function drawMenu() {
     const on = i === menuIdx2;
     txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, by + 46 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
-  txt((online ? (others() > 0 ? 'Pause pour tous les joueurs · ' : 'Jeu en pause · ') : '') + (menuSub ? 'Gauche / Droite : modifier · Échap : retour' : 'Haut / Bas · Entrée · Échap : fermer'), W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
+  txt((online ? (others() > 0 ? 'Votre héros est protégé, les autres jouent · ' : 'Jeu en pause · ') : '') + (menuSub ? 'Gauche / Droite : modifier · Échap : retour' : 'Haut / Bas · Entrée · Échap : fermer'), W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
 }
 function hud() {
   PS.forEach(hudPlayer);
@@ -2905,7 +2989,7 @@ function hud() {
   if (joinBusy) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 100, W, 44); txt('Un ami rejoint la partie…', W / 2, 126, 14, '#ffd34d', 'center'); }
   if (toastT > 0) { g.globalAlpha = Math.min(1, toastT / 30); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(W / 2 - 150, 46, 300, 16); txt(toastMsg, W / 2, 58, 9, '#fff', 'center'); g.globalAlpha = 1; }
   if (online && stallT > 20 && !joinBusy) txt('En attente des autres joueurs...', W / 2, 52, 10, '#ffd34d', 'center');
-  if (online && netPaused && !menuOpen) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 96, W, 52); txt('PAUSE', W / 2, 122, 20, '#fff', 'center'); txt(pauseBy ? pauseBy + ' a ouvert le menu' : '', W / 2, 140, 9, '#cbd', 'center'); }
+  if (online && pauseBy && !menuOpen) txt(pauseBy + ' est dans le menu (protégé)', W / 2, 40, 8, '#cbd', 'center');
   if (online && desync) txt('DÉSYNCHRONISÉ : relancez la partie', W / 2, 64, 10, '#f66', 'center');
 }
 
@@ -2922,7 +3006,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 16h10 · menus · latence', W / 2, 264, 7, '#667', 'center');
+  txt('version 17h00 · expérience · spécialisations', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -3287,6 +3371,7 @@ function render() {
   else {
     blindFx();
     hud();
+    if (specOn) drawSpec();
     if (menuOpen) drawMenu();
     if (paused) {
       g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(0, 0, W, H);
