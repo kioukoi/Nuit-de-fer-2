@@ -623,11 +623,15 @@ function drawChar(e) {
     g.fillStyle = '#000'; g.fillRect(bx - 1, by - 1, bw + 2, 4); g.fillStyle = '#3a1a1a'; g.fillRect(bx, by, bw, 2);
     g.fillStyle = r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'); g.fillRect(bx, by, Math.round(bw * r), 2);
   }
-  if (!isP && e.type === 'boss' && !e.dying) {
-    const by = sy - Math.round(62 * s), bw = 44, bx = Math.round(sx - bw / 2), r = Math.max(0, e.hp / e.maxhp);
-    g.font = 'bold 7px monospace'; g.textAlign = 'center'; g.fillStyle = '#f88'; g.fillText(LV.bossName, sx, by - 5);
-    g.fillStyle = '#000'; g.fillRect(bx - 1, by - 2, bw + 2, 7); g.fillStyle = '#3a1a1a'; g.fillRect(bx, by - 1, bw, 5);
-    g.fillStyle = '#d03030'; g.fillRect(bx, by - 1, Math.round(bw * r), 5);
+  if (!isP && e.kind === 'e' && e.type !== 'boss' && !e.dying && T[e.type]) {   /* méchants : nom puis petite barre de vie au-dessus de la tête */
+    const ny = sy - Math.round(47 * s), nm = T[e.type].name;
+    g.font = 'bold 6px monospace'; g.textAlign = 'center';
+    const tw = Math.ceil(g.measureText(nm).width) + 5;
+    g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(sx - tw / 2, ny - 6, tw, 8);
+    g.fillStyle = '#fda'; g.fillText(nm, sx, ny);
+    const r = Math.max(0, Math.min(1, e.hp / e.maxhp)), bw = 18, bx = Math.round(sx - bw / 2), by = ny + 3;
+    g.fillStyle = '#000'; g.fillRect(bx - 1, by - 1, bw + 2, 4); g.fillStyle = '#3a1a1a'; g.fillRect(bx, by, bw, 2);
+    g.fillStyle = '#e0663a'; g.fillRect(bx, by, Math.round(bw * r), 2);
   }
   if (!isP && (st === 'tele' || st === 'bspec') && !(st === 'bspec' && e.z > 2)) {
     const my = sy - Math.round(56 * s);

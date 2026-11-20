@@ -205,9 +205,10 @@ function drawMenu() {
 function hud() {
   PS.forEach(hudPlayer);
   txt('N' + (levelIdx + 1) + ' · ' + LV.name, W / 2, 8, 7, '#99a', 'center');
-  if (tgt && tgtT > 0 && !tgt.gone && tgt.kind === 'e' && tgt.type !== 'boss') {
-    txt(T[tgt.type].name, W / 2, 16, 9, '#fda', 'center');
-    bar(W / 2 - 40, 20, 80, 6, tgt.hp / tgt.maxhp, '#e0663a');
+  const boss = E.find(e => e.type === 'boss' && !e.gone);
+  if (boss) {
+    txt(LV.bossName, W / 2, H - 20, 10, '#f88', 'center');
+    bar(W / 2 - 100, H - 14, 200, 8, boss.hp / boss.maxhp, '#d03030');
   }
   if (introT > 0 && state === 'play') {
     const a = Math.min(1, introT / 30, (170 - introT) / 20);
@@ -246,7 +247,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 21h05 · armes à feu, livreur', W / 2, 264, 7, '#667', 'center');
+  txt('version 22h50 · barres méchants, boss en bas', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
