@@ -1327,26 +1327,43 @@ function newCode() {
   for (let i = 0; i < 5; i++) s += al[Math.floor(Math.random() * al.length)];
   return s;
 }
-function netSend(m) {
+function netSend(m, all) {
   if (!rel) return;
   m.u = myUid;
   const pkt = mqPub(rel.topic, m);
-  let n = 0;
-  for (const b of rel.bs) { if (b.ready && n < 3) { try { b.ws.send(pkt); n++; } catch (e) { /* ignoré */ } } }
+  const L = rel.bs.filter(b => b.ready).sort((a, b) => (a.lat === undefined ? 999 : a.lat) - (b.lat === undefined ? 999 : b.lat));   // les relais les plus rapides d'abord
+  for (const b of all ? L : L.slice(0, 3)) { try { b.ws.send(pkt); } catch (e) { /* ignoré */ } }
 }
 function startRelay(code) {
   relClose();
   rel = { code, bs: [], topic: 'nferbrawl2/' + code, t0: tick, helloT: 0, reopenT: tick };
-  rel.mk = url => openBroker(url, rel.topic, (c, m) => { if (rel && m && m.u !== myUid) netIn(m); });
+  rel.mk = url => openBroker(url, rel.topic, (c, m) => {
+    if (!rel || !m) return;
+    if (m.u === myUid) { if (m.t === 'ping' && m.ts !== undefined) { const r = nowMs() - m.ts; if (r >= 0 && r < 5000) c.lat = c.lat === undefined ? r : c.lat * 0.6 + r * 0.4; } return; }   // notre propre ping revenu : mesure de ce relais
+    netIn(m);
+  });
   rel.bs = BROKERS.map(rel.mk);
+}
+/* plus de code : tous les amis arrivent dans la même salle fixe. Le premier cherche une partie ; s'il n'en trouve pas, il en ouvre une. */
+const ROOM_CODE = 'NDFER';
+let gotWait = false;
+function goOnlineAuto() {
+  netReset(); waitMsg = ''; gotWait = false; netMsg = '';
+  olStage = 'connecting'; state = 'online';
+  startRelay(ROOM_CODE); rel.srch = 150 + Math.floor(Math.random() * 150);      // petite attente aléatoire : évite que deux amis ouvrent chacun une salle
+}
+function becomeHost() {
+  rel.srch = 0; roomPending = true; nPlayers = 1; online = false; NAMES[0] = myName; initSelect(); state = 'select'; olStage = 'hosting'; SFX.pick();
 }
 function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; startRelay(code); }
 
 /* ----- arrivée d'un joueur ----- */
 function hostHello(m) {
+  if (roomPending && !online) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!(online && room && localSlot === 0)) return;
   const nm = cleanName(m.n) || 'JOUEUR';
   if (nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
+  if (roomPending && !online) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!pend || pend.u !== m.u) pend = { u: m.u, slot: nPlayers, n: nm, t: tick };
   pend.t = tick;
@@ -1355,7 +1372,7 @@ function hostHello(m) {
 function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
   if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
-  if (m.wait) { waitMsg = 'La partie est occupée (un autre ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
+  if (m.wait) { gotWait = true; waitMsg = 'La partie est occupée (un ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
   online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
   initSelect();
   for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
@@ -1453,6 +1470,10 @@ function netIn(m) {
   const t = m.t;
   if (t === 'hello') { hostHello(m); return; }
   if (t === 'welcome') { guestWelcome(m); return; }
+  if (t === 'host') {                                   // deux amis ont ouvert une salle en même temps : celui dont l'identifiant est le plus grand rejoint l'autre
+    if (roomPending && !online && m.u < myUid) { roomPending = false; if (rel) { rel.srch = 0; rel.helloT = -99; rel.t0 = tick; } gotWait = false; state = 'online'; olStage = 'connecting'; waitMsg = ''; }
+    return;
+  }
   if (!online) return;
   const p = m.p;
   if (p !== undefined && p >= 0 && p < MAXP && p !== localSlot) { lastRx[p] = tick; rxT = tick; }
@@ -1518,7 +1539,7 @@ function copyInvite() {
   } catch (e) { toast('Code : ' + hostCode); }
 }
 function startRoom() {
-  roomPending = false; hostCode = newCode(); netReset(); startRelay(hostCode);
+  roomPending = false; hostCode = ROOM_CODE; const keepRel = rel; netReset(); rel = keepRel; if (!rel) startRelay(ROOM_CODE);
   room = true; online = true; localSlot = 0; nPlayers = 1; NAMES[0] = myName; act = [true, false, false, false];
   beginOnline((Math.random() * 4294967296) >>> 0);
   toast('Partie ouverte ! Échap → inviter des amis');
@@ -1530,11 +1551,11 @@ function adaptDelay() {
   if (mx < 0) return;
   rttMax = mx;
   let want = Math.ceil((mx / 2 + 24) / (1000 / 60)) + 1;
-  if (stallEv > 4) { want = Math.max(want, curDelay + 2); }
+  if (stallEv > 2) { want = Math.max(want, curDelay + 2); }
   stallEv = 0;
   want = Math.max(5, Math.min(40, want));
   if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
-  else if (want < curDelay && tick - lastDelayAdj > 240) { curDelay--; lastDelayAdj = tick; }
+  else if (want < curDelay && tick - lastDelayAdj > 420) { curDelay--; lastDelayAdj = tick; }
 }
 function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
@@ -1577,7 +1598,13 @@ function netFrameReady() {
     if (s === localSlot) continue;
     if ((act[s] || joins.some(j => j.slot === s && j.F === f && !j.done && !j.x)) && !slotAvail(s, f)) ok = false;
   }
-  if (!ok) { if (stallT === 0) stallEv++; stallT++; if (stallT % 6 === 0) sendIn(); return false; }
+  if (!ok) {
+    if (stallT === 0) stallEv++;
+    stallT++;
+    if (stallT === 6 && curDelay < 40) { curDelay = Math.min(40, curDelay + 2); lastDelayAdj = tick; }     // à-coup : on prend tout de suite plus de marge
+    if (stallT % 3 === 0) sendIn();
+    return false;
+  }
   stallT = 0;
   return true;
 }
@@ -1632,7 +1659,10 @@ function relTick() {
     rel.reopenT = tick;
     rel.bs.forEach((b, i) => { if (b.dead) { try { b.ws && b.ws.close(); } catch (e) { /* ignoré */ } rel.bs[i] = rel.mk(BROKERS[i]); } });
   }
+  if (anyReady && !rel.rdyAt) rel.rdyAt = tick;
   if (!online) {
+    if (roomPending && tick % 40 === 0 && anyReady) netSend({ t: 'host' });
+    if (olStage === 'connecting' && rel.srch && !gotWait && rel.rdyAt && tick - rel.rdyAt > rel.srch) { becomeHost(); return; }
     if (olStage === 'connecting') {
       if (age > 1500) { netFail(anyReady ? 'Partie introuvable. Vérifiez le code (ou le lien) et que l\'hôte a bien créé sa partie.' : 'Serveur de mise en relation injoignable (réseau bloqué ?). Essayez un autre réseau.'); return; }
       if (age - rel.helloT >= 30 && anyReady) { rel.helloT = age; netSend({ t: 'hello', n: myName }); }
@@ -1640,7 +1670,7 @@ function relTick() {
     return;
   }
   while (pongQ.length) { const [to, ts] = pongQ.shift(); netSend({ t: 'pong', p: localSlot, to, ts }); }
-  if (tick % 20 === 0) netSend({ t: 'ping', p: localSlot, ts: nowMs() });
+  if (tick % 20 === 0) netSend({ t: 'ping', p: localSlot, ts: nowMs() }, true);
   if (state === 'play' && tick % 30 === 0) adaptDelay();
   if (tick % 1200 === 0) for (const b of rel.bs) { try { if (b.ready) b.ws.send(U8([0xC0, 0])); } catch (e) { /* ignoré */ } }
   if (state === 'select' && tick % 30 === 0 && !roomJoin) sendSel();
@@ -1668,7 +1698,7 @@ function relTick() {
 }
 
 /* ---------- menus ---------- */
-function toTitle() { state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
@@ -1769,21 +1799,34 @@ function simStep() {
 /* ---------- menu en jeu (touche Échap) : ajouter une option = ajouter une ligne dans MENU_ITEMS ---------- */
 const MENU_ALL = [
   { label: () => 'REPRENDRE', act: () => { menuOpen = false; } },
-  { label: () => 'INVITER DES AMIS (COPIER LE LIEN)', show: () => online && room && localSlot === 0 && nPlayers < MAXP, act: () => { copyInvite(); menuOpen = false; } },
-  { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
-  { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; } },
-  { label: () => 'PLEIN ÉCRAN : ' + (document.fullscreenElement ? 'OUI' : 'NON'), act: () => {
-    try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* ignoré */ }
-  } },
+  { label: () => 'OPTIONS  >', act: () => { menuSub = true; menuIdx2 = 0; } },
   { label: () => 'RETOUR À L\'ACCUEIL', act: () => { if (online) { netClose(); netMsg = ''; } menuOpen = false; toTitle(); } }
 ];
-const menuList = () => MENU_ALL.filter(m => !m.show || m.show());
-function updMenu() {
-  const L = menuList();
-  if (RAW.up) { menuIdx2 = (menuIdx2 + L.length - 1) % L.length; SFX.move(); }
-  if (RAW.down) { menuIdx2 = (menuIdx2 + 1) % L.length; SFX.move(); }
-  if (START || RAW.punch || RAW.jump) { SFX.pick(); L[menuIdx2 % L.length].act(); }
+/* options : une seule liste, utilisée par l'accueil (tout) et par le menu en jeu (sans niveau ni nom) */
+const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
+const OPTS = [
+  { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
+  { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
+  { id: 'ff', label: () => 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON'), act: toggleFF, adj: toggleFF, hint: () => 'Coups entre joueurs : oui = les alliés se blessent (moitié des dégâts)' },
+  { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; }, adj: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
+  { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; }, adj: () => { sfxOn = !sfxOn; } },
+  { label: () => 'PLEIN ÉCRAN : ' + (document.fullscreenElement ? 'OUI' : 'NON'), act: () => {
+    try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* ignoré */ }
+  } }
+];
+let menuSub = false, optIdx = 0;
+const optList = ctx => OPTS.filter(o => ctx === 'title' ? true : (!o.title && (o.id !== 'ff' || !online)));
+const subList = () => optList('game').concat([{ label: () => 'RETOUR', act: () => { menuSub = false; menuIdx2 = 0; } }]);
+const curMenu = () => menuSub ? subList() : menuList();
+function navList(L, idx, adjOk) {
+  if (RAW.up) { idx = (idx + L.length - 1) % L.length; SFX.move(); }
+  if (RAW.down) { idx = (idx + 1) % L.length; SFX.move(); }
+  const it = L[idx % L.length];
+  if (adjOk && it.adj && (RAW.left || RAW.right)) it.adj(RAW.right ? 1 : -1);
+  else if (START || RAW.punch || RAW.jump) { if (it.act) { SFX.pick(); it.act(); } else if (it.adj) it.adj(1); }
+  return idx;
 }
+function updMenu() { menuIdx2 = navList(curMenu(), menuIdx2, true); }
 
 /* ---------- boucle de mise à jour ---------- */
 function step() {
@@ -1795,34 +1838,31 @@ function step() {
   if (toastT > 0) toastT--;
   if (catchReady) runCatchUp();
   if (pendingJoin && state === 'title') { const pc = pendingJoin; pendingJoin = ''; NAMES[0] = myName; state = 'online'; olStage = 'connecting'; joinGame(pc); return; }
-  if (state === 'play' && MENUK) { menuOpen = !menuOpen; menuIdx2 = 0; }
-  if (state !== 'play') menuOpen = false;
+  if (state === 'play' && MENUK) { if (menuOpen && menuSub) { menuSub = false; menuIdx2 = 0; } else { menuOpen = !menuOpen; menuIdx2 = 0; menuSub = false; } }
+  if (state !== 'play') { menuOpen = false; menuSub = false; }
   if (state === 'title') {
     cam = 0;
-    if (PRS[0].up) { menuIdx = (menuIdx + 5) % 6; SFX.move(); }
-    if (PRS[0].down) { menuIdx = (menuIdx + 1) % 6; SFX.move(); }
-    if (menuIdx === 2) {
-      if (PRS[0].left && startLevel > 0) { startLevel--; SFX.move(); }
-      if ((PRS[0].right || START) && startLevel < unlocked) { startLevel++; SFX.move(); }
-      else if (START && startLevel >= unlocked && unlocked > 0) { startLevel = 0; SFX.move(); }
-    }
-    if (menuIdx === 5 && (PRS[0].left || PRS[0].right || START || PRS[0].punch || PRS[0].jump)) { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); return; }
-    if ((START && menuIdx !== 2) || PRS[0].punch || PRS[0].jump) {
+    if (PRS[0].up) { menuIdx = (menuIdx + 3) % 4; SFX.move(); }
+    if (PRS[0].down) { menuIdx = (menuIdx + 1) % 4; SFX.move(); }
+    if (START || PRS[0].punch || PRS[0].jump) {
       unlockAudio(); netMsg = '';
       NAMES[0] = myName;
       if (menuIdx === 0) { nPlayers = 1; initSelect(); state = 'select'; SFX.pick(); }
-      else if (menuIdx === 1) { state = 'online'; olStage = 'menu'; olIdx = 0; SFX.pick(); }
-      else if (menuIdx === 3) {
-        SFX.pick();
-        if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); }
-        else { nameBuf = ''; state = 'name'; }
-      } else if (menuIdx === 4) { state = 'scores'; sbLoad(); SFX.pick(); }
+      else if (menuIdx === 1) { goOnlineAuto(); SFX.pick(); }
+      else if (menuIdx === 2) { state = 'scores'; sbLoad(); SFX.pick(); }
+      else if (menuIdx === 3) { state = 'options'; optIdx = 0; SFX.pick(); }
     }
     return;
   }
+  if (state === 'options') {
+    const L = optList('title').concat([{ label: () => 'RETOUR', act: () => { state = 'title'; } }]);
+    if (MENUK) { state = 'title'; SFX.move(); return; }
+    optIdx = navList(L, optIdx, true);
+    return;
+  }
   if (state === 'name') {
-    if (MENUK) { state = 'title'; return; }
-    if (START && nameBuf.trim()) { setMyName(nameBuf); state = 'title'; SFX.pick(); }
+    if (MENUK) { state = 'options'; return; }
+    if (START && nameBuf.trim()) { setMyName(nameBuf); state = 'options'; SFX.pick(); }
     return;
   }
   if (state === 'scores') {
@@ -2823,15 +2863,15 @@ function drawFX(f) {
 }
 function drawMenu() {
   g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(0, 0, W, H);
-  const ML = menuList(), bw = 230, bh = 40 + ML.length * 22 + 26, bx = (W - bw) / 2, by = (H - bh) / 2;
+  const ML = curMenu(), bw = 250, bh = 40 + ML.length * 22 + 26, bx = (W - bw) / 2, by = (H - bh) / 2;
   g.fillStyle = 'rgba(24,20,48,.96)'; g.fillRect(bx, by, bw, bh);
   g.strokeStyle = '#4a4690'; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  txt('MENU', W / 2, by + 20, 14, '#ffcf4a', 'center');
+  txt(menuSub ? 'OPTIONS' : 'MENU', W / 2, by + 20, 14, '#ffcf4a', 'center');
   ML.forEach((it, i) => {
     const on = i === menuIdx2;
     txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, by + 46 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
-  txt(online ? (others() > 0 ? 'Le jeu est en pause pour tous les joueurs' : 'Jeu en pause') : 'Haut / Bas · Entrée · Échap : fermer', W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
+  txt((online ? (others() > 0 ? 'Pause pour tous les joueurs · ' : 'Jeu en pause · ') : '') + (menuSub ? 'Gauche / Droite : modifier · Échap : retour' : 'Haut / Bas · Entrée · Échap : fermer'), W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
 }
 function hud() {
   PS.forEach(hudPlayer);
@@ -2856,11 +2896,11 @@ function hud() {
   if (online && room && localSlot === 0 && others() === 0 && !joinBusy) {
     const okR = rel && rel.bs.some(b => b.ready);
     g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, H - 11, W, 11);
-    txt(okR ? 'Amis : code ' + hostCode + ' · Échap → copier le lien (jusqu\'à 4 joueurs)' : (rel && tick - rel.t0 > 600 ? 'Serveur de rencontre injoignable (réseau bloqué ?)' : 'Connexion au relais en ligne…'), W / 2, H - 3, 8, okR ? '#9fd' : '#f99', 'center');
+    txt(okR ? 'En attente d\'amis : ils cliquent sur EN LIGNE (jusqu\'à 4 joueurs)' : (rel && tick - rel.t0 > 600 ? 'Serveur de rencontre injoignable (réseau bloqué ?)' : 'Connexion au relais en ligne…'), W / 2, H - 3, 8, okR ? '#9fd' : '#f99', 'center');
   } else if (online && room) {
     g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, H - 9, W, 9);
     const rt = Math.round(rttMax);
-    txt((localSlot === 0 ? 'Code ' + hostCode + ' · ' : '') + (others() + 1) + '/' + MAXP + ' joueurs' + (rt > 0 ? ' · ping ' + rt + ' ms' : '') + ' · délai ' + curDelay, W / 2, H - 2, 7, rt > 220 ? '#fb7' : '#9fd', 'center');
+    txt((others() + 1) + '/' + MAXP + ' joueurs' + (rt > 0 ? ' · ping ' + rt + ' ms' : '') + ' · délai ' + curDelay, W / 2, H - 2, 7, rt > 220 ? '#fb7' : '#9fd', 'center');
   }
   if (joinBusy) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 100, W, 44); txt('Un ami rejoint la partie…', W / 2, 126, 14, '#ffd34d', 'center'); }
   if (toastT > 0) { g.globalAlpha = Math.min(1, toastT / 30); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(W / 2 - 150, 46, 300, 16); txt(toastMsg, W / 2, 58, 9, '#fff', 'center'); g.globalAlpha = 1; }
@@ -2874,17 +2914,27 @@ function drawTitle() {
   g.fillStyle = 'rgba(5,3,15,.55)'; g.fillRect(0, 0, W, H);
   txt('NUIT DE FER', W / 2, 70, 38, '#ffcf4a', 'center');
   txt('prototype · beat\'em up', W / 2, 88, 11, '#cbd', 'center');
-  const items = ['1 JOUEUR', 'EN LIGNE (JUSQU\'À 4 JOUEURS)', 'NIVEAU : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + (unlocked > 0 ? '  < >' : ''), 'NOM : ' + myName, 'CLASSEMENT', 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON')];
+  const items = ['1 JOUEUR', 'EN LIGNE (JUSQU\'À 4 JOUEURS)', 'CLASSEMENT MONDIAL', 'OPTIONS'];
   items.forEach((o, i) => {
     const on = i === menuIdx;
-    txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 120 + i * 18, 12, on ? '#fff' : '#889', 'center');
+    txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 130 + i * 24, 13, on ? '#fff' : '#889', 'center');
   });
-  if (netMsg) txt(netMsg, W / 2, 234, 10, '#f66', 'center');
-  else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
-  else if (menuIdx === 5) txt('Entrée / Gauche / Droite : activer ou couper les coups entre joueurs', W / 2, 234, 9, '#cbd', 'center');
-  else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
+  txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
+  if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 15h40 · 4 joueurs · dégâts alliés', W / 2, 264, 7, '#667', 'center');
+  txt('version 16h10 · menus · latence', W / 2, 264, 7, '#667', 'center');
+}
+function drawOptions() {
+  g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
+  txt('OPTIONS', W / 2, 40, 22, '#ffcf4a', 'center');
+  const L = optList('title').concat([{ label: () => 'RETOUR' }]);
+  L.forEach((it, i) => {
+    const on = i === optIdx;
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 84 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
+  });
+  const cur = L[optIdx];
+  if (cur && cur.hint) txt(cur.hint(), W / 2, 238, 8, '#cbd', 'center');
+  txt('Haut / Bas · Gauche / Droite : modifier · Entrée · Échap : retour', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2924,7 +2974,7 @@ function drawOnline() {
       const on = i === olIdx;
       txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 100 + i * 26, 15, on ? '#fff' : '#889', 'center');
     });
-    txt('Créer : vous jouez tout de suite, jusqu\'à 3 amis peuvent vous rejoindre', W / 2, 172, 9, '#aab', 'center');
+    txt('Cliquez sur EN LIGNE : vous rejoignez la partie de vos amis,', W / 2, 172, 9, '#aab', 'center');
     txt('à tout moment, même en cours de partie (lien ou code).', W / 2, 184, 9, '#aab', 'center');
     txt('Rejoindre : ouvrez le lien reçu, ou tapez le code.', W / 2, 202, 9, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
@@ -2934,7 +2984,7 @@ function drawOnline() {
     txt('ENTRÉE pour se connecter', W / 2, 190, 10, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
   } else if (olStage === 'connecting') {
-    if ((tick >> 5) & 1) txt(waitMsg ? 'Patientez...' : 'Connexion...', W / 2, 140, 14, '#ffd34d', 'center');
+    if ((tick >> 5) & 1) txt(waitMsg ? 'Patientez...' : (rel && rel.srch ? 'Recherche d\'une partie...' : 'Connexion...'), W / 2, 140, 14, '#ffd34d', 'center');
     if (waitMsg) txt(waitMsg, W / 2, 170, 8, '#cbd', 'center');
     drawRelays(236);
   } else if (olStage === 'error') {
@@ -2974,7 +3024,7 @@ function drawSelect() {
     g.strokeRect(cx - 45 + i * 3, y0 - 2 + i * 3, 90 - i * 6, CH + 4 - i * 6);
     txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + (s.lock ? ' PRÊT' : ''), i < 2 ? cx - 40 : cx + 40, y0 + 9, 7, col, i < 2 ? 'left' : 'right');
   }
-  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : jusqu\'à 3 amis pourront vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
+  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : vos amis (jusqu\'à 3) cliquent sur EN LIGNE pour vous rejoindre' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
 }
 /* ---------- pièges ---------- */
 const trapC = t => (simF + (t.ph || 0)) % (t.per || 1);
@@ -3210,7 +3260,7 @@ function render() {
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
   if (shake > 0) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
-  const menu = state === 'title' || state === 'select' || state === 'online';
+  const menu = state === 'title' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
   drawBG(menu ? tick * 0.5 : cam);
   if (!menu) {
     const list = [];
@@ -3232,6 +3282,7 @@ function render() {
   else if (state === 'select') drawSelect();
   else if (state === 'online') drawOnline();
   else if (state === 'name') drawNameEntry();
+  else if (state === 'options') drawOptions();
   else if (state === 'scores') drawScores();
   else {
     blindFx();
