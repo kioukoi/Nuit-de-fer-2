@@ -75,7 +75,7 @@ function openBroker(url, subTopic, onMsg) {
 function relClose() {
   if (rel) lastRelays = rel.bs.map(b => b.name + ' ' + (b.st === 'ok' ? 'OK' : b.st)).join(' · ');
   if (rel) for (const c of rel.bs) { try { c.ws && c.ws.close(); } catch (e) { /* ignoré */ } }
-  rel = null;
+  rel = null; rtcCloseAll();
 }
 function netReset() {
   online = false; startMsg = null; room = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null;
@@ -93,9 +93,72 @@ function newCode() {
   for (let i = 0; i < 5; i++) s += al[Math.floor(Math.random() * al.length)];
   return s;
 }
+/* ---- liaison directe WebRTC entre les joueurs : sur le même wifi la latence tombe à quelques ms.
+   Les relais MQTT ne servent plus qu'à se trouver (signalisation) et de secours si la liaison directe échoue. ---- */
+const RTC_OK = typeof RTCPeerConnection !== 'undefined';
+const RTC_CFG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const FAST = { in: 1, ping: 1, pong: 1, h: 1, sel: 1 };
+let rtcP = {}, rtcFail = {}, seenU = {};
+const rtcSig = (to, k, d) => netSend({ t: 'rtc', to, k, d }, true);
+const dsc = d => ({ type: d.type, sdp: d.sdp });
+function rtcDrop(u) {
+  const e = rtcP[u]; if (!e) return;
+  try { e.pc.close(); } catch (x) { /* ignoré */ }
+  delete rtcP[u]; const f = rtcFail[u]; rtcFail[u] = { t: tick, n: (f ? f.n : 0) + 1 };
+}
+function rtcCloseAll() { for (const u in rtcP) { try { rtcP[u].pc.close(); } catch (x) { /* ignoré */ } } rtcP = {}; rtcFail = {}; seenU = {}; }
+function rtcMake(u) {
+  const e = rtcP[u] = { pc: new RTCPeerConnection(RTC_CFG), dc: null, open: false, t0: tick, ice: [], rd: false }, pc = e.pc;
+  pc.onicecandidate = ev => { if (ev.candidate && rtcP[u] === e) rtcSig(u, 'ice', ev.candidate.toJSON ? ev.candidate.toJSON() : ev.candidate); };
+  pc.onconnectionstatechange = () => { if ((pc.connectionState === 'failed' || pc.connectionState === 'closed') && rtcP[u] === e) rtcDrop(u); };
+  pc.ondatachannel = ev => rtcAttach(u, e, ev.channel);
+  return e;
+}
+function rtcAttach(u, e, dc) {
+  e.dc = dc;
+  dc.onopen = () => { e.open = true; rtcFail[u] = undefined; };
+  dc.onclose = () => { e.open = false; };
+  dc.onmessage = ev => { try { const m = JSON.parse(ev.data); if (m && m.u !== myUid) netIn(m); } catch (x) { /* ignoré */ } };
+}
+function rtcEnsure(u) {
+  if (!RTC_OK || !online || !u || rtcP[u]) return;
+  const f = rtcFail[u]; if (f && tick - f.t < Math.min(3600, 300 * f.n)) return;
+  if (myUid > u) return;                                // le plus petit identifiant lance la connexion, l'autre répond
+  let e; try { e = rtcMake(u); } catch (x) { return; }
+  rtcAttach(u, e, e.pc.createDataChannel('g'));
+  e.pc.createOffer().then(o => e.pc.setLocalDescription(o)).then(() => rtcSig(u, 'offer', dsc(e.pc.localDescription))).catch(() => rtcDrop(u));
+}
+function rtcFlush(e) { e.rd = true; for (const c of e.ice) e.pc.addIceCandidate(c).catch(() => {}); e.ice = []; }
+function rtcIn(m) {
+  if (!RTC_OK || !online || m.to !== myUid) return;
+  const u = m.u; let e = rtcP[u];
+  if (m.k === 'offer') {
+    if (myUid < u || (e && (e.open || tick - e.t0 < 300))) return;      // doublon (les messages arrivent par plusieurs relais)
+    if (e) rtcDrop(u);
+    try { e = rtcMake(u); } catch (x) { return; }
+    e.pc.setRemoteDescription(m.d).then(() => { rtcFlush(e); return e.pc.createAnswer(); }).then(a => e.pc.setLocalDescription(a)).then(() => rtcSig(u, 'answer', dsc(e.pc.localDescription))).catch(() => rtcDrop(u));
+  } else if (m.k === 'answer') {
+    if (e && myUid < u && !e.rd) { e.rd = true; e.pc.setRemoteDescription(m.d).then(() => rtcFlush(e)).catch(() => rtcDrop(u)); }
+  } else if (m.k === 'ice') {
+    if (!e) return;
+    if (e.rd) e.pc.addIceCandidate(m.d).catch(() => {}); else e.ice.push(m.d);
+  }
+}
+function rtcTick() {
+  for (const u in rtcP) { const e = rtcP[u]; if (!e.open && tick - e.t0 > 600) rtcDrop(u); }
+}
+const rtcAll = () => { let any = false; for (const u in seenU) { if (tick - seenU[u] > 300) continue; any = true; if (!(rtcP[u] && rtcP[u].open)) return false; } return any; };
 function netSend(m, all) {
   if (!rel) return;
   m.u = myUid;
+  if (RTC_OK && m.t !== 'rtc') {
+    const s = JSON.stringify(m);
+    if (typeof m.to === 'string') { const e = rtcP[m.to]; if (e && e.open) { try { e.dc.send(s); return; } catch (x) { /* secours : relais */ } } }
+    else {
+      for (const u in rtcP) { const e = rtcP[u]; if (e.open) { try { e.dc.send(s); } catch (x) { /* ignoré */ } } }
+      if (FAST[m.t] && rtcAll()) return;                // tout le monde est joignable en direct : le relais n'est pas sollicité
+    }
+  }
   const pkt = mqPub(rel.topic, m);
   const L = rel.bs.filter(b => b.ready).sort((a, b) => (a.lat === undefined ? 999 : a.lat) - (b.lat === undefined ? 999 : b.lat));   // les relais les plus rapides d'abord
   for (const b of all ? L : L.slice(0, 3)) { try { b.ws.send(pkt); } catch (e) { /* ignoré */ } }
@@ -261,6 +324,8 @@ function runCatchUp() {
 /* ----- messages reçus ----- */
 function netIn(m) {
   const t = m.t;
+  if (t === 'rtc') { rtcIn(m); return; }
+  if (online && m.u && t !== 'host' && t !== 'welcome') { seenU[m.u] = tick; rtcEnsure(m.u); }
   if (t === 'hello') { hostHello(m); return; }
   if (t === 'welcome') { guestWelcome(m); return; }
   if (t === 'host') {                                   // deux amis ont ouvert une salle en même temps : celui dont l'identifiant est le plus grand rejoint l'autre
@@ -452,6 +517,7 @@ function netAfterFrame() {
 }
 /* minuteries du réseau (appelée à chaque image) */
 function relTick() {
+  rtcTick();
   if (!rel) return;
   const age = tick - rel.t0;
   const anyReady = rel.bs.some(b => b.ready);

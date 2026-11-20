@@ -225,7 +225,7 @@ function hud() {
   } else if (online && room) {
     g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, H - 9, W, 9);
     const rt = Math.round(rttMax);
-    txt((others() + 1) + '/' + MAXP + ' joueurs' + (rt > 0 ? ' · ping ' + rt + ' ms' : '') + ' · délai ' + curDelay, W / 2, H - 2, 7, rt > 220 ? '#fb7' : '#9fd', 'center');
+    txt((others() + 1) + '/' + MAXP + ' joueurs' + (rt > 0 ? ' · ping ' + rt + ' ms' : '') + (rtcAll() ? ' · direct' : '') + ' · délai ' + curDelay, W / 2, H - 2, 7, rt > 220 ? '#fb7' : '#9fd', 'center');
   }
   if (joinBusy) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 100, W, 44); txt('Un ami rejoint la partie…', W / 2, 126, 14, '#ffd34d', 'center'); }
   if (toastT > 0) { g.globalAlpha = Math.min(1, toastT / 30); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(W / 2 - 150, 46, 300, 16); txt(toastMsg, W / 2, 58, 9, '#fff', 'center'); g.globalAlpha = 1; }
@@ -247,7 +247,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 23h30 · ping robuste', W / 2, 264, 7, '#667', 'center');
+  txt('version 23h50 · liaison directe', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

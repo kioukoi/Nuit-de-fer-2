@@ -1,0 +1,11 @@
+<body><iframe id=a src=game.html></iframe><iframe id=b src=game.html></iframe><pre id=o></pre><script>
+const A=()=>document.getElementById('a').contentWindow,B=()=>document.getElementById('b').contentWindow;
+const out=[];const L=s=>{out.push(s);document.getElementById('o').textContent=out.join("\n");};
+setInterval(()=>{try{A().__dbg.step();B().__dbg.step();}catch(e){}},16);setTimeout(()=>{A().__dbg.ev('goOnlineAuto()');B().__dbg.ev('goOnlineAuto()');},1500);
+const snap=n=>setTimeout(()=>{for(const [k,W] of [['A',A()],['B',B()]]){try{L(n+' '+k+' state='+W.__dbg.ev('state')+' online='+W.__dbg.ev('online')+' slot='+W.__dbg.ev('localSlot')+' rtc='+W.__dbg.ev('JSON.stringify(Object.keys(rtcP).map(u=>rtcP[u].open))')+' all='+W.__dbg.ev('rtcAll()')+' tick='+W.__dbg.ev('tick')+' RTC_OK='+W.__dbg.ev('RTC_OK'));}catch(e){L(n+' '+k+' err '+e)}}},n);
+snap(6000);
+setTimeout(()=>{for(const W of [A(),B()]){W.__dbg.keys['KeyJ']=true;}setTimeout(()=>{for(const W of [A(),B()])W.__dbg.keys['KeyJ']=false;},100);},8000);
+setTimeout(()=>{window.p0=[A().__posts,B().__posts];},13000);
+snap(14000);
+setTimeout(()=>{L('posts durant 5s de jeu: A '+(A().__posts-window.p0[0])+' B '+(B().__posts-window.p0[1]));L('desync '+A().__dbg.net().desync+','+B().__dbg.net().desync+' frames '+A().__dbg.ev('frameNo')+'/'+B().__dbg.ev('frameNo'));},19000);
+</script>
