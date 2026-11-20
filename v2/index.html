@@ -346,8 +346,8 @@ const HEROES = {
     col: { shirt: '#d04a3a', pants: '#3a8a3a', skin: '#e2b08a', hair: '#6a4a2a', acc: '#3fb04a', acc2: '#f2f2f2', shoe: '#e8e8e8' } },
   aveugle: { trait: 'Spécial : voit 4 s', name: 'L\'AVEUGLE', role: 'Vue : presque nulle', special: 'Écholocation', sc: 1, hp: 80, spd: 1.35, jump: 4.0, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 70,
     col: { shirt: '#d8d8e0', pants: '#22222a', skin: '#dfae8a', hair: '#2a2a32', acc: '#e8e8f0', acc2: '#ffffff', shoe: '#222228' } },
-  gitan: { trait: 'Appelle 3 copains', name: 'LE GITAN', role: 'Famille nombreuse', special: 'Appel du kopin', sc: 1, hp: 90, spd: 1.55, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
-    col: { shirt: '#f0e6d0', pants: '#2c2424', skin: '#c58b60', hair: '#14100e', acc: '#e8b020', acc2: '#b02020', shoe: '#6a3a1a' } },
+  gitan: { trait: 'Appelle 3 copains', name: 'LE GITAN', role: 'Famille nombreuse', special: 'Appel du kopin', sc: 1.08, hp: 90, spd: 1.55, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
+    col: { shirt: '#17171c', pants: '#1c1e26', skin: '#d2a07a', hair: '#2a2420', acc: '#f0c030', acc2: '#e8b020', shoe: '#e8e8ee' } },
   magicien: { trait: 'Coup 3 : boule magique', name: 'LE MAGICIEN', role: 'Tours de magie', special: 'Pluie de cartes', sc: 1, hp: 75, spd: 1.4, jump: 4.4, dmg: 0.8, reach: 0, rate: 0.9, slam: 0, cost: 100,
     col: { shirt: '#26264a', pants: '#1c1c2c', skin: '#e2b48e', hair: '#2a1a28', acc: '#c02848', acc2: '#ffffff', shoe: '#14141e' } },
   electricien: { trait: 'Insensible aux chocs', name: 'L\'ÉLECTRICIEN', role: 'Courant fort', special: 'Court-circuit', sc: 1, hp: 95, spd: 1.4, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
@@ -501,7 +501,7 @@ function sbPost(ent, tries) {
   tries = tries || 0;
   const body = JSON.stringify({ name: String(ent.n).slice(0, 10), score: ent.s, level: ent.lv, win: !!ent.win, hero: ent.h || '' });
   try {
-    sbFetch(SB_URL + '/rest/v1/scores', { method: 'POST', headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body })
+    sbFetch(SB_URL + '/rest/v1/scores', { method: 'POST', keepalive: true, headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body })
       .then(r => { if (r.ok) gScores = null; else if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); }, () => { if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); });
   } catch (e) { /* ignoré */ }
 }
@@ -510,9 +510,9 @@ function sbLoad(tries) {
   tries = tries || 0; gStatus = 'load';
   const fail = why => { if (tries < 2) setTimeout(() => sbLoad(tries + 1), 1500); else { gStatus = 'err'; gErr = why; } };
   try {
-    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=10', { headers: sbHead() })
+    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=80', { headers: sbHead() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-      .then(rows => { gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })); gStatus = 'ok'; gErr = ''; },
+      .then(rows => { { const seen = {}; gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })).filter(r => { const k = String(r.n).toUpperCase(); if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 10); } gStatus = 'ok'; gErr = ''; },
         e => fail(e && e.name === 'AbortError' ? 'délai dépassé (réseau lent ou bloqué)' : (e && /^HTTP/.test(e.message) ? e.message : 'connexion impossible (pare-feu, VPN, bloqueur de pubs ?)')));
   } catch (e) { gStatus = 'err'; gErr = 'navigateur non compatible'; }
 }
@@ -524,6 +524,7 @@ function recordScores() {
   sbPost({ n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero });
 }
 
+try { window.addEventListener('pagehide', () => { if (state === 'play' && !recorded) recordScores(); }); } catch (e) { /* ignoré */ }
 /* ---------- état du jeu ---------- */
 let state = 'title', PS = [], E = [], B = [], IT = [], PJ = [], FX = [], AL = [];
 let cam = 0, camLimit = LEN - W, waveI = 0, waveActive = false;
@@ -1305,7 +1306,7 @@ function callKopins(p) {
     AL.push({ kind: 'a', hero: 'gitan', owner: p, slot: p.slot, name: i === 0 ? 'KOPIN' : '', x: side ? cam - 14 - i * 10 : cam + W + 14 + i * 10, y: clamp(p.y + (i - 1) * 24, Y0, Y1), z: 0, vx: 0, vy: 0, face: side ? 1 : -1,
       st: 'free', t: 0, stage: 0, walk: i * 2, mv: false, hit: new Set(), inv: 0, flash: 0, cd: 10 + i * 8, life: 480, leave: false, dying: false });
   }
-  FX.push({ x: p.x, y: p.y, z: p.z + 50, t: 0, life: 50, txt: 'MON KOPIN !', col: '#ffd34d' });
+  FX.push({ x: p.x, y: p.y, z: p.z + 50, t: 0, life: 50, txt: 'LA CALOTTE DE SES MORTS !', col: '#ffd34d' });
   SFX.pick();
 }
 function updAllies() {
@@ -1875,7 +1876,7 @@ function relTick() {
 }
 
 /* ---------- menus ---------- */
-function toTitle() { if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { if ((state === 'play' || state === 'spec') && !recorded) recordScores(); if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
@@ -2372,7 +2373,7 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'cogneur', magicien: 'cogneur', electricien: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
   if (!t) return pal(d);
@@ -2788,9 +2789,9 @@ function drawChar(e) {
       g.fillStyle = (tick >> 3) & 1 ? '#5affb0' : '#38d890'; g.fillRect(HX + 1, HY - 2.5, 4.6, 1);
       break;
     case 'gitan':
-      ell(HX - 0.4, HY - 5.2, 7.6, 1.9, '#141010', OL); rrect(HX - 4.6, HY - 11.6, 9.2, 6.6, 2.2, '#141010', OL);
-      g.fillStyle = S.acc2; g.fillRect(HX - 4.5, HY - 7.2, 9, 1.3);
-      ell(HX + 3.6, HY + 2.7, 3.1, 1, '#14100e', false); ell(HX - 4.2, HY + 2.2, 1, 1, S.acc, false);
+      rrect(HX + 0.2, HY - 2.2, 7.2, 3.6, 1.6, '#0a0a12'); g.fillStyle = 'rgba(120,170,255,.45)'; g.fillRect(HX + 1.2, HY - 1.7, 3, 0.8);
+      g.strokeStyle = '#0a0a12'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(HX + 0.2, HY - 0.6); g.lineTo(HX - 5, HY - 0.9); g.stroke();
+      g.fillStyle = '#2a2018'; g.beginPath(); g.moveTo(HX + 0.8, HY + 3.6); g.quadraticCurveTo(HX + 3.6, HY + 7.8, HX + 6.4, HY + 3.8); g.quadraticCurveTo(HX + 3.6, HY + 4.6, HX + 0.8, HY + 3.6); g.fill();
       break;
     case 'magicien':
       ell(HX - 0.3, HY - 5.6, 7.6, 1.8, '#16161e', OL); rrect(HX - 4.6, HY - 16.4, 9.2, 11, 1.4, '#16161e', OL);
@@ -2841,6 +2842,12 @@ function drawChar(e) {
     ell(cx0, cy0, 1.4, 1.4, '#c8ccd6');
     limb([[6, hipY + 3], [10.5, -3.4]], 1.2, ['#33353d', '#33353d']); ell(10.8, -2.6, 2.1, 2.1, '#2c2e35');
     rrect(7.6, -6.8, 5.4, 1.2, 0.5, '#33353d');
+  }
+  if (kind === 'gitan' && !down) {
+    g.strokeStyle = '#a07810'; g.lineWidth = 2; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
+    g.strokeStyle = '#ffd84a'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
+    ell(lean + 0.6, shY + 7.4, 1.5, 1.5, '#ffd84a', OL);
+    ell(fhx, fhy, 2.9, 2.5, '#ffd84a', OL); ell(bhx, bhy, 2.6, 2.3, '#e0b030', OL);
   }
   if (kind === 'magicien' && !down && st !== 'attack' && st !== 'special') {
     const wx = fhx + 8, wy = fhy - 6;
@@ -3170,7 +3177,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 18h10 · gitan, magicien, électricien', W / 2, 264, 7, '#667', 'center');
+  txt('version 18h00 · gitan relooké, classement', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
