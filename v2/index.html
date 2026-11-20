@@ -26,7 +26,7 @@
 <body>
 <canvas id="c" width="1440" height="810" tabindex="0"></canvas>
 <div id="help">
-  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> attaque spéciale (jauge SP) · <kbd>L</kbd> lancer l'arme · <kbd>Espace</kbd> sauter (puis <kbd>J</kbd> en l'air : coup de pied) · <i>(gauche : <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> à la place de J K L)</i> · <kbd>Échap</kbd> menu · <kbd>P</kbd> pause · <kbd>M</kbd> musique · marchez sur une arme ou une potion pour la ramasser · attention aux pièges (câbles, caisses, vapeur…)<br>
+  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> (double appui sur →/← : sprint) · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> attaque spéciale (jauge SP) · <kbd>L</kbd> lancer l'arme · <kbd>Espace</kbd> sauter (puis <kbd>J</kbd> en l'air : coup de pied) · <i>(gauche : <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> à la place de J K L)</i> · <kbd>Échap</kbd> menu · <kbd>P</kbd> pause · <kbd>M</kbd> musique · marchez sur une arme ou une potion pour la ramasser · attention aux pièges (câbles, caisses, vapeur…)<br>
   <b>En ligne</b> : mêmes touches, chacun sur son ordinateur (un joueur crée la partie, l'autre saisit le code)
 </div>
 <div id="touch">
@@ -582,7 +582,7 @@ function breakBarrel(b) {
 
 /* ---------- joueurs ---------- */
 function startAttack(p, stage) {
-  p.st = 'attack'; p.stage = stage; p.t = 0; p.buf = false; p.bp = 0; p.hit = new Set(); SFX.whoosh();
+  p.st = 'attack'; p.sprint = false; p.stage = stage; p.t = 0; p.buf = false; p.bp = 0; p.hit = new Set(); SFX.whoosh();
 }
 function updPlayer(p) {
   const I = HLD[p.slot], Pp = PRS[p.slot], hr = HEROES[p.hero];
@@ -599,11 +599,15 @@ function updPlayer(p) {
   switch (p.st) {
     case 'free': {
       let dx = (I.right ? 1 : 0) - (I.left ? 1 : 0), dy = (I.down ? 1 : 0) - (I.up ? 1 : 0);
+      const dp = Pp.right ? 1 : (Pp.left ? -1 : 0);           // sprint : double appui rapide sur une direction
+      if (dp) { if (p.dtD === dp && simF - p.dtT <= 16) { if (!p.sprint) FX.push({ x: p.x - dp * 8, y: p.y, z: 3, t: 0, life: 10 }); p.sprint = true; } p.dtD = dp; p.dtT = simF; }
+      if (!dx || (p.sprint && dx !== p.dtD)) p.sprint = false;
+      const sm = p.sprint ? 1.7 : 1;
       if (dx && dy) { dx *= 0.8; dy *= 0.8; }
-      p.x += dx * hr.spd; p.y += dy * hr.spd * 0.7;
+      p.x += dx * hr.spd * sm; p.y += dy * hr.spd * 0.7;
       if (dx) p.face = dx > 0 ? 1 : -1;
-      if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd; }
-      if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
+      if (dx || dy) { p.mv = true; p.walk += 0.14 * hr.spd * (p.sprint ? 1.5 : 1); }
+      if (Pp.jump) { p.st = 'air'; p.vz = hr.jump; p.vx = dx * hr.spd * sm; p.vy = dy * 0.8; p.kick = false; SFX.jump(); }
       else if (Pp.special || p.bs > 0) {
         const cost = hr.cost;
         if (p.sp >= cost) {
@@ -1714,6 +1718,7 @@ function drawChar(e) {
     ffx = 2 + sw * 6; ffy = -Math.max(0, cw) * 3; bfx = -2 - sw * 6; bfy = -Math.max(0, -cw) * 3;
     hipY = -14 - lo;
     if (isP) { fhy = -27 - lo; bhy = -24 - lo; }
+    if (isP && e.sprint) { lean = 4; hipY = -13 - lo; ffx = 3 + sw * 8; bfx = -3 - sw * 8; fhx = 2 - sw * 6; fhy = -22; bhx = -4 + sw * 6; bhy = -21; }
     else { fhx = 3 - sw * 5; fhy = -21; bhx = 1 + sw * 5; bhy = -21; }
   } else {
     hipY = -14 - bob; fhy -= bob; bhy -= bob;
@@ -2134,7 +2139,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 11h00 · 6 héros, pièges, nouveaux ennemis', W / 2, 264, 7, '#667', 'center');
+  txt('version 11h20 · sprint (double appui)', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
