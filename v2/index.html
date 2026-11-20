@@ -478,7 +478,7 @@ try { if (/[?&]debug/.test(location.search)) unlocked = LEVELS.length - 1; } cat
 function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèêàùçïÉÈ]/g, '').trim().toUpperCase().slice(0, 10); }
 function setMyName(s) { const n = cleanName(s); if (n) { myName = n; lsSet('nfer_name', n); NAMES[online ? localSlot : 0] = n; } }
 /* classement mondial (Supabase) : renseigner SB_URL et SB_KEY (clé « anon public », sans danger dans une page web) ; vide = classement local seulement */
-const SB_URL = '', SB_KEY = '';
+const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobHNvY2xyamF1anJ2bHhnc3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjY0NjQsImV4cCI6MjExMDc0MjQ2NH0.SJHSrMGDHjFNdoQFVtnHxuDZiViZfFptLD5CsRFjLaY';
 let gScores = null, gStatus = 'idle', scoresTab = 0;
 const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
 const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
@@ -2728,7 +2728,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 14h50 · classement mondial prêt', W / 2, 264, 7, '#667', 'center');
+  txt('version 14h50 · classement mondial actif', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
