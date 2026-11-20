@@ -315,7 +315,7 @@ function withW(att, a) {
   const m = att.kind === 'e' ? 1 + (w.mul - 1) * 0.6 : w.mul;
   return Object.assign({}, a, { reach: a.reach + w.reach, dmg: Math.round(a.dmg * m) });
 }
-const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic'];
+const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle'];
 const HEROES = {
   cogneur: { name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0, cost: 100,
     col: { shirt: '#2f6fd0', pants: '#3b4f8a', skin: '#e6b48c', hair: '#3a2418', acc: '#e03030', acc2: '#f2f2f2', shoe: '#f2f2f2' } },
@@ -328,7 +328,16 @@ const HEROES = {
   boxeur: { name: 'LE BOXEUR', role: 'Combos', special: 'Uppercut', sc: 1.05, hp: 105, spd: 1.4, jump: 4.2, dmg: 1.05, reach: 0, rate: 0.68, slam: 0, cost: 100,
     col: { shirt: '#c82828', pants: '#f0f0f4', skin: '#8f5e3c', hair: '#15100c', acc: '#f0c030', acc2: '#ffffff', shoe: '#c82828' } },
   medic: { name: 'LA MÉDIC', role: 'Soutien', special: 'Soins', sc: 1, hp: 90, spd: 1.5, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.9, slam: 0, cost: 100,
-    col: { shirt: '#f4f4f8', pants: '#2a7a5a', skin: '#d8a07a', hair: '#6a3a20', acc: '#d82828', acc2: '#ffffff', shoe: '#f4f4f8' } }
+    col: { shirt: '#f4f4f8', pants: '#2a7a5a', skin: '#d8a07a', hair: '#6a3a20', acc: '#d82828', acc2: '#ffffff', shoe: '#f4f4f8' } },
+  /* héros « handicap » : statistiques faibles ou contrainte de jeu (voir les effets d'écran dans le rendu) */
+  fauteuil: { name: 'LE ROULEUR', role: 'Fauteuil roulant', special: 'Charge-roues', sc: 1, hp: 70, spd: 0.95, jump: 1.7, dmg: 0.7, reach: 0, rate: 1.15, slam: 0, cost: 100,
+    col: { shirt: '#8a3fb0', pants: '#2a2f3a', skin: '#e0ac84', hair: '#2a1c12', acc: '#ffd23a', acc2: '#ffffff', shoe: '#f0f0f0' } },
+  papy: { name: 'LE PAPY', role: 'Canne et rhumatismes', special: 'Coup de canne', sc: 1, hp: 60, spd: 0.8, jump: 2.4, dmg: 0.6, reach: 2, rate: 1.3, slam: 0, cost: 100,
+    col: { shirt: '#a8925a', pants: '#5a5a66', skin: '#ecc6a6', hair: '#e8e8ee', acc: '#8a5a28', acc2: '#ffffff', shoe: '#4a3a2a' } },
+  dalto: { name: 'LE DALTONIEN', role: 'Couleurs en vrac', special: 'Tourbillon', sc: 1, hp: 95, spd: 1.45, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
+    col: { shirt: '#d04a3a', pants: '#3a8a3a', skin: '#e2b08a', hair: '#6a4a2a', acc: '#3fb04a', acc2: '#f2f2f2', shoe: '#e8e8e8' } },
+  aveugle: { name: 'L\'AVEUGLE', role: 'Vue : presque nulle', special: 'Écholocation', sc: 1, hp: 80, spd: 1.35, jump: 4.0, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 100,
+    col: { shirt: '#d8d8e0', pants: '#22222a', skin: '#dfae8a', hair: '#2a2a32', acc: '#e8e8f0', acc2: '#ffffff', shoe: '#222228' } }
 };
 for (const k of HERO_KEYS) {
   const h = HEROES[k];
@@ -476,7 +485,7 @@ function mkPlayer(hero, slot) {
   const hr = HEROES[hero];
   return { kind: 'p', hero, slot, name: '', x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
     st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
-    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0 };
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0 };
 }
 function mkEnemy(type, x, y) {
   const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (nPlayers === 2 ? 1.5 : 1) * (type === 'boss' ? 1 : LV.hpM));
@@ -597,6 +606,7 @@ function updPlayer(p) {
   if (p.inv > 0) p.inv--;
   if (p.flash > 0) p.flash--;
   if (p.cd > 0) p.cd--;
+  if (p.ping > 0) p.ping--;
   p.mv = false;
   if (Pp.punch) p.bp = 9; else if (p.bp > 0) p.bp--;       // tampon : une frappe demandée un peu trop tôt est conservée
   if (Pp.special) p.bs = 9; else if (p.bs > 0) p.bs--;
@@ -622,6 +632,7 @@ function updPlayer(p) {
           p.sp -= cost; p.bs = 0;
           if (p.hero === 'ombre') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 12; SFX.whoosh(); }
           else if (p.hero === 'vive') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
+          else if (p.hero === 'fauteuil') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 20; p.vx = p.face * 3.1; p.cd = 40; SFX.whoosh(); }
           else { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
         }
       } else if (Pp.punch || p.bp > 0) startAttack(p, 0);
@@ -666,6 +677,16 @@ function updPlayer(p) {
         if (p.t === 6) { p.hit = new Set(); SFX.big(); }
         if (p.t >= 6 && p.t <= 11) strike(p, { reach: 30, dmg: 22, kd: true, zr: 40 });
         if (p.t >= 26) p.st = 'free';
+      } else if (p.hero === 'papy') {
+        if (p.t === 14) { p.hit = new Set(); SFX.big(); }
+        if (p.t >= 14 && p.t <= 18) strike(p, { reach: 30, dmg: 28, kd: true, zr: 34 });
+        if (p.t >= 32) p.st = 'free';
+      } else if (p.hero === 'aveugle') {
+        if (p.t === 8) {
+          p.hit = new Set(); p.ping = 110;
+          strikeArea(p, { r: 36, dmg: 8, kd: true }); SFX.pick(); shake = Math.max(shake, 2);
+        }
+        if (p.t >= 26) p.st = 'free';
       } else if (p.hero === 'medic') {
         if (p.t === 8) {
           p.hit = new Set();
@@ -689,7 +710,7 @@ function updPlayer(p) {
     }
     case 'roll': {
       p.t++; p.x += p.vx; p.vx *= 0.96;
-      strike(p, { reach: 16, dmg: 5, kd: false });
+      if (p.hero === 'fauteuil') strike(p, { reach: 18, dmg: 11, kd: true }); else strike(p, { reach: 16, dmg: 5, kd: false });
       if (p.t >= 24) p.st = 'free';
       break;
     }
@@ -1084,7 +1105,8 @@ function updWaves() {
 /* ---------- jeu en ligne : relais MQTT + synchronisation par échange des touches ----------
    Les deux navigateurs exécutent exactement la même simulation (graine commune, pas fixe) et
    s'envoient uniquement les touches pressées, avec un petit décalage (DELAY images). */
-const DELAY = 10;
+const DELAY = 12;            // délai de départ ; ensuite adapté à la qualité de la ligne (curDelay)
+let curDelay = DELAY, rtts = [], stallEv = 0, lastDelayAdj = 0, rttMax = 0;
 const BITS = { left: 1, right: 2, up: 4, down: 8, punch: 16, jump: 32, special: 64, throw: 128 };
 let online = false, localSlot = 0, olStage = 'menu', olIdx = 0, codeBuf = '', hostCode = '', netMsg = '', netSeed = 0;
 let frameNo = 0, sentF = 0, localBuf = {}, remoteBuf = {}, prevM = [0, 0], myHash = {}, theirHash = {}, desync = false, stallT = 0;
@@ -1177,7 +1199,7 @@ function startRelay(role, code) {
     }
     if (role === 1 && m.t === 'welcome') {
       NAMES[0] = cleanName(m.n) || 'JOUEUR 1'; NAMES[1] = myName;
-      if (!online) { goOnline(1); roomJoin = true; jselSent = false; SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.h0)); SEL[0].lock = true; SEL[1].c = SEL[0].c === 0 ? 1 : 0; }
+      if (!online) { rel.active = c; goOnline(1); roomJoin = true; jselSent = false; SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.h0)); SEL[0].lock = true; SEL[1].c = SEL[0].c === 0 ? 1 : 0; }
       return;
     }
     if (online && c === rel.active) { rxT = tick; onNet(m); }
@@ -1202,7 +1224,8 @@ function relTick() {
     }
     return;
   }
-  if (tick % 60 === 0) netSend({ t: 'ping' });
+  if (tick % (online ? 20 : 60) === 0) netSend({ t: 'ping', ts: nowMs() });
+  if (online && state === 'play' && tick % 30 === 0) adaptDelay();
   if (tick % 1200 === 0) for (const b of rel.bs) { try { if (b.ready) b.ws.send(U8([0xC0, 0])); } catch (e) { /* ignoré */ } }
   if (state === 'select' && tick % 30 === 0) sendSel();
   if (startMsg && state === 'play' && frameNo < DELAY + 4 && tick % 15 === 0) netSend(startMsg);
@@ -1244,6 +1267,10 @@ function onNet(m) {
       let rle = []; for (let i = 0; i < catchParts.n; i++) rle = rle.concat(catchParts.d[i]);
       catchReady = { id: catchParts.id, meta: catchParts.meta, rle };
     }
+  } else if (m.t === 'ping') {
+    netSend({ t: 'pong', ts: m.ts });
+  } else if (m.t === 'pong') {
+    const r = nowMs() - m.ts; if (r >= 0 && r < 5000) { rtts.push(r); if (rtts.length > 8) rtts.shift(); }
   } else if (m.t === 'h') {
     theirHash[m.f] = m.v;
     if (myHash[m.f] !== undefined && myHash[m.f] !== m.v) desync = true;
@@ -1284,7 +1311,7 @@ function buildCatch() {
 function startJoin(c1) {
   SEL[1].c = Math.max(0, Math.min(HERO_KEYS.length - 1, c1)); if (SEL[1].c === SEL[0].c) SEL[1].c = (SEL[0].c + 1) % HERO_KEYS.length;
   joinBusy = true; joinT = tick; joinK = frameNo; joinId = (Math.random() * 65535) | 0;
-  while (sentF < frameNo + DELAY) { sentF++; localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]); }
+  while (sentF < frameNo + curDelay) { sentF++; localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]); }
   buildCatch(); joinMsgs.forEach(netSend);
 }
 function finishJoinHost() {
@@ -1314,9 +1341,21 @@ function runCatchUp() {
   addPlayer2(); peerIn = true; roomJoin = false; rxT = tick; state = 'play'; menuOpen = false;
   netSend({ t: 'caught', id: c.id }); toast('Vous avez rejoint la partie !');
 }
+const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+/* délai de saisie adapté à la latence mesurée : assez grand pour ne jamais attendre l'autre joueur, assez petit pour rester réactif */
+function adaptDelay() {
+  if (!rtts.length) return;
+  rttMax = Math.max.apply(null, rtts);
+  let want = Math.ceil((rttMax / 2 + 28) / (1000 / 60)) + 1;
+  if (stallEv > 4) { want = Math.max(want, curDelay + 2); }
+  stallEv = 0;
+  want = Math.max(5, Math.min(40, want));
+  if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
+  else if (want < curDelay && tick - lastDelayAdj > 240) { curDelay--; lastDelayAdj = tick; }
+}
 function sendSel() { netSend({ t: 'sel', c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
-  netSeed = seed; frameNo = 0; sentF = DELAY - 1; localBuf = {}; remoteBuf = {}; prevM = [0, 0];
+  netSeed = seed; frameNo = 0; sentF = DELAY - 1; curDelay = DELAY; stallEv = 0; localBuf = {}; remoteBuf = {}; prevM = [0, 0];
   for (let f = 0; f < DELAY; f++) { localBuf[f] = 0; remoteBuf[f] = 0; }
   myHash = {}; theirHash = {}; desync = false; stallT = 0; peerNeeds = 0;
   startGame();
@@ -1330,14 +1369,14 @@ function sendIn() {
 function netFrameReady() {
   if (joinBusy) return false;
   if (room && !peerIn) remoteBuf[frameNo] = 0;
-  const target = frameNo + DELAY;
+  const target = frameNo + curDelay;
   while (sentF < target) {
     sentF++;
     localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]);
     if (sentF % 2 === 0) sendIn();
   }
   if (room && !peerIn) for (let f = frameNo; f <= sentF; f++) remoteBuf[f] = 0;
-  if (remoteBuf[frameNo] === undefined || localBuf[frameNo] === undefined) { stallT++; if (stallT % 6 === 0) sendIn(); return false; }
+  if (remoteBuf[frameNo] === undefined || localBuf[frameNo] === undefined) { if (stallT === 0) stallEv++; stallT++; if (stallT % 6 === 0) sendIn(); return false; }
   stallT = 0;
   return true;
 }
@@ -1389,8 +1428,10 @@ function updSelect() {
   for (const i of slots) {
     const s = SEL[i];
     if (!s.lock) {
-      if (PRS[i].left) { s.c = (s.c + 2) % 3; SFX.move(); changed = true; }
-      if (PRS[i].right) { s.c = (s.c + 1) % 3; SFX.move(); changed = true; }
+      const nh = HERO_KEYS.length, row = nh / 2;
+      if (PRS[i].left) { s.c = (s.c + nh - 1) % nh; SFX.move(); changed = true; }
+      if (PRS[i].right) { s.c = (s.c + 1) % nh; SFX.move(); changed = true; }
+      if (PRS[i].up || PRS[i].down) { s.c = (s.c + row) % nh; SFX.move(); changed = true; }
       if ((PRS[i].punch || PRS[i].jump) && tryLock(i)) changed = true;
     } else if (PRS[i].special && !jselSent) { s.lock = false; changed = true; }
   }
@@ -1543,7 +1584,7 @@ function step() {
   if (menuOpen) updMenu();
   if (state !== 'play') return;
   if (online) {
-    if (!netFrameReady()) return;
+    if (!netFrameReady()) return 'stall';
     applyNetInputs();
   } else {
     if (menuOpen) return;
@@ -1793,7 +1834,7 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', marin: 'thug', soudeur: 'brute', garde: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', marin: 'thug', soudeur: 'brute', garde: 'thug' };
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
   if (!t) return pal(d);
@@ -1880,6 +1921,10 @@ function drawWeapon(name, hx, hy, ang) {
     g.beginPath(); g.moveTo(-4, -1); g.lineTo(9, -1.3); g.quadraticCurveTo(19, -3.1, 22.5, -2); g.quadraticCurveTo(24, 0, 22.5, 2); g.quadraticCurveTo(19, 3.1, 9, 1.3); g.lineTo(-4, 1); g.closePath();
     g.fillStyle = lg(0, -3, 0, 3, [[0, '#d9a25c'], [1, '#8a5a28']]); g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.lineJoin = 'round'; g.stroke();
     g.fillStyle = '#222'; g.fillRect(-3.6, -1, 5, 2);
+  } else if (name === 'canne') {
+    g.strokeStyle = OL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-3, 0); g.lineTo(21, 0); g.stroke();
+    g.strokeStyle = '#a06a30'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-3, 0); g.lineTo(21, 0); g.stroke();
+    g.strokeStyle = '#a06a30'; g.lineWidth = 1.3; g.beginPath(); g.arc(-4.2, -1.8, 1.9, 0.6, Math.PI * 1.55); g.stroke();
   } else {
     rrect(-3.5, -1.1, 6, 2.2, 0.9, '#3a2a20');
     g.beginPath(); g.moveTo(2.2, -1.3); g.lineTo(11, -0.8); g.quadraticCurveTo(13.6, 0.1, 12.2, 0.9); g.lineTo(2.2, 1.3); g.closePath();
@@ -1926,7 +1971,10 @@ function drawChar(e) {
   } else if (isP && st === 'special' && e.hero === 'boxeur') {
     if (e.t < 6) { lean = 6; hipY = -12; ffx = 8; bfx = -5; fhx = 8; fhy = -22; bhx = 4; bhy = -20; }
     else { lean = -2; fhx = 11; fhy = -44; bhx = 3; bhy = -25; ffx = 5; bfx = -5; }
-  } else if (isP && st === 'special' && e.hero === 'medic') {
+  } else if (isP && st === 'special' && e.hero === 'papy') {
+    if (e.t < 14) { lean = -3; fhx = 5; fhy = -46; bhx = -1; bhy = -42; ffx = 3; bfx = -5; }
+    else { lean = 5; fhx = 20; fhy = -16; bhx = 6; bhy = -22; ffx = 7; bfx = -4; }
+  } else if (isP && st === 'special' && (e.hero === 'medic' || e.hero === 'aveugle')) {
     fhx = 6; fhy = -44; bhx = -3; bhy = -43; ffx = 4; bfx = -4; ring = e.t > 6 ? (e.t - 6) * 2.4 : 0;
   } else if (isP && st === 'special') { spin = true; ffx = 8; bfx = -8; fhx = 17; fhy = -26; bhx = -17; bhy = -26; }
   else if (isP && st === 'roll') { lean = 9; hipY = -9; ffx = 7; ffy = -4; bfx = -2; bfy = -3; fhx = 12; fhy = -20; bhx = 8; bhy = -18; }
@@ -1965,11 +2013,12 @@ function drawChar(e) {
     hipY = -14 - bob; fhy -= bob; bhy -= bob;
     if (!isP) { fhx = 6; fhy = -24 - bob; bhx = 3; bhy = -22 - bob; }
   }
-
+  if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }
+  if (kind === 'papy' && !down) { lean += 2.4; if (st === 'free' || moving) hdx += 1.2; }
 
   /* --- dimensions du tronc selon le personnage --- */
   const shY = hipY - 14;
-  const tw = { cogneur: [6.2, 5.2], vive: [5.2, 4.2], costaud: [8, 6.6], thug: [5.8, 4.8], brute: [8, 6.4], thrower: [5.8, 5.2], boss: [6.4, 5.8] }[type];
+  const tw = { cogneur: [6.2, 5.2], vive: [5.2, 4.2], costaud: [8, 6.6], thug: [5.8, 4.8], brute: [8, 6.4], thrower: [5.8, 5.2], boss: [6.4, 5.8], papy: [5.2, 4.8] }[type];
   const hx = lean + hdx, hy = shY - 11 + (st === 'hurt' ? 1 : 0);
   const armW = (type === 'brute' || type === 'costaud') ? 4.4 : 3.4;
   const bare = type === 'thug' || type === 'brute' || type === 'vive' || type === 'costaud';
@@ -1982,6 +2031,11 @@ function drawChar(e) {
   drawLeg(-1, hipY, bfx, bfy, S.pantsD, shade(S.shoe, -0.25), S.acc, type === 'vive' ? S.skinD : undefined);
   drawLeg(1, hipY, ffx, ffy, S.pants, S.shoe, S.acc, type === 'vive' ? S.skin : undefined);
 
+  if (kind === 'fauteuil') {
+    limb([[-7.5, hipY + 1], [-8.4, shY - 2]], 1.6, ['#33353d', '#33353d']);
+    rrect(-8.2, shY - 3.6, 3.2, 3, 1, '#33353d');
+    rrect(-7, hipY + 1.4, 14, 2.4, 1, '#44464f');
+  }
   /* --- pans du manteau (chef) --- */
   if (type === 'boss') {
     const fl2 = lean > 2 ? 3 : 0, wv = Math.sin(tick * 0.2) * 1.2;
@@ -2008,6 +2062,12 @@ function drawChar(e) {
       poly([[cf(0.05) - 1.8, ty], [cf(0.05) + 2.2, ty], [cf(0.95) + 1.6, by], [cf(0.95) - 2.2, by]], S.acc2, false);
       g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(cf(0) - 1.8, ty); g.lineTo(cf(1) - 2.2, by); g.stroke();
       band(12, 14, '#2a2a3a'); band(12, 13.4, '#3a3a4e'); rrect(cf(0.9) - 1.6, shY + 12, 3.4, 1.9, 0.5, '#d9a21b', false);
+      break;
+    case 'papy':
+      band(0, 14, S.shirt); band(11, 14, '#444450');
+      poly([[cf(0.05) - 1.6, ty], [cf(0.05) + 2.4, ty], [cf(0.35) + 0.4, ty + 6], [cf(0.05) - 0.4, ty + 6]], '#f2f2f2', false);
+      g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(cf(0.4) + 0.4, ty + 5); g.lineTo(cf(0.9) + 0.2, by); g.stroke();
+      g.fillStyle = '#4a3a22'; for (const k of [0.5, 0.68, 0.86]) g.fillRect(cf(k) - 0.4, shY + 14 * k - 0.4, 1.4, 1.4);
       break;
     case 'vive':
       band(0, 7.2, S.shirt); band(6.4, 7.6, S.shirtD); band(12, 14, S.pants); band(12, 12.8, S.pantsL);
@@ -2053,6 +2113,7 @@ function drawChar(e) {
     case 'boxeur': band(10.8, 14, S.pants); band(10.8, 12, S.acc); g.fillStyle = S.acc2; g.fillRect(TL, ty + 3, TR - TL, 0.8); break;
     case 'thrower': g.strokeStyle = '#5a3a1a'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(TL - 1, ty + 1); g.lineTo(TR + 1, by - 3); g.stroke(); g.fillStyle = S.acc; for (let k = 0; k < 3; k++) g.fillRect(TL + 2 + k * 3.4, ty + 3 + k * 3.4, 1.8, 2.6); break;
   }
+  if (kind === 'dalto') { g.fillStyle = '#35a845'; g.fillRect(cf(0.5) - 6.4, ty, 3, 22); g.fillRect(cf(0.5) + 3.4, ty, 3, 22); g.fillStyle = '#e8a020'; g.fillRect(cf(0.5) - 2.6, ty, 1.4, 22); }
   g.restore();
   torsoPath(); g.lineWidth = LW; g.strokeStyle = OL; g.lineJoin = 'round'; g.stroke();
   if (kind === 'medic') { g.fillStyle = S.acc; g.fillRect(cf(0.35) + 0.6, shY + 2, 1.6, 5); g.fillRect(cf(0.35) - 1.1, shY + 3.7, 5, 1.6); }
@@ -2104,6 +2165,13 @@ function drawChar(e) {
       poly([[HX - 5.7, HY - 0.2], [HX - 5.4, HY - 5.6], [HX - 1, HY - 7], [HX + 4, HY - 6.2], [HX + 5.8, HY - 2.6], [HX + 3.8, HY - 3.6], [HX - 1, HY - 3.8], [HX - 3.6, HY - 2.4], [HX - 3.8, HY + 0.6]], lg(0, HY - 7, 0, HY, [[0, S.hairD || S.hair], [1, S.hair]]));
       g.fillStyle = 'rgba(20,12,8,.55)'; g.beginPath(); g.moveTo(HX - 1.8, HY + 3.2); g.quadraticCurveTo(HX + 0.6, HY + 6.4, HX + 4.2, HY + 4.4); g.quadraticCurveTo(HX + 5, HY + 3.4, HX + 3.8, HY + 2.8); g.quadraticCurveTo(HX + 2, HY + 4.4, HX - 0.6, HY + 3.4); g.fill();
       break;
+    case 'papy':
+      ell(HX - 4.6, HY - 0.6, 2.2, 3.4, S.hair); ell(HX - 1.6, HY - 5.6, 3.6, 1.3, S.hair);
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(HX + 1, HY - 4.6, 2.6, 0.9, 0, 0, 7); g.fill();
+      ell(HX + 3.4, HY + 2.8, 2.7, 1, '#f2f2f2', OL);
+      g.strokeStyle = '#33343c'; g.lineWidth = 0.7; g.beginPath(); g.arc(HX + 2.9, HY + 0.1, 2.3, 0, 7); g.stroke();
+      g.beginPath(); g.moveTo(HX + 0.6, HY); g.lineTo(HX - 4.6, HY - 0.4); g.stroke();
+      break;
     case 'thug':
       g.beginPath(); g.moveTo(HX - 5.5, HY + 0.6); g.quadraticCurveTo(HX - 6, HY - 6, HX, HY - 6.4); g.quadraticCurveTo(HX + 5.4, HY - 6.2, HX + 5.6, HY - 2.6); g.quadraticCurveTo(HX + 2, HY - 4, HX - 1.6, HY - 2.8); g.quadraticCurveTo(HX - 3.4, HY - 1.6, HX - 3.6, HY + 1); g.closePath();
       g.fillStyle = S.hair; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
@@ -2131,6 +2199,10 @@ function drawChar(e) {
   }
 
   switch (kind) {
+    case 'aveugle':
+      rrect(HX + 0.2, HY - 1.9, 6.8, 3.6, 1.3, '#0a0a12'); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(HX + 1.2, HY - 1.3, 1.6, 0.6);
+      g.strokeStyle = '#0a0a12'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(HX + 0.2, HY - 0.6); g.lineTo(HX - 5, HY - 0.9); g.stroke();
+      break;
     case 'ombre':
       poly([[HX - 6.2, HY + 1], [HX - 6.6, HY - 6.4], [HX, HY - 8.2], [HX + 5.6, HY - 6.2], [HX + 6, HY - 3], [HX + 1, HY - 2.9], [HX - 3.4, HY - 2.7], [HX - 3.8, HY + 1]], '#1c1e2c');
       poly([[HX - 0.5, HY + 1.5], [HX + 5.8, HY + 1.3], [HX + 5.4, HY + 4.2], [HX + 2.5, HY + 6], [HX - 3, HY + 5]], '#1c1e2c');
@@ -2172,6 +2244,35 @@ function drawChar(e) {
       break;
   }
 
+  if (kind === 'fauteuil') {
+    const wr = e.walk * 1.7, cx0 = -1.5, cy0 = -9.2;
+    g.strokeStyle = OL; g.lineWidth = 1.9; g.beginPath(); g.arc(cx0, cy0, 8.6, 0, 7); g.stroke();
+    g.strokeStyle = '#8a909c'; g.lineWidth = 1.1; g.beginPath(); g.arc(cx0, cy0, 8.6, 0, 7); g.stroke();
+    g.strokeStyle = '#5a5f6a'; g.lineWidth = 0.9; g.beginPath(); g.arc(cx0, cy0, 6.4, 0, 7); g.stroke();
+    g.strokeStyle = 'rgba(210,215,225,.8)'; g.lineWidth = 0.5;
+    for (let k = 0; k < 6; k++) { const a2 = wr + k * Math.PI / 3; g.beginPath(); g.moveTo(cx0 + Math.cos(a2) * 6.2, cy0 + Math.sin(a2) * 6.2); g.lineTo(cx0 - Math.cos(a2) * 6.2, cy0 - Math.sin(a2) * 6.2); g.stroke(); }
+    ell(cx0, cy0, 1.4, 1.4, '#c8ccd6');
+    limb([[6, hipY + 3], [10.5, -3.4]], 1.2, ['#33353d', '#33353d']); ell(10.8, -2.6, 2.1, 2.1, '#2c2e35');
+    rrect(7.6, -6.8, 5.4, 1.2, 0.5, '#33353d');
+  }
+  if (!down && (kind === 'aveugle' || kind === 'papy') && st !== 'attack' && st !== 'special' && st !== 'roll') {
+    if (kind === 'aveugle') {
+      const sw2 = Math.sin(tick * 0.18) * 3, tx = fhx + 12 + sw2, ty2 = -1;
+      g.strokeStyle = OL; g.lineWidth = 2; g.beginPath(); g.moveTo(fhx, fhy); g.lineTo(tx, ty2); g.stroke();
+      g.strokeStyle = '#f4f4f4'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(fhx, fhy); g.lineTo(tx, ty2); g.stroke();
+      g.strokeStyle = '#d83030'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(fhx + (tx - fhx) * 0.55, fhy + (ty2 - fhy) * 0.55); g.lineTo(fhx + (tx - fhx) * 0.75, fhy + (ty2 - fhy) * 0.75); g.stroke();
+    } else {
+      const gx = bhx + 3;
+      g.strokeStyle = OL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(bhx - 1.5, bhy - 3); g.quadraticCurveTo(bhx - 3, bhy - 6, bhx, bhy - 5.4); g.moveTo(bhx, bhy - 5); g.lineTo(gx, -0.5); g.stroke();
+      g.strokeStyle = S.acc; g.lineWidth = 1.2; g.beginPath(); g.moveTo(bhx - 1.5, bhy - 3); g.quadraticCurveTo(bhx - 3, bhy - 6, bhx, bhy - 5.4); g.moveTo(bhx, bhy - 5); g.lineTo(gx, -0.5); g.stroke();
+    }
+  }
+  if (kind === 'papy' && !down && (st === 'attack' || st === 'special')) {
+    let ang = -0.95;
+    if (st === 'special') ang = e.t < 14 ? -2.0 : 0.7;
+    else { const wa = HEROES.papy.atk[e.stage]; ang = e.t < wa.act[0] ? -2.1 : (e.t <= wa.act[1] ? -0.3 + 0.9 * (e.t - wa.act[0]) / Math.max(1, wa.act[1] - wa.act[0]) : 1.05); }
+    drawWeapon('canne', fhx, fhy, ang);
+  }
   /* --- bras avant (devant le corps) --- */
   drawArm(lean * 0.9 + 1, shY + 3, fhx, fhy, sleeveN, S.skin, armW, glvF);
   if (e.weapon && WEAPONS[e.weapon] && !down && !(e.wd <= 2 && (tick & 2))) {
@@ -2399,7 +2500,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 12h20 · multi simplifié, rejoindre en cours', W / 2, 264, 7, '#667', 'center');
+  txt('version 13h00 · 10 héros, réseau plus fluide', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2455,34 +2556,34 @@ function drawOnline() {
 }
 function drawSelect() {
   g.fillStyle = 'rgba(5,3,15,.78)'; g.fillRect(0, 0, W, H);
-  txt(nPlayers === 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 22, 14, '#ffcf4a', 'center');
-  const CW = 80, X0 = 40, n = HERO_KEYS.length;
-  if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: X0 + i * CW, y: 150 }));
+  txt(nPlayers === 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 18, 12, '#ffcf4a', 'center');
+  const CW = 92, X0 = 46, CH = 110, n = HERO_KEYS.length, per = Math.ceil(n / 2);
+  const pos = i => ({ cx: X0 + (i % per) * CW, y0: 24 + Math.floor(i / per) * 114 });
+  if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: pos(i).cx, y: pos(i).y0 + 78 }));
   const c0 = cam; cam = 0;
   HERO_KEYS.forEach((k, i) => {
-    const hr = HEROES[k], cx = X0 + i * CW, e = PREV[i];
-    g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(cx - 37, 34, 74, 186);
-    g.strokeStyle = '#3a3670'; g.lineWidth = 1; g.strokeRect(cx - 36.5, 34.5, 73, 185);
-    txt(hr.name, cx, 48, 8, '#fff', 'center');
-    txt(hr.role, cx, 58, 8, '#ffd34d', 'center');
+    const hr = HEROES[k], { cx, y0 } = pos(i), e = PREV[i];
+    g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(cx - 43, y0, 86, CH);
+    g.strokeStyle = '#3a3670'; g.lineWidth = 1; g.strokeRect(cx - 42.5, y0 + 0.5, 85, CH - 1);
+    txt(hr.name, cx, y0 + 21, 8, '#fff', 'center');
+    txt(hr.role, cx, y0 + 30, 7, '#ffd34d', 'center');
     const locked = SEL.slice(0, nPlayers).some(s => s.lock && s.c === i);
     if (locked) { e.st = 'attack'; e.stage = (tick >> 5) % 3; e.t = (tick >> 1) % hr.atk[e.stage].dur; } else { e.st = 'free'; e.t = 0; }
     e.name = '';
     drawChar(e);
-    txt('PV', cx - 33, 178, 7, '#9ab'); bar(cx - 18, 173, 52, 4, hr.hp / 130, '#4ccf4c');
-    txt('VIT', cx - 33, 187, 7, '#9ab'); bar(cx - 18, 182, 52, 4, hr.spd / 1.95, '#4aa8ff');
-    txt('FOR', cx - 33, 196, 7, '#9ab'); bar(cx - 18, 191, 52, 4, hr.dmg / 1.45, '#e0663a');
-    txt(hr.special, cx, 210, 7, '#fda', 'center');
+    txt('PV', cx - 39, y0 + 87, 6, '#9ab'); bar(cx - 26, y0 + 83, 62, 3, hr.hp / 130, '#4ccf4c');
+    txt('VIT', cx - 39, y0 + 94, 6, '#9ab'); bar(cx - 26, y0 + 90, 62, 3, hr.spd / 1.95, '#4aa8ff');
+    txt('FOR', cx - 39, y0 + 101, 6, '#9ab'); bar(cx - 26, y0 + 97, 62, 3, hr.dmg / 1.45, '#e0663a');
+    txt(hr.special, cx, y0 + 108, 6, '#fda', 'center');
   });
   cam = c0;
   for (let i = 0; i < nPlayers; i++) {
-    const s = SEL[i], cx = X0 + s.c * CW, col = i ? '#ff9a3a' : '#4aa8ff';
+    const s = SEL[i], { cx, y0 } = pos(s.c), col = i ? '#ff9a3a' : '#4aa8ff';
     g.strokeStyle = col; g.lineWidth = 2;
-    g.strokeRect(cx - 39 + i * 3, 32 + i * 3, 78 - i * 6, 190 - i * 6);
-    txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : ''), cx - 34 + i * 30, 31, 8, col);
-    if (s.lock) txt('J' + (i + 1) + ' PRÊT', cx, 232 + i * 9, 8, col, 'center');
+    g.strokeRect(cx - 45 + i * 3, y0 - 2 + i * 3, 90 - i * 6, CH + 4 - i * 6);
+    txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + (s.lock ? ' PRÊT' : ''), cx - 40 + i * 0, y0 + 9 + i * 8, 7, col);
   }
-  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : un ami pourra vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand les deux joueurs sont prêts' : 'Gauche / Droite : choisir · Frapper : valider · Spécial : annuler', W / 2, 264, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
+  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : un ami pourra vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand les deux joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
 }
 /* ---------- pièges ---------- */
 const trapC = t => (simF + (t.ph || 0)) % (t.per || 1);
@@ -2628,7 +2729,36 @@ function endScores() {
   PS.forEach((p, i) => txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0') + '  ' + (p.name || ''), W / 2, 148 + i * 14, 12, i ? '#fb7' : '#8cf', 'center'));
 }
 
+/* effets de handicap (affichage seulement, la simulation n'est pas touchée) : daltonisme = filtre de couleurs, cécité = champ de vision réduit */
+let fxLast = '';
+function localHeroes() {
+  if (state === 'select') return [HERO_KEYS[(SEL[online ? localSlot : 0] || SEL[0]).c]];
+  if (state === 'play' || state === 'over' || state === 'win') return online ? (PS[localSlot] ? [PS[localSlot].hero] : []) : PS.map(q => q.hero);
+  return [];
+}
+function applyFx() {
+  const want = localHeroes().indexOf('dalto') >= 0 ? 'dalto' : '';
+  if (want === fxLast) return; fxLast = want;
+  try {
+    if (want && !document.getElementById('nf-fx')) {
+      const d = document.createElement('div'); d.id = 'nf-fx'; d.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+      d.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"><filter id="nf-dalto" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.30 0.70 0 0 0  0.26 0.58 0.16 0 0  0 0.03 0.80 0 0  0 0 0 1 0"/></filter></svg>';
+      document.body.appendChild(d);
+    }
+    cv.style.filter = want ? 'url(#nf-dalto) saturate(0.75)' : '';
+  } catch (e) { /* ignoré */ }
+}
+function blindFx() {
+  const q = online ? PS[localSlot] : PS.find(z => z.hero === 'aveugle');
+  if (!q || q.hero !== 'aveugle' || q.out) return;
+  const sx = q.x - cam, sy = q.y - q.z - 20, pr = q.ping > 0 ? q.ping / 110 : 0, r = 30 + 420 * pr * pr;
+  if (r > 520) return;
+  const gr = g.createRadialGradient(sx, sy, r * 0.35, sx, sy, r);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(2,2,8,0.55)'); gr.addColorStop(1, 'rgba(2,2,8,0.97)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+}
 function render() {
+  applyFx();
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
   if (shake > 0) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
@@ -2656,6 +2786,7 @@ function render() {
   else if (state === 'name') drawNameEntry();
   else if (state === 'scores') drawScores();
   else {
+    blindFx();
     hud();
     if (menuOpen) drawMenu();
     if (paused) {
@@ -2682,8 +2813,9 @@ function render() {
 /* ---------- boucle principale (pas fixe à 60 Hz) ---------- */
 let last = performance.now(), acc = 0;
 function frame(now) {
-  acc += Math.min(100, now - last); last = now;
-  while (acc >= 1000 / 60) { step(); acc -= 1000 / 60; }
+  acc += Math.min(online ? 600 : 100, now - last); last = now;
+  if (acc > 600) acc = 600;
+  while (acc >= 1000 / 60) { if (step() === 'stall') break; acc -= 1000 / 60; }   // en ligne : on n'avance pas sans les touches de l'autre, puis on rattrape le retard
   render();
   requestAnimationFrame(frame);
 }
