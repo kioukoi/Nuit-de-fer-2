@@ -575,6 +575,22 @@ function drawChar(e) {
     const tw = Math.ceil(g.measureText(e.name).width) + 6;
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(sx - tw / 2, ny - 7, tw, 10);
     g.fillStyle = col; g.fillText(e.name, sx, ny + 1);
+    /* vie au-dessus de la tête, ultime au niveau du visage (jaune clignotant quand il est prêt) */
+    const r = Math.max(0, Math.min(1, e.hp / e.maxhp)), bw = 28, bx = Math.round(sx - bw / 2);
+    g.fillStyle = '#000'; g.fillRect(bx - 1, ny - 13, bw + 2, 5); g.fillStyle = '#3a1a1a'; g.fillRect(bx, ny - 12, bw, 3);
+    g.fillStyle = r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'); g.fillRect(bx, ny - 12, Math.round(bw * r), 3);
+    if (e.kind === 'p') {
+      const cost = HEROES[e.hero].cost, rd = e.sp >= cost, fl2 = rd && ((tick >> 3) & 1), sy2 = ny + 5;
+      g.fillStyle = '#000'; g.fillRect(bx - 1, sy2 - 1, bw + 2, 4); g.fillStyle = '#12203a'; g.fillRect(bx, sy2, bw, 2);
+      g.fillStyle = rd ? (fl2 ? '#fff7b0' : '#ffd34d') : '#4aa8ff'; g.fillRect(bx, sy2, Math.round(bw * Math.min(1, e.sp / 100)), 2);
+      if (rd) { g.strokeStyle = fl2 ? '#fff' : '#ffd34d'; g.lineWidth = 1; g.strokeRect(bx - 1.5, sy2 - 1.5, bw + 3, 5); }
+    }
+  }
+  if (!isP && e.type === 'boss' && !e.dying) {
+    const by = sy - Math.round(62 * s), bw = 44, bx = Math.round(sx - bw / 2), r = Math.max(0, e.hp / e.maxhp);
+    g.font = 'bold 7px monospace'; g.textAlign = 'center'; g.fillStyle = '#f88'; g.fillText(LV.bossName, sx, by - 5);
+    g.fillStyle = '#000'; g.fillRect(bx - 1, by - 2, bw + 2, 7); g.fillStyle = '#3a1a1a'; g.fillRect(bx, by - 1, bw, 5);
+    g.fillStyle = '#d03030'; g.fillRect(bx, by - 1, Math.round(bw * r), 5);
   }
   if (!isP && (st === 'tele' || st === 'bspec') && !(st === 'bspec' && e.z > 2)) {
     const my = sy - Math.round(56 * s);
