@@ -97,7 +97,7 @@ const KEYS_P2 = {
 };
 const keys = {}; window.__keys = keys;
 let nPlayers = 1;
-const HLD = [{}, {}], PRS = [{}, {}], OLD = [{}, {}];
+const HLD = [{}, {}, {}, {}], PRS = [{}, {}, {}, {}], OLD = [{}, {}, {}, {}];
 let START = false, PAUSE = false, MENUK = false, oldS = false, oldP = false, oldE = false;
 addEventListener('keydown', e => {
   keys[e.code] = true;
@@ -136,7 +136,7 @@ function padHeld(gp, n) {
   return false;
 }
 function poll() {
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 4; i++) {
     const sc = online ? (i === localSlot ? KEYS_SOLO : null) : (nPlayers === 1 ? (i === 0 ? KEYS_SOLO : null) : (i === 0 ? KEYS_P1 : KEYS_P2));
     const gp = gpFor(i);
     for (const n of ACT) {
@@ -472,7 +472,9 @@ let LV = LEVELS[0], levelIdx = 0, startLevel = 0, introT = 0;
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignoré */ } };
 let myName = (lsGet('nfer_name', 'JOUEUR') || 'JOUEUR').slice(0, 10);
-let NAMES = [myName, 'JOUEUR 2'], nameBuf = '', lastRank = -1, recorded = false;
+let FRIENDLY = true;
+try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; } catch (e) { /* ignoré */ }
+let NAMES = [myName, 'JOUEUR 2', 'JOUEUR 3', 'JOUEUR 4'], nameBuf = '', lastRank = -1, recorded = false;
 let unlocked = Math.min(LEVELS.length - 1, parseInt(lsGet('nfer_unlocked', '0'), 10) || 0);
 try { if (/[?&]debug/.test(location.search)) unlocked = LEVELS.length - 1; } catch (e) { /* ignoré */ }
 function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèêàùçïÉÈ]/g, '').trim().toUpperCase().slice(0, 10); }
@@ -482,18 +484,31 @@ const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJ
 let gScores = null, gStatus = 'idle';
 const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
 const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
-function sbPost(ent) {
-  if (!sbOn()) return;
-  try { fetch(SB_URL + '/rest/v1/scores', { method: 'POST', headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body: JSON.stringify({ name: String(ent.n).slice(0, 10), score: ent.s, level: ent.lv, win: !!ent.win, hero: ent.h || '' }) }).then(() => { gScores = null; }, () => {}); } catch (e) { /* ignoré */ }
+let gErr = '';
+function sbFetch(url, opt) {
+  let ctl = null, to = 0;
+  try { ctl = new AbortController(); to = setTimeout(() => ctl.abort(), 9000); } catch (e) { /* ignoré */ }
+  return fetch(url, Object.assign({ cache: 'no-store', mode: 'cors', signal: ctl ? ctl.signal : undefined }, opt)).then(r => { if (to) clearTimeout(to); return r; }, e => { if (to) clearTimeout(to); throw e; });
 }
-function sbLoad() {
+function sbPost(ent, tries) {
   if (!sbOn()) return;
-  gStatus = 'load';
+  tries = tries || 0;
+  const body = JSON.stringify({ name: String(ent.n).slice(0, 10), score: ent.s, level: ent.lv, win: !!ent.win, hero: ent.h || '' });
   try {
-    fetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=10', { headers: sbHead() })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error('http')))
-      .then(rows => { gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })); gStatus = 'ok'; }, () => { gStatus = 'err'; });
-  } catch (e) { gStatus = 'err'; }
+    sbFetch(SB_URL + '/rest/v1/scores', { method: 'POST', headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body })
+      .then(r => { if (r.ok) gScores = null; else if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); }, () => { if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); });
+  } catch (e) { /* ignoré */ }
+}
+function sbLoad(tries) {
+  if (!sbOn()) return;
+  tries = tries || 0; gStatus = 'load';
+  const fail = why => { if (tries < 2) setTimeout(() => sbLoad(tries + 1), 1500); else { gStatus = 'err'; gErr = why; } };
+  try {
+    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=10', { headers: sbHead() })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(rows => { gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })); gStatus = 'ok'; gErr = ''; },
+        e => fail(e && e.name === 'AbortError' ? 'délai dépassé (réseau lent ou bloqué)' : (e && /^HTTP/.test(e.message) ? e.message : 'connexion impossible (pare-feu, VPN, bloqueur de pubs ?)')));
+  } catch (e) { gStatus = 'err'; gErr = 'navigateur non compatible'; }
 }
 function recordScores() {
   if (recorded) return;
@@ -508,7 +523,7 @@ let state = 'title', PS = [], E = [], B = [], IT = [], PJ = [], FX = [];
 let cam = 0, camLimit = LEN - W, waveI = 0, waveActive = false;
 let menuOpen = false, menuIdx2 = 0, RAW = {}, sfxOn = true;
 let hitstop = 0, shake = 0, tgt = null, tgtT = 0, goT = 0, tick = 0, endT = 0, paused = false, attackers = 0;
-let menuIdx = 0, SEL = [{ c: 0, lock: false }, { c: 1, lock: false }], selT = 0;
+let menuIdx = 0, SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }], selT = 0;
 
 let rngS = 1;
 function seedRng(s) { rngS = (s >>> 0) || 1; }
@@ -528,7 +543,7 @@ function mkPlayer(hero, slot) {
     dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy' };
 }
 function mkEnemy(type, x, y) {
-  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (nPlayers === 2 ? 1.5 : 1) * (type === 'boss' ? 1 : LV.hpM));
+  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM));
   return { kind: 'e', type, x, y, z: 0, vx: 0, vy: 0, vz: 0, face: -1, hp, maxhp: hp, st: 'move', t: 0,
     cool: rnd(20, 70), side: rng() < 0.5 ? -1 : 1, slot: rnd(0, 30), hit: new Set(), inv: 0, flash: 0, walk: 0,
     mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM, spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
@@ -542,7 +557,7 @@ function loadLevel(i) {
   cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
 }
 function startGame() {
-  PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); return p; });
+  PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1;
   simF = 0;
@@ -556,6 +571,7 @@ function nextLevel() {
     else p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.45));
     p.dying = false; p.st = 'free'; p.t = 0; p.z = 0; p.vx = p.vy = p.vz = 0; p.inv = 90; p.kick = false;
     p.x = 70 + p.slot * 26; p.y = 198 + p.slot * 26; p.sp = Math.min(100, p.sp + 25);
+    if (p.hero === 'papy') { p.cane = true; p.ping = 0; if (p.weapon) p.weapon = null; }
   }
   if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
   loadLevel(levelIdx + 1);
@@ -614,6 +630,7 @@ function heroBonus(att, t, a) {
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
   const ff = att.kind === 'p' && t.kind === 'p';
+  if (ff && !FRIENDLY) return;
   if (att.kind === 'p' && !ff) a = heroBonus(att, t, a);
   if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
   if (att.weapon && att.st === 'attack') {
@@ -624,6 +641,7 @@ function hurt(t, att, a, dir) {
       FX.push({ x: att.x, y: att.y, z: 46, t: 0, life: 40, txt: 'CASSÉ !' });
     }
   }
+  const hp0 = t.hp;
   t.hp -= ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg; t.flash = 8;
   if (ff && t.hp < 1) t.hp = 1;
   if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2);
@@ -631,10 +649,9 @@ function hurt(t, att, a, dir) {
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
   if (a.kd) { shake = Math.max(shake, 6); SFX.big(); } else SFX.hit();
-  if (att.kind === 'p' && !ff) { att.score += 10; if (t.kind === 'e') { tgt = t; tgtT = 150; } }
+  if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5); tgt = t; tgtT = 150; }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
-    if (t.kind === 'e' && att.kind === 'p') att.score += T[t.type].score;
     SFX.ko();
     return;
   }
@@ -1051,7 +1068,7 @@ function updEnemy(e) {
       e.face = p.x >= e.x ? 1 : -1;
       e.walk += 0.18;
       const sp = d.sp * (e.spm || 1) * (e.type === 'boss' ? 1 + 0.15 * (e.phase - 1) : 1);
-      const maxAtt = nPlayers === 2 ? 3 : 2;
+      const maxAtt = nPlayers >= 3 ? 4 : nPlayers === 2 ? 3 : 2;
       const busy = attackers >= maxAtt || e.cool > 0;
       const rr = d.atk.reach + (e.weapon ? WEAPONS[e.weapon].reach * 0.8 : 0);
       let tx, ty = p.y, goW = null;
@@ -1219,15 +1236,22 @@ function updWaves() {
    Les deux navigateurs exécutent exactement la même simulation (graine commune, pas fixe) et
    s'envoient uniquement les touches pressées, avec un petit décalage (DELAY images). */
 const DELAY = 12;            // délai de départ ; ensuite adapté à la qualité de la ligne (curDelay)
-let curDelay = DELAY, rtts = [], stallEv = 0, lastDelayAdj = 0, rttMax = 0;
-const BITS = { left: 1, right: 2, up: 4, down: 8, punch: 16, jump: 32, special: 64, throw: 128 };
+let curDelay = DELAY, stallEv = 0, lastDelayAdj = 0, rttMax = 0;
+const rttBy = [[], [], [], []];
+const BITS = { left: 1, right: 2, up: 4, down: 8, punch: 16, jump: 32, special: 64, throw: 128, pause: 256 };
+const MAXP = 4;
+const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 let online = false, localSlot = 0, olStage = 'menu', olIdx = 0, codeBuf = '', hostCode = '', netMsg = '', netSeed = 0;
-let frameNo = 0, sentF = 0, localBuf = {}, remoteBuf = {}, prevM = [0, 0], myHash = {}, theirHash = {}, desync = false, stallT = 0;
-let lastRelays = '', rel = null, rxT = 0, startMsg = null, peerNeeds = 0;
-/* salle ouverte : l'hôte joue tout de suite, un ami peut la rejoindre à tout moment (même en cours de partie).
-   L'invité rejoue en accéléré les touches de l'hôte depuis le début (simulation déterministe), puis les deux jouent en synchro. */
-let room = false, peerIn = false, roomJoin = false, roomPending = false, joinBusy = false, joinK = 0, joinId = 0, joinT = 0, joinMsgs = [];
-let hostLog = [], jselSent = false, catchParts = null, catchReady = null, pendingJoin = '', toastT = 0, toastMsg = '';
+let frameNo = 0, sentF = 0, localBuf = {}, rbuf = [{}, {}, {}, {}], prevM = [0, 0, 0, 0], myHash = {}, theirHash = [{}, {}, {}, {}], desync = false, stallT = 0;
+let lastRelays = '', rel = null, rxT = 0, startMsg = null, lastSentM = -1;
+/* Salle en ligne jusqu'à 4 joueurs. L'hôte (emplacement 0) joue tout de suite ; les amis rejoignent à tout moment, même en cours de partie.
+   Tout le monde fait tourner la même simulation (déterministe) et n'échange que les touches (« lockstep »).
+   Un nouvel arrivant rejoue en accéléré les touches de tous depuis le début, puis entre en jeu à une image convenue (F) pour tout le monde. */
+let act = [true, false, false, false], lastRx = [0, 0, 0, 0], peerR = [0, 0, 0, 0], joins = [], dropAt = [], allLog = [], netPaused = 0, pauseBy = '';
+let room = false, roomJoin = false, roomPending = false, joinBusy = false, joinT = 0, joinMsgs = [], joinBuilt = false, pend = null, waitMsg = '';
+const pongQ = [];
+let jselSent = false, catchParts = null, catchReady = null, pendingJoin = '', toastT = 0, toastMsg = '';
+const myUid = Math.random().toString(36).slice(2, 10);
 try { const mj = /[?&]join=([A-Za-z0-9]{4,6})/.exec(location.search); if (mj) pendingJoin = mj[1].toUpperCase(); } catch (e) { /* ignoré */ }
 addEventListener('paste', e => {
   if (state === 'online' && olStage === 'joining') {
@@ -1236,10 +1260,13 @@ addEventListener('paste', e => {
   }
 });
 const maskOf = h => ACT.reduce((m, n) => m | (h[n] ? BITS[n] : 0), 0);
+const others = () => { let n = 0; for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot) n++; return n; };
+const packM = ms => ms[0] + ms[1] * 512 + ms[2] * 262144 + ms[3] * 134217728;
+const unpackM = v => [v % 512, Math.floor(v / 512) % 512, Math.floor(v / 262144) % 512, Math.floor(v / 134217728) % 512];
 
-/* Transport : relais MQTT public par WebSocket (wss). Aucun serveur à installer, passe les réseaux mobiles
-   et la plupart des pare-feux (pas de connexion directe entre les deux ordinateurs). */
-const BROKERS = ['wss://public:public@public.cloud.shiftr.io', 'wss://mqtt.eclipseprojects.io:443/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/'];
+/* Transport : relais MQTT publics par WebSocket (wss). Aucun serveur à installer, passe les réseaux mobiles et la plupart des pare-feux.
+   Chaque message part en double sur plusieurs relais et le premier arrivé gagne : moins de latence, et un relais lent ou coupé ne gêne plus. */
+const BROKERS = ['wss://public:public@public.cloud.shiftr.io', 'wss://broker.emqx.io:8084/mqtt', 'wss://mqtt.eclipseprojects.io:443/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/'];
 const U8 = a => new Uint8Array(a);
 function mqStr(s) { const b = Array.from(new TextEncoder().encode(s)); return [b.length >> 8, b.length & 255, ...b]; }
 function mqLen(n) { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return o; }
@@ -1284,9 +1311,16 @@ function relClose() {
   if (rel) for (const c of rel.bs) { try { c.ws && c.ws.close(); } catch (e) { /* ignoré */ } }
   rel = null;
 }
-function netClose() { relClose(); online = false; startMsg = null; room = false; peerIn = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null; }
+function netReset() {
+  online = false; startMsg = null; room = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null;
+  pend = null; joins = []; dropAt = []; allLog = []; act = [true, false, false, false]; netPaused = 0; waitMsg = ''; joinBuilt = false;
+}
+function netClose() {
+  if (rel && online) netSend({ t: 'bye', p: localSlot });
+  relClose(); netReset();
+}
 function netFail(msg) { netClose(); netMsg = msg; olStage = 'error'; state = 'online'; }
-function netLost(msg) { netClose(); netMsg = msg; state = 'title'; nPlayers = 1; }
+function netLost(msg) { netClose(); netMsg = msg; state = 'title'; nPlayers = 1; menuOpen = false; }
 function newCode() {
   const al = 'ABCDEFGHJKLMNQRSTUVWXYZ23456789';
   let s = '';
@@ -1294,100 +1328,183 @@ function newCode() {
   return s;
 }
 function netSend(m) {
-  if (!rel || !rel.active || !rel.active.ready) return;
-  try { rel.active.ws.send(mqPub(rel.outT, m)); } catch (e) { /* ignoré */ }
-}
-function startRelay(role, code) {
-  netClose();
-  const inT = 'nferbrawl/' + code + (role === 0 ? '/j' : '/h');
-  rel = { role, code, bs: [], active: null, outT: 'nferbrawl/' + code + (role === 0 ? '/h' : '/j'), t0: tick, helloT: 0, rot: 0 };
-  const onMsg = (c, m) => {
-    if (!rel) return;
-    if (role === 0 && m.t === 'hello') {
-      if (room && !peerIn && !joinBusy && (!rel.active || rel.active === c)) {
-        rel.active = c; NAMES[1] = cleanName(m.n) || 'JOUEUR 2'; NAMES[0] = myName;
-        netSend({ t: 'welcome', n: myName, h0: HERO_KEYS[SEL[0].c] });
-      }
-      return;
-    }
-    if (role === 1 && m.t === 'welcome') {
-      NAMES[0] = cleanName(m.n) || 'JOUEUR 1'; NAMES[1] = myName;
-      if (!online) { rel.active = c; goOnline(1); roomJoin = true; jselSent = false; SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.h0)); SEL[0].lock = true; SEL[1].c = SEL[0].c === 0 ? 1 : 0; }
-      return;
-    }
-    if (online && c === rel.active) { rxT = tick; onNet(m); }
-  };
-  rel.bs = BROKERS.map(u => openBroker(u, inT, onMsg));
-}
-function goOnline(slot) { online = true; localSlot = slot; nPlayers = 2; rxT = tick; initSelect(); state = 'select'; SFX.pick(); }
-function joinGame(code) { olStage = 'connecting'; startRelay(1, code); }
-function relTick() {
   if (!rel) return;
-  const age = tick - rel.t0;
-  const anyReady = rel.bs.some(b => b.ready);
-  if (!online) {
-    if (olStage === 'hosting' && age > 600 && !anyReady) netFail('Impossible de joindre le serveur de mise en relation (réseau bloqué ?). Essayez un autre réseau.');
-    if (olStage === 'connecting') {
-      if (age > 1500) { netFail('Partie introuvable ou serveur injoignable. Vérifiez le code (ou le lien) et que l\'hôte a bien créé sa partie.'); return; }
-      if (age - rel.helloT >= 45) {
-        rel.helloT = age;
-        const ready = rel.bs.filter(b => b.ready);
-        if (ready.length) { rel.rot++; rel.active = ready[rel.rot % ready.length]; netSend({ t: 'hello', n: myName }); }
-      }
-    }
-    return;
-  }
-  if (tick % (online ? 20 : 60) === 0) netSend({ t: 'ping', ts: nowMs() });
-  if (online && state === 'play' && tick % 30 === 0) adaptDelay();
-  if (tick % 1200 === 0) for (const b of rel.bs) { try { if (b.ready) b.ws.send(U8([0xC0, 0])); } catch (e) { /* ignoré */ } }
-  if (state === 'select' && tick % 30 === 0) sendSel();
-  if (startMsg && state === 'play' && frameNo < DELAY + 4 && tick % 15 === 0) netSend(startMsg);
-  if (joinBusy) {                                   // hôte : l'invité est en train de rattraper la partie
-    if ((tick - joinT) % 90 === 0) joinMsgs.forEach(netSend);
-    if (tick - joinT > 1800) { joinBusy = false; rel.active = null; toast('L\'ami n\'a pas pu rejoindre'); }
-    return;
-  }
-  if (roomJoin && !peerIn) {                        // invité : choix du héros puis synchronisation
-    if (!jselSent) rxT = tick;
-    else if (tick % 60 === 0) netSend({ t: 'jsel', c: SEL[1].c });
-    if (jselSent && tick - rxT > 1500) netLost('Impossible de rejoindre la partie (l\'hôte ne répond plus).');
-    return;
-  }
-  if (room && !peerIn) return;                      // hôte seul : rien ne peut expirer
-  if (rel.active && rel.active.dead) netLost('Connexion perdue.');
-  else if (tick - rxT > 600) netLost('Connexion perdue (plus de nouvelles de l\'autre joueur).');
+  m.u = myUid;
+  const pkt = mqPub(rel.topic, m);
+  let n = 0;
+  for (const b of rel.bs) { if (b.ready && n < 3) { try { b.ws.send(pkt); n++; } catch (e) { /* ignoré */ } } }
 }
-function onNet(m) {
-  if (!m) return;
-  if (m.t === 'in') {
-    peerNeeds = Math.max(peerNeeds, m.r);
-    for (let i = 0; i < m.a.length; i++) { const f = m.s + i; if (f >= frameNo - 1 && remoteBuf[f] === undefined) remoteBuf[f] = m.a[i]; }
-  } else if (m.t === 'sel') { if (state === 'select') { const r = 1 - localSlot; SEL[r].c = m.c; SEL[r].lock = m.lock; } }
-  else if (m.t === 'start') {
-    if (state !== 'select') return;
-    SEL[0].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[0])); SEL[1].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[1]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0));
+function startRelay(code) {
+  relClose();
+  rel = { code, bs: [], topic: 'nferbrawl2/' + code, t0: tick, helloT: 0, reopenT: tick };
+  rel.mk = url => openBroker(url, rel.topic, (c, m) => { if (rel && m && m.u !== myUid) netIn(m); });
+  rel.bs = BROKERS.map(rel.mk);
+}
+function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; startRelay(code); }
+
+/* ----- arrivée d'un joueur ----- */
+function hostHello(m) {
+  if (!(online && room && localSlot === 0)) return;
+  const nm = cleanName(m.n) || 'JOUEUR';
+  if (nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
+  if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
+  if (!pend || pend.u !== m.u) pend = { u: m.u, slot: nPlayers, n: nm, t: tick };
+  pend.t = tick;
+  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0 });
+}
+function guestWelcome(m) {
+  if (m.to !== myUid || online || olStage !== 'connecting') return;
+  if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
+  if (m.wait) { waitMsg = 'La partie est occupée (un autre ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
+  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
+  initSelect();
+  for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
+  NAMES[localSlot] = myName; for (let i = 0; i < localSlot; i++) act[i] = true;
+  let c = 0; while (SEL.slice(0, localSlot).some(o => o.c === c)) c = (c + 1) % HERO_KEYS.length;
+  SEL[localSlot].c = c; SEL[localSlot].lock = false;
+  lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = '';
+}
+const joinsPayload = () => joins.filter(j => !j.done || j.F > frameNo - 400).map(j => [j.slot, j.F, j.c, j.n, j.x ? 1 : 0]);
+function mergeJoins(list) {
+  if (state !== 'play' || roomJoin) return;
+  for (const [slot, F, c, n, x] of list) {
+    const j = joins.find(q => q.slot === slot && q.F === F);
+    if (j) { if (x) j.x = true; continue; }
+    joins.push({ slot, F, c, n, x: !!x, done: F < frameNo });
+  }
+}
+function mergeDrops(list) {
+  for (const [s, L] of list) {
+    if (dropAt[s] === undefined) dropAt[s] = L;
+    if (s === localSlot) netLost('Vous avez été retiré de la partie (connexion trop lente).');
+  }
+}
+function startJoin(c1) {
+  const n = HERO_KEYS.length;
+  c1 = ((c1 | 0) % n + n) % n;
+  const used = PS.filter(p => act[p.slot]).map(p => p.hero);
+  while (used.indexOf(HERO_KEYS[c1]) >= 0) c1 = (c1 + 1) % n;
+  const j = { slot: pend.slot, F: sentF + 60, c: c1, n: pend.n, x: false, done: false };
+  joins.push(j); joinBusy = true; joinT = tick; joinBuilt = false; pend.t = tick;
+  netSend({ t: 'join', j: joinsPayload() });
+}
+function curJoin() { return joins.find(j => !j.done && !j.x); }
+function buildCatch(j) {
+  const K = j.F, rle = []; let pm = -1, c = 0;
+  for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
+  if (c) rle.push(pm, c);
+  const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, h0: PS[0].hero, n0: NAMES[0], K,
+    joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined) };
+  joinMsgs = [];
+  for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
+  joinMsgs.forEach(netSend); joinBuilt = true;
+}
+function addPlayerAt(j) {
+  while (PS.length < j.slot) { const q = mkPlayer(HERO_KEYS[0], PS.length); q.out = true; q.absent = true; q.lives = 0; PS.push(q); }
+  const ref = PS.find(q => !q.out) || PS[0], p = mkPlayer(HERO_KEYS[j.c], j.slot);
+  p.name = j.n; p.x = clamp(ref.x - 22 - 8 * j.slot, cam + 16, cam + W - 16); p.y = clamp(ref.y + 10 * (j.slot - 1), Y0, Y1); p.inv = 90;
+  PS[j.slot] = p; nPlayers = PS.length; act[j.slot] = true; prevM[j.slot] = 0; NAMES[j.slot] = j.n; SEL[j.slot].c = j.c; SEL[j.slot].lock = true;
+  rttBy[j.slot] = []; lastRx[j.slot] = tick; peerR[j.slot] = j.F;
+}
+function dropPlayer(s) {
+  act[s] = false;
+  const p = PS[s]; if (!p) return;
+  p.out = true; p.dying = false; p.lives = 0; p.hp = 0;
+  if (!REPLAY) toast((p.name || 'Un joueur') + ' a quitté la partie');
+}
+/* événements communs à tous, au début de l'image f : arrivée / départ d'un joueur */
+function frameEvents(f) {
+  for (const j of joins) if (!j.done && !j.x && j.F === f) {
+    j.done = true; addPlayerAt(j);
+    if (localSlot === 0 && !REPLAY) { joinBusy = false; pend = null; toast(j.n + ' a rejoint la partie !'); }
+  }
+  for (let s = 1; s < MAXP; s++) if (dropAt[s] !== undefined && f === dropAt[s] + 1 && act[s]) dropPlayer(s);
+}
+function runCatchUp() {
+  const c = catchReady, meta = c.meta; catchReady = null;
+  FRIENDLY = !!meta.ff; startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
+  const keep = rbuf, K = meta.K, slot = localSlot;
+  nPlayers = 1; online = true; room = true; act = [true, false, false, false];
+  beginOnline(meta.seed);
+  joins = meta.joins.map(([s, F, cc, n]) => ({ slot: s, F, c: cc, n, x: false, done: false }));
+  dropAt = []; for (const [s, L] of meta.drops) dropAt[s] = L;
+  const log = []; for (let i = 0; i < c.rle.length; i += 2) for (let k = 0; k < c.rle[i + 1]; k++) log.push(c.rle[i]);
+  REPLAY = true;
+  try {
+    for (let f = 0; f < K; f++) {
+      frameEvents(f);
+      const ms = unpackM(log[f] | 0);
+      applyMasks(ms);
+      if (!ms.some(m => m & 256)) simStep();
+    }
+  } finally { REPLAY = false; }
+  frameNo = K; localBuf = {}; rbuf = [{}, {}, {}, {}];
+  for (let s = 0; s < MAXP; s++) for (const k in keep[s]) if (+k >= K) rbuf[s][k] = keep[s][k];
+  for (let f = K; f < K + curDelay; f++) localBuf[f] = 0;
+  sentF = K + curDelay - 1; myHash = {}; theirHash = [{}, {}, {}, {}]; desync = false; stallT = 0;
+  roomJoin = false; localSlot = slot; rxT = tick; lastRx = [tick, tick, tick, tick]; state = 'play'; menuOpen = false;
+  sendIn(); toast('Vous avez rejoint la partie !');
+}
+
+/* ----- messages reçus ----- */
+function netIn(m) {
+  const t = m.t;
+  if (t === 'hello') { hostHello(m); return; }
+  if (t === 'welcome') { guestWelcome(m); return; }
+  if (!online) return;
+  const p = m.p;
+  if (p !== undefined && p >= 0 && p < MAXP && p !== localSlot) { lastRx[p] = tick; rxT = tick; }
+  if (t === 'in') {
+    if (roomJoin || m.g !== netSeed || p === undefined || p === localSlot) return;
+    peerR[p] = m.r;
+    for (let i = 0; i < m.a.length; i++) { const f = m.s + i; if (f >= frameNo - 1 && rbuf[p][f] === undefined) rbuf[p][f] = m.a[i]; }
+    if (p === 0) { if (m.j) mergeJoins(m.j); if (m.dr) mergeDrops(m.dr); }
+  } else if (t === 'sel') {
+    if (state === 'select' && p !== undefined && p !== localSlot && SEL[p]) { SEL[p].c = m.c; SEL[p].lock = m.lock; }
+  } else if (t === 'start') {
+    if (state !== 'select' || roomJoin) return;
+    for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff;
+    for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
-  } else if (m.t === 'jsel') {
-    if (room && !peerIn && !joinBusy && state === 'play') startJoin(m.c | 0);
-  } else if (m.t === 'caught') {
-    if (joinBusy && m.id === joinId) finishJoinHost();
-  } else if (m.t === 'cu') {
-    if (!roomJoin || peerIn || catchReady) return;
+  } else if (t === 'jsel') {
+    if (room && localSlot === 0 && state === 'play' && pend && pend.u === m.u && !joinBusy) startJoin(m.c | 0);
+    else if (pend && pend.u === m.u) pend.t = tick;
+  } else if (t === 'join') {
+    if (m.j) mergeJoins(m.j);
+  } else if (t === 'cu') {
+    if (m.to !== myUid || !roomJoin || catchReady) return;
     if (!catchParts || catchParts.id !== m.id) catchParts = { id: m.id, n: m.n, d: {}, meta: null };
     catchParts.d[m.i] = m.d; if (m.meta) catchParts.meta = m.meta;
     if (catchParts.meta && Object.keys(catchParts.d).length === catchParts.n) {
       let rle = []; for (let i = 0; i < catchParts.n; i++) rle = rle.concat(catchParts.d[i]);
       catchReady = { id: catchParts.id, meta: catchParts.meta, rle };
     }
-  } else if (m.t === 'ping') {
-    netSend({ t: 'pong', ts: m.ts });
-  } else if (m.t === 'pong') {
-    const r = nowMs() - m.ts; if (r >= 0 && r < 5000) { rtts.push(r); if (rtts.length > 8) rtts.shift(); }
-  } else if (m.t === 'h') {
-    theirHash[m.f] = m.v;
+  } else if (t === 'ping') {
+    if (p !== undefined && pongQ.length < 8) pongQ.push([p, m.ts]);      // la réponse part depuis la boucle de jeu : un onglet figé ne répond plus
+  } else if (t === 'pong') {
+    if (m.to !== localSlot || p === undefined) return;
+    const r = nowMs() - m.ts; if (r >= 0 && r < 5000) { const a = rttBy[p]; a.push(r); if (a.length > 8) a.shift(); }
+  } else if (t === 'h') {
+    if (m.g !== netSeed || p === undefined || p === localSlot) return;
+    theirHash[p][m.f] = m.v;
     if (myHash[m.f] !== undefined && myHash[m.f] !== m.v) desync = true;
+  } else if (t === 'bye') {
+    if (p === 0 && localSlot !== 0) netLost('L\'hôte a quitté la partie.');
+    else if (p > 0 && localSlot === 0) hostDrop(p);
+  } else if (t === 'gone') {
+    if (m.s === localSlot) netLost('Vous avez été retiré de la partie.'); else act[m.s] = false;
   }
+}
+function hostDrop(s) {
+  if (!act[s] || localSlot !== 0) return;
+  if (state === 'play') {
+    if (dropAt[s] !== undefined) return;
+    let L = frameNo - 1; while (rbuf[s][L + 1] !== undefined) L++;
+    dropAt[s] = L; netSend({ t: 'in', p: 0, g: netSeed, s: sentF, a: [localBuf[sentF] | 0], r: frameNo, dr: dropAt.map((q, i) => [i, q]).filter(q => q[1] !== undefined) });
+  } else { act[s] = false; netSend({ t: 'gone', s }); }
 }
 
 function toast(s) { toastMsg = s; toastT = 200; }
@@ -1396,113 +1513,95 @@ function copyInvite() {
   const u = inviteLink();
   try {
     if (navigator.share && window.IS_TOUCH) { navigator.share({ title: 'Nuit de fer', text: 'Rejoins ma partie !', url: u }); toast('Invitation prête'); }
-    else if (navigator.clipboard) { navigator.clipboard.writeText(u); toast('Lien copié ! Envoyez-le à votre ami'); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(u); toast('Lien copié ! Envoyez-le à vos amis'); }
     else toast('Code : ' + hostCode);
   } catch (e) { toast('Code : ' + hostCode); }
 }
 function startRoom() {
-  roomPending = false; hostCode = newCode(); startRelay(0, hostCode);
-  room = true; peerIn = false; joinBusy = false; online = true; localSlot = 0; nPlayers = 1; hostLog = []; NAMES[0] = myName;
+  roomPending = false; hostCode = newCode(); netReset(); startRelay(hostCode);
+  room = true; online = true; localSlot = 0; nPlayers = 1; NAMES[0] = myName; act = [true, false, false, false];
   beginOnline((Math.random() * 4294967296) >>> 0);
-  toast('Partie ouverte ! Échap → inviter un ami');
+  toast('Partie ouverte ! Échap → inviter des amis');
 }
-function addPlayer2() {
-  const p0 = PS[0], p = mkPlayer(HERO_KEYS[SEL[1].c], 1);
-  p.name = NAMES[1] || 'JOUEUR 2'; p.x = clamp(p0.x - 26, cam + 16, cam + W - 16); p.y = clamp(p0.y + 14, Y0, Y1); p.inv = 90;
-  PS.push(p); nPlayers = 2;
-}
-function buildCatch() {
-  const K = joinK, rle = []; let pm = -1, c = 0;
-  for (let f = 0; f < K; f++) { const m = hostLog[f] | 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
-  if (c) rle.push(pm, c);
-  const tail = []; for (let f = K; f <= sentF; f++) tail.push(localBuf[f] | 0);
-  const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH));
-  joinMsgs = [];
-  for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', id: joinId, i, n, d: rle.slice(i * CH, (i + 1) * CH),
-    meta: i === 0 ? { seed: netSeed, lvl: startLevel, h0: HERO_KEYS[SEL[0].c], h1: HERO_KEYS[SEL[1].c], n0: NAMES[0], K, tail } : undefined });
-}
-function startJoin(c1) {
-  SEL[1].c = Math.max(0, Math.min(HERO_KEYS.length - 1, c1)); if (SEL[1].c === SEL[0].c) SEL[1].c = (SEL[0].c + 1) % HERO_KEYS.length;
-  joinBusy = true; joinT = tick; joinK = frameNo; joinId = (Math.random() * 65535) | 0;
-  while (sentF < frameNo + curDelay) { sentF++; localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]); }
-  buildCatch(); joinMsgs.forEach(netSend);
-}
-function finishJoinHost() {
-  addPlayer2(); peerIn = true; joinBusy = false; rxT = tick; theirHash = {}; peerNeeds = joinK;
-  for (let f = joinK; f <= sentF; f++) remoteBuf[f] = 0;
-  prevM[1] = 0; toast(NAMES[1] + ' a rejoint la partie !');
-}
-function runCatchUp() {
-  const c = catchReady, meta = c.meta; catchReady = null;
-  SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); SEL[1].c = Math.max(0, HERO_KEYS.indexOf(meta.h1));
-  NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1'; NAMES[1] = myName;
-  startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
-  nPlayers = 1; online = true; localSlot = 1;
-  beginOnline(meta.seed);
-  const log = []; for (let i = 0; i < c.rle.length; i += 2) for (let k = 0; k < c.rle[i + 1]; k++) log.push(c.rle[i]);
-  REPLAY = true; let prev = 0;
-  try {
-    for (let f = 0; f < meta.K; f++) {
-      const m = log[f] | 0;
-      for (const n of ACT) { const held = !!(m & BITS[n]); HLD[0][n] = held; PRS[0][n] = held && !(prev & BITS[n]); HLD[1][n] = false; PRS[1][n] = false; }
-      prev = m; simStep();
-    }
-  } finally { REPLAY = false; }
-  frameNo = meta.K; localBuf = {}; remoteBuf = {}; prevM = [prev, 0]; myHash = {}; theirHash = {}; desync = false; stallT = 0;
-  sentF = meta.K + meta.tail.length - 1; peerNeeds = meta.K;
-  for (let i = 0; i < meta.tail.length; i++) { remoteBuf[meta.K + i] = meta.tail[i]; localBuf[meta.K + i] = 0; }
-  addPlayer2(); peerIn = true; roomJoin = false; rxT = tick; state = 'play'; menuOpen = false;
-  netSend({ t: 'caught', id: c.id }); toast('Vous avez rejoint la partie !');
-}
-const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-/* délai de saisie adapté à la latence mesurée : assez grand pour ne jamais attendre l'autre joueur, assez petit pour rester réactif */
+/* délai de saisie adapté à la latence mesurée (le pire des joueurs) : assez grand pour ne jamais attendre, assez petit pour rester réactif */
 function adaptDelay() {
-  if (!rtts.length) return;
-  rttMax = Math.max.apply(null, rtts);
-  let want = Math.ceil((rttMax / 2 + 28) / (1000 / 60)) + 1;
+  let mx = -1;
+  for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot && rttBy[s].length) mx = Math.max(mx, Math.max.apply(null, rttBy[s]));
+  if (mx < 0) return;
+  rttMax = mx;
+  let want = Math.ceil((mx / 2 + 24) / (1000 / 60)) + 1;
   if (stallEv > 4) { want = Math.max(want, curDelay + 2); }
   stallEv = 0;
   want = Math.max(5, Math.min(40, want));
   if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
   else if (want < curDelay && tick - lastDelayAdj > 240) { curDelay--; lastDelayAdj = tick; }
 }
-function sendSel() { netSend({ t: 'sel', c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
+function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
-  netSeed = seed; frameNo = 0; sentF = DELAY - 1; curDelay = DELAY; stallEv = 0; localBuf = {}; remoteBuf = {}; prevM = [0, 0];
-  for (let f = 0; f < DELAY; f++) { localBuf[f] = 0; remoteBuf[f] = 0; }
-  myHash = {}; theirHash = {}; desync = false; stallT = 0; peerNeeds = 0;
+  netSeed = seed; frameNo = 0; sentF = DELAY - 1; curDelay = DELAY; stallEv = 0; localBuf = {}; rbuf = [{}, {}, {}, {}]; prevM = [0, 0, 0, 0];
+  for (let f = 0; f < DELAY; f++) { localBuf[f] = 0; for (let s = 0; s < MAXP; s++) rbuf[s][f] = 0; }
+  myHash = {}; theirHash = [{}, {}, {}, {}]; desync = false; stallT = 0; joins = []; dropAt = []; allLog = []; netPaused = 0; lastSentM = -1;
+  joinBusy = false; pend = null; joinBuilt = false; peerR = [0, 0, 0, 0]; lastRx = [tick, tick, tick, tick]; rxT = tick;
+  for (let s = 0; s < MAXP; s++) rttBy[s] = [];
   startGame();
 }
 function sendIn() {
-  if (room && !peerIn) return;
-  const s = Math.max(sentF - 80, Math.min(sentF - 9, peerNeeds)), a = [];
-  for (let f = s; f <= sentF; f++) a.push(localBuf[f] === undefined ? 0 : localBuf[f]);
-  netSend({ t: 'in', s, a, r: frameNo });
+  if (!rel || !online) return;
+  if (others() === 0 && !joinBusy) return;
+  let nd = Infinity;
+  for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot) nd = Math.min(nd, peerR[s]);
+  if (nd === Infinity) nd = 0;
+  const s0 = Math.max(0, Math.max(sentF - 80, Math.min(sentF - 9, nd))), a = [];
+  for (let f = s0; f <= sentF; f++) a.push(localBuf[f] === undefined ? 0 : localBuf[f]);
+  const msg = { t: 'in', p: localSlot, g: netSeed, s: s0, a, r: frameNo };
+  if (localSlot === 0) {
+    if (joins.length) msg.j = joinsPayload();
+    const dr = dropAt.map((q, i) => [i, q]).filter(q => q[1] !== undefined); if (dr.length) msg.dr = dr;
+  }
+  netSend(msg);
 }
+const slotAvail = (s, f) => (dropAt[s] !== undefined && f > dropAt[s]) || rbuf[s][f] !== undefined;
 function netFrameReady() {
-  if (joinBusy) return false;
-  if (room && !peerIn) remoteBuf[frameNo] = 0;
+  if (roomJoin) return false;
   const target = frameNo + curDelay;
   while (sentF < target) {
     sentF++;
-    localBuf[sentF] = menuOpen ? 0 : maskOf(HLD[localSlot]);
-    if (sentF % 2 === 0) sendIn();
+    const m = menuOpen ? BITS.pause : maskOf(HLD[localSlot]);
+    localBuf[sentF] = m;
+    if (sentF % 2 === 0 || m !== lastSentM) sendIn();       // une touche qui change part tout de suite
+    lastSentM = m;
   }
-  if (room && !peerIn) for (let f = frameNo; f <= sentF; f++) remoteBuf[f] = 0;
-  if (remoteBuf[frameNo] === undefined || localBuf[frameNo] === undefined) { if (stallT === 0) stallEv++; stallT++; if (stallT % 6 === 0) sendIn(); return false; }
+  const f = frameNo;
+  let ok = localBuf[f] !== undefined;
+  for (let s = 0; s < MAXP && ok; s++) {
+    if (s === localSlot) continue;
+    if ((act[s] || joins.some(j => j.slot === s && j.F === f && !j.done && !j.x)) && !slotAvail(s, f)) ok = false;
+  }
+  if (!ok) { if (stallT === 0) stallEv++; stallT++; if (stallT % 6 === 0) sendIn(); return false; }
   stallT = 0;
   return true;
 }
-function applyNetInputs() {
-  if (room) hostLog[frameNo] = localBuf[frameNo] | 0;
-  for (let s = 0; s < 2; s++) {
-    const m = (s === localSlot ? localBuf : remoteBuf)[frameNo], prev = prevM[s];
-    for (const n of ACT) {
-      const held = !!(m & BITS[n]);
-      HLD[s][n] = held; PRS[s][n] = held && !(prev & BITS[n]);
-    }
+function slotIn(s, f) {
+  if (s === localSlot) return localBuf[f] | 0;
+  if (!act[s] || (dropAt[s] !== undefined && f > dropAt[s])) return 0;
+  return rbuf[s][f] | 0;
+}
+function applyMasks(ms) {
+  for (let s = 0; s < MAXP; s++) {
+    const m = ms[s], prev = prevM[s];
+    for (const n of ACT) { const held = !!(m & BITS[n]); HLD[s][n] = held; PRS[s][n] = held && !(prev & BITS[n]); }
     prevM[s] = m;
   }
+}
+function applyNetInputs() {
+  frameEvents(frameNo);
+  const ms = [0, 0, 0, 0];
+  for (let s = 0; s < MAXP; s++) ms[s] = slotIn(s, frameNo);
+  if (localSlot === 0) allLog[frameNo] = packM(ms);
+  applyMasks(ms);
+  netPaused = 0; pauseBy = '';
+  for (let s = 0; s < MAXP; s++) if (ms[s] & 256) { netPaused = 1; pauseBy = pauseBy || (NAMES[s] || ''); }
+  return netPaused;
 }
 function stateHash() {
   let h = rngS | 0;
@@ -1514,29 +1613,75 @@ function stateHash() {
 }
 function netAfterFrame() {
   frameNo++;
-  delete localBuf[frameNo - 90]; delete remoteBuf[frameNo - 12];
+  for (let s = 0; s < MAXP; s++) delete rbuf[s][frameNo - 12];
+  delete localBuf[frameNo - 90];
   if (frameNo % 120 === 0) {
     const h = stateHash();
     myHash[frameNo] = h;
-    netSend({ t: 'h', f: frameNo, v: h });
-    if (theirHash[frameNo] !== undefined && theirHash[frameNo] !== h) desync = true;
+    netSend({ t: 'h', p: localSlot, g: netSeed, f: frameNo, v: h });
+    for (let s = 0; s < MAXP; s++) if (theirHash[s][frameNo] !== undefined && theirHash[s][frameNo] !== h) desync = true;
+    delete myHash[frameNo - 1200];
   }
+}
+/* minuteries du réseau (appelée à chaque image) */
+function relTick() {
+  if (!rel) return;
+  const age = tick - rel.t0;
+  const anyReady = rel.bs.some(b => b.ready);
+  if (tick - rel.reopenT >= 240) {                     // un relais tombé est rouvert (sans interrompre la partie)
+    rel.reopenT = tick;
+    rel.bs.forEach((b, i) => { if (b.dead) { try { b.ws && b.ws.close(); } catch (e) { /* ignoré */ } rel.bs[i] = rel.mk(BROKERS[i]); } });
+  }
+  if (!online) {
+    if (olStage === 'connecting') {
+      if (age > 1500) { netFail(anyReady ? 'Partie introuvable. Vérifiez le code (ou le lien) et que l\'hôte a bien créé sa partie.' : 'Serveur de mise en relation injoignable (réseau bloqué ?). Essayez un autre réseau.'); return; }
+      if (age - rel.helloT >= 30 && anyReady) { rel.helloT = age; netSend({ t: 'hello', n: myName }); }
+    }
+    return;
+  }
+  while (pongQ.length) { const [to, ts] = pongQ.shift(); netSend({ t: 'pong', p: localSlot, to, ts }); }
+  if (tick % 20 === 0) netSend({ t: 'ping', p: localSlot, ts: nowMs() });
+  if (state === 'play' && tick % 30 === 0) adaptDelay();
+  if (tick % 1200 === 0) for (const b of rel.bs) { try { if (b.ready) b.ws.send(U8([0xC0, 0])); } catch (e) { /* ignoré */ } }
+  if (state === 'select' && tick % 30 === 0 && !roomJoin) sendSel();
+  if (startMsg && state === 'play' && frameNo < 90 && tick % 10 === 0) netSend(startMsg);
+  if (roomJoin) {                                       // invité : choix du héros puis rattrapage
+    if (!jselSent) { rxT = tick; if (tick % 120 === 0) netSend({ t: 'hello', n: myName }); }
+    else if (tick % 60 === 0) netSend({ t: 'jsel', c: SEL[localSlot].c });
+    if (jselSent && tick - rxT > 1500) netLost('Impossible de rejoindre la partie (l\'hôte ne répond plus).');
+    return;
+  }
+  if (localSlot === 0) {                                // hôte : arrivées et départs
+    if (pend && !joinBusy && tick - pend.t > 900) pend = null;
+    if (joinBusy) {
+      const j = curJoin();
+      if (!j) joinBusy = false;
+      else {
+        if (!joinBuilt && frameNo >= j.F) buildCatch(j);
+        if (joinBuilt && (tick - joinT) % 90 === 0) joinMsgs.forEach(netSend);
+        if (tick - joinT > 2400) { j.x = true; joinBusy = false; pend = null; netSend({ t: 'join', j: joinsPayload() }); toast('L\'ami n\'a pas pu rejoindre'); }
+      }
+    }
+    for (let s = 1; s < MAXP; s++) if (act[s] && tick - lastRx[s] > 600) hostDrop(s);
+  } else if (tick - lastRx[0] > 900) { netLost('L\'hôte a quitté la partie (plus de nouvelles).'); return; }
+  if (others() > 0 && tick - rxT > 900) netLost('Connexion perdue (plus de nouvelles des autres joueurs).');
 }
 
 /* ---------- menus ---------- */
-function toTitle() { state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; peerIn = false; roomJoin = false; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
-  SEL = [{ c: 0, lock: false }, { c: 1, lock: false }]; selT = 0; cam = 0;
+  SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
 function tryLock(i) {
   const s = SEL[i];
-  const taken = SEL.slice(0, nPlayers).some((o, j) => j !== i && o.lock && o.c === s.c);
+  const taken = SEL.slice(0, nPlayers).some((o, j) => j !== i && o.lock && o.c === s.c && (!online || act[j]));
   if (!taken) { s.lock = true; SFX.pick(); return true; }
   return false;
 }
 function updSelect() {
   if (PAUSE || MENUK) { if (online) { netClose(); netMsg = ''; } toTitle(); return; }
   const slots = online ? [localSlot] : (nPlayers === 2 ? [0, 1] : [0]);
+  if (online && !act[localSlot] && !roomJoin) { /* éjecté : géré par le réseau */ }
   let changed = false;
   for (const i of slots) {
     const s = SEL[i];
@@ -1550,8 +1695,8 @@ function updSelect() {
   }
   if (START) { const f = slots.find(i => !SEL[i].lock); if (f !== undefined && tryLock(f)) changed = true; }
   if (changed && online && !roomJoin) sendSel();
-  if (roomJoin) { if (SEL[1].lock && !jselSent) { jselSent = true; rxT = tick; netSend({ t: 'jsel', c: SEL[1].c }); } return; }
-  if (SEL.slice(0, nPlayers).every(o => o.lock)) {
+  if (roomJoin) { if (SEL[localSlot].lock && !jselSent) { jselSent = true; rxT = tick; netSend({ t: 'jsel', c: SEL[localSlot].c }); } return; }
+  if (SEL.slice(0, nPlayers).every((o, i) => o.lock || (online && !act[i]))) {
     selT++;
     if (selT > 14) {
       if (roomPending) startRoom();
@@ -1559,7 +1704,7 @@ function updSelect() {
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
         const seed = (Math.random() * 4294967296) >>> 0;
-        startMsg = { t: 'start', seed, heroes: [HERO_KEYS[SEL[0].c], HERO_KEYS[SEL[1].c]], lvl: startLevel };
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -1624,7 +1769,7 @@ function simStep() {
 /* ---------- menu en jeu (touche Échap) : ajouter une option = ajouter une ligne dans MENU_ITEMS ---------- */
 const MENU_ALL = [
   { label: () => 'REPRENDRE', act: () => { menuOpen = false; } },
-  { label: () => 'INVITER UN AMI (COPIER LE LIEN)', show: () => room && !peerIn, act: () => { copyInvite(); menuOpen = false; } },
+  { label: () => 'INVITER DES AMIS (COPIER LE LIEN)', show: () => online && room && localSlot === 0 && nPlayers < MAXP, act: () => { copyInvite(); menuOpen = false; } },
   { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
   { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; } },
   { label: () => 'PLEIN ÉCRAN : ' + (document.fullscreenElement ? 'OUI' : 'NON'), act: () => {
@@ -1654,13 +1799,14 @@ function step() {
   if (state !== 'play') menuOpen = false;
   if (state === 'title') {
     cam = 0;
-    if (PRS[0].up) { menuIdx = (menuIdx + 4) % 5; SFX.move(); }
-    if (PRS[0].down) { menuIdx = (menuIdx + 1) % 5; SFX.move(); }
+    if (PRS[0].up) { menuIdx = (menuIdx + 5) % 6; SFX.move(); }
+    if (PRS[0].down) { menuIdx = (menuIdx + 1) % 6; SFX.move(); }
     if (menuIdx === 2) {
       if (PRS[0].left && startLevel > 0) { startLevel--; SFX.move(); }
       if ((PRS[0].right || START) && startLevel < unlocked) { startLevel++; SFX.move(); }
       else if (START && startLevel >= unlocked && unlocked > 0) { startLevel = 0; SFX.move(); }
     }
+    if (menuIdx === 5 && (PRS[0].left || PRS[0].right || START || PRS[0].punch || PRS[0].jump)) { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); return; }
     if ((START && menuIdx !== 2) || PRS[0].punch || PRS[0].jump) {
       unlockAudio(); netMsg = '';
       NAMES[0] = myName;
@@ -1680,6 +1826,7 @@ function step() {
     return;
   }
   if (state === 'scores') {
+    if (RAW.special) { gScores = null; sbLoad(); SFX.move(); }
     if (START || MENUK || PRS[0].punch || PRS[0].jump) { state = 'title'; SFX.move(); }
     return;
   }
@@ -1690,15 +1837,16 @@ function step() {
     endT++;
     const ls = online ? localSlot : 0;
     if (endT > 60 && (START || PRS[ls].punch)) {
-      if (online && !(room && !peerIn)) { state = 'select'; selT = 0; sendSel(); } else { netClose(); toTitle(); }
+      if (online && others() > 0) { state = 'select'; selT = 0; sendSel(); } else { netClose(); toTitle(); }
     }
     return;
   }
   if (menuOpen) updMenu();
   if (state !== 'play') return;
   if (online) {
+    if (menuOpen && room && others() === 0 && !joinBusy) return;     // seul dans la salle : le menu fige vraiment la partie
     if (!netFrameReady()) return 'stall';
-    applyNetInputs();
+    if (applyNetInputs()) { netAfterFrame(); return; }               // pause (menu ouvert chez un joueur) : tout le monde s'arrête ensemble
   } else {
     if (menuOpen) return;
     if (PAUSE) paused = !paused;
@@ -2509,7 +2657,7 @@ function drawChar(e) {
     for (let k = 0; k < 4; k++) { let x = sx + (Math.random() - 0.5) * 14, y = sy - 2; g.beginPath(); g.moveTo(x, y); for (let s2 = 0; s2 < 5; s2++) { x += (Math.random() - 0.5) * 10; y -= 5 + Math.random() * 6; g.lineTo(x, y); } g.stroke(); }
   }
   if (isP && e.name) {
-    const ny = sy - Math.round(47 * s), col = e.slot ? '#ffb060' : '#7cc8ff';
+    const ny = sy - Math.round(47 * s), col = ['#7cc8ff', '#ffb060', '#8aef8a', '#ff8ad8'][(e.slot | 0) & 3];
     g.font = 'bold 7px monospace'; g.textAlign = 'center';
     const tw = Math.ceil(g.measureText(e.name).width) + 6;
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(sx - tw / 2, ny - 7, tw, 10);
@@ -2572,11 +2720,21 @@ function spBar(p, x, y, w) {
   if (ready) { g.strokeStyle = flash ? '#fff' : '#ffd34d'; g.lineWidth = 1; g.strokeRect(x - 1.5, y - 1.5, w + 3, 9); }
   if (cost < 100) { g.fillStyle = '#000'; g.fillRect(x + Math.round(w * cost / 100), y, 1, 6); }
 }
+const PCOL = ['#8cf', '#fb7', '#8f8', '#f9d'];
 function hudPlayer(p, i) {
-  const left = i === 0, col = left ? '#8cf' : '#fb7', r = p.hp / p.maxhp;
+  if (p.absent) return;
+  const left = i === 0, col = PCOL[i & 3], r = p.hp / p.maxhp;
   const life = p.out ? 'HORS JEU' : 'x' + p.lives;
   const cost = HEROES[p.hero].cost, ready = p.sp >= cost;
   const lab = ready ? 'SPÉCIAL PRÊT !' : 'SPÉCIAL', lc = ready ? '#ffd34d' : '#cfe0ff';
+  if (nPlayers > 2) {
+    const x0 = 4 + i * 119;
+    txt('J' + (i + 1), x0, 14, 9, col); bar(x0 + 16, 7, 62, 7, r); txt(life, x0 + 82, 14, 8, p.out ? '#e66' : '#fff');
+    spBar(p, x0 + 16, 17, 62); if (ready) txt('SP !', x0 + 82, 24, 7, '#ffd34d');
+    txt(String(p.score).padStart(6, '0'), x0, 33, 8, '#fff');
+    if (p.weapon) txt(WEAPONS[p.weapon].name, x0 + 50, 33, 7, '#ffd34d');
+    return;
+  }
   if (left) {
     txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
     spBar(p, 26, 20, 90); txt(lab, 122, 27, 8, lc);
@@ -2673,11 +2831,11 @@ function drawMenu() {
     const on = i === menuIdx2;
     txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, by + 46 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
-  txt(online ? 'La partie continue pendant le menu' : 'Haut / Bas · Entrée · Échap : fermer', W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
+  txt(online ? (others() > 0 ? 'Le jeu est en pause pour tous les joueurs' : 'Jeu en pause') : 'Haut / Bas · Entrée · Échap : fermer', W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
 }
 function hud() {
   PS.forEach(hudPlayer);
-  txt('N' + (levelIdx + 1) + ' · ' + LV.name, W - 8, 10, 8, '#cbd', 'right');
+  txt('N' + (levelIdx + 1) + ' · ' + LV.name, W - 8, nPlayers > 2 ? 46 : 10, 8, '#cbd', 'right');
   if (tgt && tgtT > 0 && !tgt.gone && tgt.kind === 'e' && tgt.type !== 'boss') {
     txt(T[tgt.type].name, W / 2, 16, 9, '#fda', 'center');
     bar(W / 2 - 40, 20, 80, 6, tgt.hp / tgt.maxhp, '#e0663a');
@@ -2695,14 +2853,19 @@ function hud() {
     g.globalAlpha = 1;
   }
   if (goT > 0 && waveI < LV.waves.length && ((tick >> 4) & 1)) txt('GO >>', W - 14, 60, 16, '#ffd34d', 'right');
-  if (online && room && !peerIn && !joinBusy) {
+  if (online && room && localSlot === 0 && others() === 0 && !joinBusy) {
     const okR = rel && rel.bs.some(b => b.ready);
     g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, H - 11, W, 11);
-    txt(okR ? 'Ami : code ' + hostCode + ' · Échap → copier le lien d\'invitation' : (rel && tick - rel.t0 > 600 ? 'Serveur de rencontre injoignable (réseau bloqué ?)' : 'Connexion au relais en ligne…'), W / 2, H - 3, 8, okR ? '#9fd' : '#f99', 'center');
+    txt(okR ? 'Amis : code ' + hostCode + ' · Échap → copier le lien (jusqu\'à 4 joueurs)' : (rel && tick - rel.t0 > 600 ? 'Serveur de rencontre injoignable (réseau bloqué ?)' : 'Connexion au relais en ligne…'), W / 2, H - 3, 8, okR ? '#9fd' : '#f99', 'center');
+  } else if (online && room) {
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, H - 9, W, 9);
+    const rt = Math.round(rttMax);
+    txt((localSlot === 0 ? 'Code ' + hostCode + ' · ' : '') + (others() + 1) + '/' + MAXP + ' joueurs' + (rt > 0 ? ' · ping ' + rt + ' ms' : '') + ' · délai ' + curDelay, W / 2, H - 2, 7, rt > 220 ? '#fb7' : '#9fd', 'center');
   }
   if (joinBusy) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 100, W, 44); txt('Un ami rejoint la partie…', W / 2, 126, 14, '#ffd34d', 'center'); }
   if (toastT > 0) { g.globalAlpha = Math.min(1, toastT / 30); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(W / 2 - 150, 46, 300, 16); txt(toastMsg, W / 2, 58, 9, '#fff', 'center'); g.globalAlpha = 1; }
-  if (online && stallT > 20 && !joinBusy) txt('En attente de l\'autre joueur...', W / 2, 52, 10, '#ffd34d', 'center');
+  if (online && stallT > 20 && !joinBusy) txt('En attente des autres joueurs...', W / 2, 52, 10, '#ffd34d', 'center');
+  if (online && netPaused && !menuOpen) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 96, W, 52); txt('PAUSE', W / 2, 122, 20, '#fff', 'center'); txt(pauseBy ? pauseBy + ' a ouvert le menu' : '', W / 2, 140, 9, '#cbd', 'center'); }
   if (online && desync) txt('DÉSYNCHRONISÉ : relancez la partie', W / 2, 64, 10, '#f66', 'center');
 }
 
@@ -2711,16 +2874,17 @@ function drawTitle() {
   g.fillStyle = 'rgba(5,3,15,.55)'; g.fillRect(0, 0, W, H);
   txt('NUIT DE FER', W / 2, 70, 38, '#ffcf4a', 'center');
   txt('prototype · beat\'em up', W / 2, 88, 11, '#cbd', 'center');
-  const items = ['1 JOUEUR', 'EN LIGNE (2 ORDINATEURS)', 'NIVEAU : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + (unlocked > 0 ? '  < >' : ''), 'NOM : ' + myName, 'CLASSEMENT'];
+  const items = ['1 JOUEUR', 'EN LIGNE (JUSQU\'À 4 JOUEURS)', 'NIVEAU : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + (unlocked > 0 ? '  < >' : ''), 'NOM : ' + myName, 'CLASSEMENT', 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON')];
   items.forEach((o, i) => {
     const on = i === menuIdx;
-    txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 124 + i * 20, 12, on ? '#fff' : '#889', 'center');
+    txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 120 + i * 18, 12, on ? '#fff' : '#889', 'center');
   });
   if (netMsg) txt(netMsg, W / 2, 234, 10, '#f66', 'center');
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
+  else if (menuIdx === 5) txt('Entrée / Gauche / Droite : activer ou couper les coups entre joueurs', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 14h50 · classement mondial · persos', W / 2, 264, 7, '#667', 'center');
+  txt('version 15h40 · 4 joueurs · dégâts alliés', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2738,7 +2902,7 @@ function drawScores() {
   txt('#  NOM         SCORE  NIV  PERSONNAGE', W / 2, 50, 9, '#8a8ab0', 'center');
   if (!on) txt('Classement indisponible', W / 2, 130, 11, '#f88', 'center');
   else if (gStatus === 'load' && !gScores) txt('Chargement…', W / 2, 130, 11, '#cbd', 'center');
-  else if (gStatus === 'err' && !gScores) txt('Classement mondial injoignable', W / 2, 130, 11, '#f88', 'center');
+  else if (gStatus === 'err' && !gScores) { txt('Classement mondial injoignable', W / 2, 120, 11, '#f88', 'center'); txt(gErr, W / 2, 138, 8, '#fb9', 'center'); txt('K : réessayer', W / 2, 154, 9, '#cbd', 'center'); }
   else if (!l.length) txt('Aucun score pour le moment', W / 2, 130, 11, '#cbd', 'center');
   l.slice(0, 10).forEach((s, i) => {
     const y = 68 + i * 17, col = i === 0 ? '#ffd34d' : (i < 3 ? '#e8e8f0' : '#9aa');
@@ -2760,7 +2924,7 @@ function drawOnline() {
       const on = i === olIdx;
       txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 100 + i * 26, 15, on ? '#fff' : '#889', 'center');
     });
-    txt('Créer : vous jouez tout de suite, un ami peut vous rejoindre', W / 2, 172, 9, '#aab', 'center');
+    txt('Créer : vous jouez tout de suite, jusqu\'à 3 amis peuvent vous rejoindre', W / 2, 172, 9, '#aab', 'center');
     txt('à tout moment, même en cours de partie (lien ou code).', W / 2, 184, 9, '#aab', 'center');
     txt('Rejoindre : ouvrez le lien reçu, ou tapez le code.', W / 2, 202, 9, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
@@ -2770,7 +2934,8 @@ function drawOnline() {
     txt('ENTRÉE pour se connecter', W / 2, 190, 10, '#aab', 'center');
     txt('P : retour', W / 2, 250, 9, '#889', 'center');
   } else if (olStage === 'connecting') {
-    if ((tick >> 5) & 1) txt('Connexion...', W / 2, 140, 14, '#ffd34d', 'center');
+    if ((tick >> 5) & 1) txt(waitMsg ? 'Patientez...' : 'Connexion...', W / 2, 140, 14, '#ffd34d', 'center');
+    if (waitMsg) txt(waitMsg, W / 2, 170, 8, '#cbd', 'center');
     drawRelays(236);
   } else if (olStage === 'error') {
     txt(netMsg, W / 2, 130, 11, '#f66', 'center');
@@ -2780,7 +2945,7 @@ function drawOnline() {
 }
 function drawSelect() {
   g.fillStyle = 'rgba(5,3,15,.78)'; g.fillRect(0, 0, W, H);
-  txt(nPlayers === 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 18, 12, '#ffcf4a', 'center');
+  txt(nPlayers >= 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 18, 12, '#ffcf4a', 'center');
   const CW = 92, X0 = 46, CH = 110, n = HERO_KEYS.length, per = Math.ceil(n / 2);
   const pos = i => ({ cx: X0 + (i % per) * CW, y0: 24 + Math.floor(i / per) * 115 });
   if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: pos(i).cx, y: pos(i).y0 + 76 }));
@@ -2791,7 +2956,7 @@ function drawSelect() {
     g.strokeStyle = '#3a3670'; g.lineWidth = 1; g.strokeRect(cx - 42.5, y0 + 0.5, 85, CH - 1);
     txt(hr.name, cx, y0 + 21, 8, '#fff', 'center');
     txt(hr.role, cx, y0 + 30, 7, '#ffd34d', 'center');
-    const locked = SEL.slice(0, nPlayers).some(s => s.lock && s.c === i);
+    const locked = SEL.slice(0, nPlayers).some((s, j) => s.lock && s.c === i && (!online || act[j]));
     if (locked) { e.st = 'attack'; e.stage = (tick >> 5) % 3; e.t = (tick >> 1) % hr.atk[e.stage].dur; } else { e.st = 'free'; e.t = 0; }
     e.name = '';
     drawChar(e);
@@ -2803,12 +2968,13 @@ function drawSelect() {
   });
   cam = c0;
   for (let i = 0; i < nPlayers; i++) {
-    const s = SEL[i], { cx, y0 } = pos(s.c), col = i ? '#ff9a3a' : '#4aa8ff';
+    if (online && !act[i] && !(roomJoin && i === localSlot)) continue;
+    const s = SEL[i], { cx, y0 } = pos(s.c), col = ['#4aa8ff', '#ff9a3a', '#6ae06a', '#ff7ad0'][i & 3];
     g.strokeStyle = col; g.lineWidth = 2;
     g.strokeRect(cx - 45 + i * 3, y0 - 2 + i * 3, 90 - i * 6, CH + 4 - i * 6);
-    txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + (s.lock ? ' PRÊT' : ''), cx - 40 + i * 0, y0 + 9 + i * 8, 7, col);
+    txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + (s.lock ? ' PRÊT' : ''), i < 2 ? cx - 40 : cx + 40, y0 + 9, 7, col, i < 2 ? 'left' : 'right');
   }
-  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : un ami pourra vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand les deux joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
+  txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : jusqu\'à 3 amis pourront vous rejoindre à tout moment' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
 }
 /* ---------- pièges ---------- */
 const trapC = t => (simF + (t.ph || 0)) % (t.per || 1);
@@ -3008,7 +3174,7 @@ function drawTrap(t) {
 }
 function endScores() {
   if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
-  PS.forEach((p, i) => txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0') + '  ' + (p.name || ''), W / 2, 148 + i * 14, 12, i ? '#fb7' : '#8cf', 'center'));
+  PS.forEach((p, i) => p.absent || txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0') + '  ' + (p.name || ''), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
 }
 
 /* effets de handicap (affichage seulement, la simulation n'est pas touchée) : daltonisme = filtre de couleurs, cécité = champ de vision réduit */
