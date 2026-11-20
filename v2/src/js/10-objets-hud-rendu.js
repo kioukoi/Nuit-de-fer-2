@@ -123,6 +123,7 @@ function drawWeaponGround(name) {
   else if (name === 'pancarte') { g.fillStyle = '#8a6a3a'; g.strokeStyle = OL; g.lineWidth = 0.8; g.fillRect(0, -1, 20, 2); g.strokeRect(0, -1, 20, 2); g.fillStyle = '#f4f0e0'; g.fillRect(12, -9, 11, 8); g.strokeRect(12, -9, 11, 8); g.fillStyle = '#d03030'; g.fillRect(14, -6, 7, 1.6); g.fillRect(14, -3.4, 5, 1.2); }
   else if (name === 'pave') { g.fillStyle = '#8c8f98'; g.strokeStyle = OL; g.lineWidth = 0.9; g.beginPath(); g.moveTo(2, -4); g.lineTo(12, -5); g.lineTo(15, 0); g.lineTo(11, 4); g.lineTo(3, 4); g.lineTo(0, -1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#b4b7c0'; g.fillRect(4, -3, 6, 1.5); }
   else if (name === 'batte') { g.fillStyle = '#b9803f'; g.strokeStyle = OL; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, -1.1); g.lineTo(10, -1.5); g.quadraticCurveTo(17, -3.2, 19, -2); g.quadraticCurveTo(20, 0, 19, 2); g.quadraticCurveTo(17, 3.2, 10, 1.5); g.lineTo(0, 1.1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#222'; g.fillRect(0.5, -1, 4, 2); }
+  else if (name === 'pistolet' || name === 'mitraillette' || name === 'grenade') { g.save(); g.translate(name === 'mitraillette' ? 2 : 5, 0); g.scale(1.5, 1.5); drawWeapon(name, 0, 0, 0); g.restore(); }
   else { g.fillStyle = '#3a2a20'; g.fillRect(0, -1.1, 5, 2.2); g.fillStyle = '#dfe6ee'; g.strokeStyle = OL; g.lineWidth = 0.7; g.beginPath(); g.moveTo(5, -1.2); g.lineTo(13, -0.7); g.quadraticCurveTo(15.2, 0.1, 14, 0.9); g.lineTo(5, 1.2); g.closePath(); g.fill(); g.stroke(); }
 }
 function drawChair(p) {
@@ -247,7 +248,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 23h50 · liaison directe', W / 2, 264, 7, '#667', 'center');
+  txt('version 00h05 · armes au sol', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
