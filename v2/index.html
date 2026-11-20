@@ -2366,7 +2366,9 @@ function drawBG(c) { ({ street: drawBGStreet, port: drawBGPort, factory: drawBGF
 /* ---------- personnages : rendu vectoriel lissé (haute définition) ----------
    Chaque personnage est dessiné en vectoriel (courbes, dégradés, contours fins) dans un canvas
    suréchantillonné (SS fois), puis réduit en douceur sur le jeu, qui tourne lui-même en 3x. */
-const SS = 4, OL = '#1a1426', LW = 0.75;
+/* zone utile du sprite (le reste du canvas n'est ni effacé ni recopié : gain important par personnage) */
+const RX = 16, RY = 26, RW = 96, RH = 92;
+const SS = 3, OL = '#1a1426', LW = 0.75;
 function shade(hex, k) {
   const n = parseInt(hex.slice(1), 16);
   let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
@@ -2431,11 +2433,32 @@ function limb(pts, w, cols) {
   g.beginPath(); g.moveTo(pts[0][0] + 0.3, pts[0][1] - w * 0.18); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0] + 0.3, pts[i][1] - w * 0.18); g.stroke();
   g.lineCap = 'butt';
 }
+let HAND_RING = null;
+/* main : poing fermé orienté dans le prolongement de l'avant-bras (paume, phalanges, pouce) */
+function drawHand(ex, ey, hx, hy, w, skin, glove) {
+  const a = Math.atan2(hy - ey, hx - ex), r = w * 0.7 + 0.4, col = glove || skin;
+  g.save(); g.translate(hx, hy); g.rotate(a);
+  g.lineJoin = 'round'; g.lineWidth = LW; g.strokeStyle = OL;
+  if (glove) {                                           // gant : poing arrondi + poignet
+    rrect(-r * 0.9, -r * 1.05, r * 2.4, r * 2.1, r * 0.8, col);
+    g.fillStyle = shade(col, -0.25); g.fillRect(-r * 0.9, -r * 0.95, r * 0.55, r * 1.9);
+    g.fillStyle = 'rgba(255,255,255,.28)'; g.beginPath(); g.ellipse(r * 0.5, -r * 0.45, r * 0.7, r * 0.28, 0, 0, 7); g.fill();
+  } else {
+    rrect(-r * 0.7, -r * 0.95, r * 1.9, r * 1.9, r * 0.55, col);                // paume
+    g.strokeStyle = shade(col, -0.38); g.lineWidth = 0.45;                         // 4 phalanges
+    for (let k = 0; k < 3; k++) { const yy = -r * 0.5 + k * r * 0.5; g.beginPath(); g.moveTo(r * 0.15, yy); g.lineTo(r * 1.1, yy); g.stroke(); }
+    g.beginPath(); g.moveTo(r * 0.15, -r * 0.95); g.lineTo(r * 0.15, r * 0.95); g.stroke();
+    ell(-r * 0.05, r * 0.55, r * 0.62, r * 0.36, shade(col, 0.1), OL, -0.35);   // pouce replié
+    g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(r * 0.3, -r * 0.85, r * 0.7, 0.5);
+  }
+  if (HAND_RING) { g.fillStyle = HAND_RING; g.fillRect(r * 0.05, -r * 1.0, r * 0.5, r * 2); g.fillRect(r * 0.75, -r * 0.9, r * 0.35, r * 0.9); g.strokeStyle = OL; g.lineWidth = 0.3; g.strokeRect(r * 0.05, -r * 1.0, r * 0.5, r * 2); }
+  g.restore();
+}
 function drawArm(sx, sy, hx, hy, sleeve, skin, w, glove) {
   const dist = Math.hypot(hx - sx, hy - sy), bend = Math.max(0, 11 - dist) * 0.5;
   const ex = (sx + hx) / 2 - bend * 0.4, ey = (sy + hy) / 2 + bend;
   limb([[sx, sy], [ex, ey], [hx, hy]], w, [sleeve, skin]);
-  ell(hx, hy, w * 0.72 + 0.5, w * 0.72 + 0.5, glove || skin);
+  drawHand(ex, ey, hx, hy, w, skin, glove);
 }
 function drawLeg(hx, hy, fx, fy, pants, shoe, toe, calf) {
   const kx = (hx + fx) / 2 + 2, ky = (hy + fy - 3) / 2;
@@ -2483,12 +2506,13 @@ function drawChar(e) {
   const sx = Math.round(e.x - cam), sy = Math.round(e.y - e.z);
   g.fillStyle = 'rgba(0,0,0,.35)';
   g.beginPath(); g.ellipse(sx, Math.round(e.y) + 1, 12 * s * (1 - Math.min(0.5, e.z / 80)), 3 * s, 0, 0, 7); g.fill();
+  if (sx < -60 || sx > W + 60) return;                       // hors écran : rien à dessiner
   if (e.dying && e.st === 'down' && e.lie > 20 && (e.lie & 4)) return;
   if (isP && e.inv > 0 && (tick & 4)) return;
   if (e.hide) return;
   const fl = (e.flash > 0 && (e.flash & 2)) || (e.shock > 0 && ((tick >> 1) & 1));
   const mainG = g;
-  g = sg; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 128 * SS, 128 * SS);
+  g = sg; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(RX * SS, RY * SS, RW * SS, RH * SS);
   g.setTransform(SS, 0, 0, SS, 64 * SS, 100 * SS); g.scale(e.face, 1);
   const st = e.st, crawl = kind === 'fauteuil' && e.nochair && st === 'free', down = st === 'down' || crawl;
   if (down) { g.translate(0, -6); g.transform(0, -1, 1, 0, 0, 0); }
@@ -2576,6 +2600,7 @@ function drawChar(e) {
   const sleeveN = bare ? S.skin : S.shirt, sleeveF = bare ? S.skinD : S.shirtD;
   const armColN = type === 'vive' ? S.skin : S.skin;
 
+  HAND_RING = kind === 'gitan' ? '#ffd84a' : null;
   /* --- bras et jambes arrière --- */
   const glvB = kind === 'boxeur' ? shade(S.shirt, -0.28) : undefined, glvF = kind === 'boxeur' ? S.shirt : undefined;
   drawArm(lean * 0.9 - 2, shY + 3, bhx, bhy, sleeveF, S.skinD, armW, glvB);
@@ -2847,7 +2872,6 @@ function drawChar(e) {
     g.strokeStyle = '#a07810'; g.lineWidth = 2; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
     g.strokeStyle = '#ffd84a'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
     ell(lean + 0.6, shY + 7.4, 1.5, 1.5, '#ffd84a', OL);
-    ell(fhx, fhy, 2.9, 2.5, '#ffd84a', OL); ell(bhx, bhy, 2.6, 2.3, '#e0b030', OL);
   }
   if (kind === 'magicien' && !down && st !== 'attack' && st !== 'special') {
     const wx = fhx + 8, wy = fhy - 6;
@@ -2901,10 +2925,10 @@ function drawChar(e) {
   }
   if (ring > 0) { g.strokeStyle = 'rgba(' + (kind === 'medic' ? '120,255,150' : '255,230,160') + ',' + Math.max(0, 0.85 - ring / 60) + ')'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(6, -2, ring, ring * 0.3, 0, 0, 7); g.stroke(); }
   g.setTransform(1, 0, 0, 1, 0, 0);
-  if (fl) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = e.shock > 0 ? 'rgba(140,235,255,.85)' : 'rgba(255,255,255,.8)'; g.fillRect(0, 0, 128 * SS, 128 * SS); g.globalCompositeOperation = 'source-over'; }
+  if (fl) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = e.shock > 0 ? 'rgba(140,235,255,.85)' : 'rgba(255,255,255,.8)'; g.fillRect(RX * SS, RY * SS, RW * SS, RH * SS); g.globalCompositeOperation = 'source-over'; }
   g = mainG;
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-  g.drawImage(sprC, Math.round(sx - 64 * s), Math.round(sy - 100 * s), Math.round(128 * s), Math.round(128 * s));
+  g.drawImage(sprC, RX * SS, RY * SS, RW * SS, RH * SS, Math.round(sx - 64 * s + RX * s), Math.round(sy - 100 * s + RY * s), Math.round(RW * s), Math.round(RH * s));
   g.imageSmoothingEnabled = false;
   if (e.shock > 0) {
     g.strokeStyle = '#c8f6ff'; g.lineWidth = 1;
@@ -3177,7 +3201,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 18h00 · gitan relooké, classement', W / 2, 264, 7, '#667', 'center');
+  txt('version 18h10 · gitan, magicien, électricien', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

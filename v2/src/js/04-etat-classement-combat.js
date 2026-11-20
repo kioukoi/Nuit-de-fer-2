@@ -1,0 +1,275 @@
+/* ---------- nom du joueur, niveaux débloqués, classement (stockés dans le navigateur) ---------- */
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignoré */ } };
+let myName = (lsGet('nfer_name', 'JOUEUR') || 'JOUEUR').slice(0, 10);
+let FRIENDLY = true;
+try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; } catch (e) { /* ignoré */ }
+let NAMES = [myName, 'JOUEUR 2', 'JOUEUR 3', 'JOUEUR 4'], nameBuf = '', lastRank = -1, recorded = false;
+let unlocked = Math.min(LEVELS.length - 1, parseInt(lsGet('nfer_unlocked', '0'), 10) || 0);
+try { if (/[?&]debug/.test(location.search)) unlocked = LEVELS.length - 1; } catch (e) { /* ignoré */ }
+function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèêàùçïÉÈ]/g, '').trim().toUpperCase().slice(0, 10); }
+function setMyName(s) { const n = cleanName(s); if (n) { myName = n; lsSet('nfer_name', n); NAMES[online ? localSlot : 0] = n; } }
+/* classement mondial (Supabase) : renseigner SB_URL et SB_KEY (clé « anon public », sans danger dans une page web) ; vide = classement local seulement */
+const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobHNvY2xyamF1anJ2bHhnc3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjY0NjQsImV4cCI6MjExMDc0MjQ2NH0.SJHSrMGDHjFNdoQFVtnHxuDZiViZfFptLD5CsRFjLaY';
+let gScores = null, gStatus = 'idle';
+const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
+const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
+let gErr = '';
+function sbFetch(url, opt) {
+  let ctl = null, to = 0;
+  try { ctl = new AbortController(); to = setTimeout(() => ctl.abort(), 9000); } catch (e) { /* ignoré */ }
+  return fetch(url, Object.assign({ cache: 'no-store', mode: 'cors', signal: ctl ? ctl.signal : undefined }, opt)).then(r => { if (to) clearTimeout(to); return r; }, e => { if (to) clearTimeout(to); throw e; });
+}
+function sbPost(ent, tries) {
+  if (!sbOn()) return;
+  tries = tries || 0;
+  const body = JSON.stringify({ name: String(ent.n).slice(0, 10), score: ent.s, level: ent.lv, win: !!ent.win, hero: ent.h || '' });
+  try {
+    sbFetch(SB_URL + '/rest/v1/scores', { method: 'POST', keepalive: true, headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body })
+      .then(r => { if (r.ok) gScores = null; else if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); }, () => { if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); });
+  } catch (e) { /* ignoré */ }
+}
+function sbLoad(tries) {
+  if (!sbOn()) return;
+  tries = tries || 0; gStatus = 'load';
+  const fail = why => { if (tries < 2) setTimeout(() => sbLoad(tries + 1), 1500); else { gStatus = 'err'; gErr = why; } };
+  try {
+    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=80', { headers: sbHead() })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(rows => { { const seen = {}; gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })).filter(r => { const k = String(r.n).toUpperCase(); if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 10); } gStatus = 'ok'; gErr = ''; },
+        e => fail(e && e.name === 'AbortError' ? 'délai dépassé (réseau lent ou bloqué)' : (e && /^HTTP/.test(e.message) ? e.message : 'connexion impossible (pare-feu, VPN, bloqueur de pubs ?)')));
+  } catch (e) { gStatus = 'err'; gErr = 'navigateur non compatible'; }
+}
+function recordScores() {
+  if (recorded) return;
+  recorded = true; lastRank = -1;
+  const p = PS[online ? localSlot : 0];
+  if (!p || p.score <= 0) return;
+  sbPost({ n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero });
+}
+
+try { window.addEventListener('pagehide', () => { if (state === 'play' && !recorded) recordScores(); }); } catch (e) { /* ignoré */ }
+/* ---------- état du jeu ---------- */
+let state = 'title', PS = [], E = [], B = [], IT = [], PJ = [], FX = [], AL = [];
+let cam = 0, camLimit = LEN - W, waveI = 0, waveActive = false;
+let menuOpen = false, menuIdx2 = 0, RAW = {}, sfxOn = true;
+let hitstop = 0, shake = 0, tgt = null, tgtT = 0, goT = 0, tick = 0, endT = 0, paused = false, attackers = 0;
+let menuIdx = 0, SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }], selT = 0;
+
+let rngS = 1;
+function seedRng(s) { rngS = (s >>> 0) || 1; }
+function rng() {
+  rngS = (rngS + 0x6D2B79F5) | 0;
+  let t = Math.imul(rngS ^ (rngS >>> 15), 1 | rngS);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const rnd = (a, b) => a + rng() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function mkPlayer(hero, slot) {
+  const hr = HEROES[hero];
+  return { kind: 'p', hero, slot, name: '', x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
+    st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
+    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', nochair: false, chx: 0, chy: 0, xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
+}
+function mkEnemy(type, x, y) {
+  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM));
+  return { kind: 'e', type, x, y, z: 0, vx: 0, vy: 0, vz: 0, face: -1, hp, maxhp: hp, st: 'move', t: 0,
+    cool: rnd(20, 70), side: rng() < 0.5 ? -1 : 1, slot: rnd(0, 30), hit: new Set(), inv: 0, flash: 0, walk: 0,
+    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM, spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
+}
+function loadLevel(i) {
+  levelIdx = i; LV = LEVELS[i];
+  E = []; PJ = []; FX = []; AL = [];
+  for (const p of PS) p.nochair = false;
+  HZ = []; ultT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = LV.tr || 0; BPM = LV.bpm || 96; mNext = 0;
+  IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
+  B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
+  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
+}
+function startGame() {
+  PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
+  loadLevel(Math.min(startLevel, LEVELS.length - 1));
+  hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
+  simF = 0;
+  seedRng(online ? netSeed : (Date.now() >>> 0));
+  state = 'play';
+}
+function nextLevel() {
+  for (const p of PS) {
+    p.score += 1000 * (levelIdx + 1);
+    if (p.out) { p.out = false; p.lives = 1; p.hp = Math.round(p.maxhp * 0.5); }
+    else p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.45));
+    p.dying = false; p.st = 'free'; p.t = 0; p.z = 0; p.vx = p.vy = p.vz = 0; p.inv = 90; p.kick = false;
+    p.x = 70 + p.slot * 26; p.y = 198 + p.slot * 26; p.sp = Math.min(100, p.sp + 25);
+    if (p.hero === 'papy') { p.cane = true; p.ping = 0; if (p.weapon) p.weapon = null; }
+  }
+  if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
+  loadLevel(levelIdx + 1);
+}
+function endGame(kind) { state = kind; endT = 0; recordScores(); }
+function spawn(type, side) {
+  const x = side > 0 ? cam + W + 16 : cam - 16;
+  const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
+  e.face = side > 0 ? -1 : 1;
+  E.push(e);
+  return e;
+}
+const livePlayers = () => PS.filter(p => !p.out && !p.dying);
+
+/* ---------- combat ---------- */
+function strike(att, a) {
+  const x0 = att.x, x1 = att.x + att.face * a.reach;
+  const lo = Math.min(x0, x1) - 5, hi = Math.max(x0, x1) + 5;
+  const list = att.kind === 'p' ? E.concat(B, livePlayers().filter(q => q !== att)) : livePlayers();
+  for (const t of list) {
+    if (t.gone || t.dying || att.hit.has(t)) continue;
+    if (t.kind !== 'b' && (t.st === 'down' || t.inv > 0)) continue;
+    if (t.x < lo || t.x > hi || Math.abs(t.y - att.y) > 13 || Math.abs(t.z - att.z) > (a.zr || 26)) continue;
+    att.hit.add(t);
+    hurt(t, att, a, att.face);
+  }
+}
+function strikeArea(att, a) {
+  for (const t of E.concat(B, livePlayers().filter(q => q !== att))) {
+    if (t.gone || t.dying || att.hit.has(t)) continue;
+    if (t.kind !== 'b' && (t.st === 'down' || t.inv > 0)) continue;
+    if (Math.abs(t.x - att.x) > a.r || Math.abs(t.y - att.y) > 22 || Math.abs(t.z - att.z) > 30) continue;
+    att.hit.add(t);
+    hurt(t, att, a, t.x >= att.x ? 1 : -1);
+  }
+}
+function knock(t, dir) {
+  if (t.weapon) { IT.push({ x: t.x, y: t.y, type: t.weapon, weapon: true, wd: t.wd, got: false, ttl: 720 }); t.weapon = null; t.wd = 0; }
+  t.st = 'down'; t.t = 0; t.vz = 3.4; t.vx = dir * 2.1; t.z = Math.max(t.z, 1); t.kick = false; t.lie = 0;
+  if (t.kind === 'p' && t.hero === 'fauteuil' && !t.nochair && !t.dying && rng() < 0.4) fallChair(t, dir);
+}
+/* le Rouleur chute de son fauteuil : il doit ramper jusqu'à lui pour remonter */
+function fallChair(p, dir) {
+  p.nochair = true; p.sprint = false; p.chx = p.x + dir * 24; p.chy = p.y;
+  FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 40, txt: 'AÏE ! FAUTEUIL !', col: '#ffb060' });
+}
+/* particularités des héros : modifient les dégâts infligés (déterministe, uniquement des compteurs de simulation) */
+function heroBonus(att, t, a) {
+  let m = 1, txt = '', col = '#ffd34d';
+  if (att.hero === 'vive' && att.z > 2) m = 1.8;
+  else if (att.hero === 'ombre' && t.kind === 'e' && t.face === att.face) { m = 1.6; txt = 'DOS !'; }
+  else if (att.hero === 'boxeur') {
+    att.cn = (simF - (att.cT | 0) <= 45) ? Math.min(5, (att.cn | 0) + 1) : 0; att.cT = simF;
+    if (att.cn > 0) { m = 1 + 0.1 * att.cn; if (att.cn >= 2) txt = 'x' + (att.cn + 1); }
+  } else if (att.hero === 'dalto') {
+    att.hc = (att.hc | 0) + 1;
+    if (att.hc % 5 === 0) { m = 2; txt = 'CRITIQUE !'; col = '#ff8a4a'; }
+  }
+  if (txt) FX.push({ x: t.x, y: t.y, z: t.z + 50, t: 0, life: 26, txt, col });
+  return m === 1 ? a : Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * m)) });
+}
+/* ---------- expérience et spécialisations ---------- */
+const xpNeed = l => 80 + 60 * l;
+function gainXp(p, n) {
+  if (p.out || n <= 0) return;
+  p.xp += n;
+  while (p.xp >= xpNeed(p.xl)) {
+    p.xp -= xpNeed(p.xl); p.xl++;
+    p.maxhp += 4; p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.25));
+    FX.push({ x: p.x, y: p.y, z: p.z + 58, t: 0, life: 46, txt: 'NIVEAU ' + (p.xl + 1) + ' !', col: '#7dff9a' });
+    SFX.pick();
+  }
+}
+/* trois spécialisations par héros, proposées à la fin de chaque niveau ; effets : dgt = dégâts, vit = vitesse, spe = jauge spéciale, vol = vie volée, def = dégâts reçus en moins, pv = vie max */
+const SPECS = {
+  cogneur: [['Régénérateur', '+15 PV max', { pv: 15 }], ['Cogneur d\'élite', '+10% de dégâts', { dmg: 0.10 }], ['Endurci', '-8% de dégâts reçus', { dr: 0.08 }]],
+  vive: [['Foudroyante', '+10% de vitesse', { spd: 0.10 }], ['Coups volants', '+12% de dégâts', { dmg: 0.12 }], ['Esquiveuse', '-8% de dégâts reçus', { dr: 0.08 }]],
+  costaud: [['Mur de béton', '-10% de dégâts reçus', { dr: 0.10 }], ['Marteau', '+12% de dégâts', { dmg: 0.12 }], ['Colosse', '+20 PV max', { pv: 20 }]],
+  ombre: [['Assassin', '+14% de dégâts', { dmg: 0.14 }], ['Furtif', '+12% de vitesse', { spd: 0.12 }], ['Vampire', 'vole 8% des dégâts', { ls: 0.08 }]],
+  boxeur: [['Poings d\'acier', '+12% de dégâts', { dmg: 0.12 }], ['Garde haute', '-8% de dégâts reçus', { dr: 0.08 }], ['Second souffle', 'spécial +25% plus vite', { sp: 0.25 }]],
+  medic: [['Soins de guerre', 'vole 10% des dégâts', { ls: 0.10 }], ['Réserve', '+18 PV max', { pv: 18 }], ['Charge rapide', 'spécial +30% plus vite', { sp: 0.30 }]],
+  fauteuil: [['Turbo', '+14% de vitesse', { spd: 0.14 }], ['Blindage', '-12% de dégâts reçus', { dr: 0.12 }], ['Roues d\'acier', '+12% de dégâts', { dmg: 0.12 }]],
+  papy: [['Canne ferrée', '+15% de dégâts', { dmg: 0.15 }], ['Vieux de la vieille', '+15 PV max, -6% reçus', { pv: 15, dr: 0.06 }], ['Sagesse', 'spécial +30% plus vite', { sp: 0.30 }]],
+  dalto: [['Œil de lynx', '+10% de dégâts', { dmg: 0.10 }], ['Chanceux', '+8% de vitesse', { spd: 0.08 }], ['Résistant', '-8% de dégâts reçus', { dr: 0.08 }]],
+  aveugle: [['Ouïe fine', '+12% de vitesse', { spd: 0.12 }], ['Écholocation', 'spécial +30% plus vite', { sp: 0.30 }], ['Instinct', '+12% de dégâts', { dmg: 0.12 }]],
+  gitan: [['Grande famille', 'spécial +35% plus vite', { sp: 0.35 }], ['Sang chaud', '+12% de dégâts', { dmg: 0.12 }], ['Débrouillard', '+10% de vitesse, +10 PV', { spd: 0.10, pv: 10 }]],
+  magicien: [['Illusionniste', '+14% de dégâts', { dmg: 0.14 }], ['Tour de passe-passe', 'spécial +30% plus vite', { sp: 0.30 }], ['Cape enchantée', '-10% de dégâts reçus', { dr: 0.10 }]],
+  electricien: [['Haute tension', '+12% de dégâts', { dmg: 0.12 }], ['Gants isolants', '-10% de dégâts reçus', { dr: 0.10 }], ['Batterie', 'spécial +30% plus vite', { sp: 0.30 }]]
+};
+let specOn = false, specT = 0, specCh = [0, 0, 0, 0], specLk = [false, false, false, false];
+const specSkip = p => p.absent || (online && !act[p.slot]);
+function startSpec() { specOn = true; specT = 0; specCh = [0, 0, 0, 0]; specLk = [false, false, false, false]; }
+function pickSpec(p, i) {
+  const sp = SPECS[p.hero][i], e = sp[2];
+  p.specs[i] = (p.specs[i] | 0) + 1;
+  if (e.pv) { p.maxhp += e.pv; p.hp = Math.min(p.maxhp, p.hp + e.pv); }
+  for (const k of ['dmg', 'spd', 'sp', 'ls', 'dr']) if (e[k]) p.mods[k] += e[k];
+}
+function updSpec() {
+  specT++;
+  let all = true;
+  for (const p of PS) {
+    if (specSkip(p)) continue;
+    const s = p.slot;
+    if (specLk[s]) continue;
+    all = false;
+    const P = PRS[s];
+    if (P.left) specCh[s] = (specCh[s] + 2) % 3;
+    if (P.right) specCh[s] = (specCh[s] + 1) % 3;
+    if (P.punch || P.jump) { specLk[s] = true; SFX.pick(); }
+  }
+  if (all || specT > 1500) {
+    for (const p of PS) if (!specSkip(p)) pickSpec(p, specCh[p.slot]);
+    specOn = false; nextLevel();
+  }
+}
+
+function hurt(t, att, a, dir) {
+  if (t.kind === 'b') { breakBarrel(t); return; }
+  const ff = att.kind === 'p' && t.kind === 'p';
+  if (ff && !FRIENDLY) return;
+  if (att.kind === 'p' && !ff) {
+    a = heroBonus(att, t, a);
+    const dm = att.mods.dmg + att.xl * 0.02;
+    if (dm > 0) a = Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * (1 + dm))) });
+  }
+  if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
+  if (att.weapon && att.st === 'attack' && !a.ally) {
+    att.wd--;
+    if (att.wd <= 0) {
+      att.weapon = null; SFX.brk();
+      FX.push({ x: att.x + att.face * 12, y: att.y, z: 22, t: 0, life: 14, big: true });
+      FX.push({ x: att.x, y: att.y, z: 46, t: 0, life: 40, txt: 'CASSÉ !' });
+    }
+  }
+  const hp0 = t.hp;
+  let dmgIn = ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg;
+  if (t.kind === 'p' && t.mods.dr > 0) dmgIn = Math.max(1, Math.round(dmgIn * (1 - t.mods.dr)));
+  t.hp -= dmgIn; t.flash = 8;
+  if (!ff && att.kind === 'p' && t.kind === 'e' && att.mods.ls > 0 && att.hp > 0) att.hp = Math.min(att.maxhp, att.hp + Math.max(1, Math.round(Math.min(dmgIn, hp0) * att.mods.ls)));
+  if (ff && t.hp < 1) t.hp = 1;
+  if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
+  if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6 * (1 + t.mods.sp));
+  hitstop = Math.max(hitstop, a.kd ? 6 : 3);
+  FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
+  if (a.kd) { shake = Math.max(shake, 6); SFX.big(); } else SFX.hit();
+  if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5); tgt = t; tgtT = 150; }
+  if (t.hp <= 0) {
+    t.hp = 0; t.dying = true; knock(t, dir);
+    if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4));
+    SFX.ko();
+    return;
+  }
+  const armored = (t.kind === 'e' && T[t.type].armor && !a.kd && (t.st === 'tele' || t.st === 'attack' || t.st === 'charge')) ||
+    (t.kind === 'e' && t.type === 'boss' && t.st === 'bspec') ||
+    (t.kind === 'p' && t.hero === 'costaud' && !a.kd && (t.st === 'attack' || t.st === 'free'));
+  if (armored) return;
+  if (a.kd || t.z > 0) knock(t, dir);
+  else { t.st = 'hurt'; t.t = 0; t.vx = dir * 1.4; t.hit = new Set(); }
+}
+function breakBarrel(b) {
+  b.gone = true; SFX.brk();
+  for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
+  const r = rng();
+  if (r < 0.14) { const wt = WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
+  else if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
+}
+
