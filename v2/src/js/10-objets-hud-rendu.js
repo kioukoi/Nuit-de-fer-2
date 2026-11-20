@@ -49,32 +49,61 @@ function spBar(p, x, y, w) {
   if (cost < 100) { g.fillStyle = '#000'; g.fillRect(x + Math.round(w * cost / 100), y, 1, 6); }
 }
 const PCOL = ['#8cf', '#fb7', '#8f8', '#f9d'];
+const pname = (p, n) => String(p.name || ('J' + (p.slot + 1))).slice(0, n || 10);
+/* jauges d'un AUTRE joueur : petit bloc en haut de l'écran */
+function hudCompact(p, k) {
+  const x0 = 4 + k * 119, col = PCOL[p.slot & 3], r = p.hp / p.maxhp, cost = HEROES[p.hero].cost, ready = p.sp >= cost;
+  txt(pname(p, 9), x0, 12, 7, col); txt(p.out ? 'HORS JEU' : 'x' + p.lives, x0 + 100, 12, 7, p.out ? '#e66' : '#fff', 'right');
+  bar(x0, 16, 100, 6, r);
+  spBar(p, x0, 26, 100); if (ready) txt('SP !', x0 + 100, 41, 6, '#ffd34d', 'right');
+  txt(String(p.score).padStart(6, '0') + '  N' + (p.xl + 1), x0, 41, 7, '#fff'); g.fillStyle = '#2a2a55'; g.fillRect(x0, 44, 100, 2); g.fillStyle = '#7dff9a'; g.fillRect(x0, 44, Math.round(100 * p.xp / xpNeed(p.xl)), 2);
+  if (p.weapon) txt(WEAPONS[p.weapon].name, x0 + 50, 41, 6, '#ffd34d', 'center');
+}
+/* NOS jauges : panneau vertical sur le bord droit */
+function vbar(x, y, w, h, r, col) {
+  g.fillStyle = '#000'; g.fillRect(x - 1, y - 1, w + 2, h + 2); g.fillStyle = '#2a1a22'; g.fillRect(x, y, w, h);
+  const hh = Math.max(0, Math.round(h * Math.min(1, r))); g.fillStyle = col; g.fillRect(x, y + h - hh, w, hh);
+  g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(x + 1, y + h - hh, 2, hh);
+}
+function hudMine(p) {
+  const px = W - 44, py = 20, pw = 42, ph = 196, cx = px + pw / 2, col = PCOL[p.slot & 3], r = p.hp / p.maxhp;
+  const cost = HEROES[p.hero].cost, ready = p.sp >= cost, fl = ready && ((tick >> 3) & 1);
+  g.fillStyle = 'rgba(8,8,26,.62)'; g.fillRect(px, py, pw, ph); g.strokeStyle = col; g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+  txt(pname(p, 7), cx, py + 10, 7, col, 'center'); txt(p.out ? 'HORS JEU' : 'x' + p.lives, cx, py + 20, 7, p.out ? '#e66' : '#fff', 'center');
+  vbar(px + 7, py + 26, 10, 104, r, r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'));
+  vbar(px + 25, py + 26, 10, 104, Math.min(1, p.sp / 100), ready ? (fl ? '#fff7b0' : '#ffd34d') : '#4aa8ff');
+  if (cost < 100) { g.fillStyle = '#000'; g.fillRect(px + 24, py + 26 + 104 - Math.round(104 * cost / 100), 12, 1); }
+  if (ready) { g.strokeStyle = fl ? '#fff' : '#ffd34d'; g.strokeRect(px + 23.5, py + 24.5, 13, 107); }
+  txt('PV', px + 12, py + 140, 6, '#cfe0ff', 'center'); txt(ready ? 'PRÊT' : 'SP', px + 30, py + 140, 6, ready ? '#ffd34d' : '#cfe0ff', 'center');
+  txt(String(p.score).padStart(6, '0'), cx, py + 153, 8, '#fff', 'center');
+  txt('NIV ' + (p.xl + 1), cx, py + 163, 7, '#cbd', 'center'); g.fillStyle = '#2a2a55'; g.fillRect(px + 4, py + 167, pw - 8, 2); g.fillStyle = '#7dff9a'; g.fillRect(px + 4, py + 167, Math.round((pw - 8) * p.xp / xpNeed(p.xl)), 2);
+  if (p.weapon) { txt(WEAPONS[p.weapon].name, cx, py + 180, 6, '#ffd34d', 'center'); const w = WEAPONS[p.weapon], rr = p.wd / w.uses; bar(px + 4, py + 184, pw - 8, 3, rr, p.wd <= 3 ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050'); txt('[L]', cx, py + 193, 6, '#ffd34d', 'center'); }
+}
 function hudPlayer(p, i) {
   if (p.absent) return;
+  const me = hudMe(p);
+  if (me === 1) { hudMine(p); return; }
+  if (me === 0) { hudCompact(p, hudRank(p)); return; }
+  /* parties locales à 2 joueurs sur le même clavier : l'ancien affichage, à gauche et à droite */
   const left = i === 0, col = PCOL[i & 3], r = p.hp / p.maxhp;
   const life = p.out ? 'HORS JEU' : 'x' + p.lives;
   const cost = HEROES[p.hero].cost, ready = p.sp >= cost;
   const lab = ready ? 'SPÉCIAL PRÊT !' : 'SPÉCIAL', lc = ready ? '#ffd34d' : '#cfe0ff';
-  if (nPlayers > 2) {
-    const x0 = 4 + i * 119;
-    txt('J' + (i + 1), x0, 14, 9, col); bar(x0 + 16, 7, 62, 7, r); txt(life, x0 + 82, 14, 8, p.out ? '#e66' : '#fff');
-    spBar(p, x0 + 16, 17, 62); if (ready) txt('SP !', x0 + 82, 24, 7, '#ffd34d');
-    txt(String(p.score).padStart(6, '0') + '  N' + (p.xl + 1), x0, 33, 8, '#fff'); g.fillStyle = '#2a2a55'; g.fillRect(x0, 36, 100, 2); g.fillStyle = '#7dff9a'; g.fillRect(x0, 36, Math.round(100 * p.xp / xpNeed(p.xl)), 2);
-    if (p.weapon) txt(WEAPONS[p.weapon].name, x0 + 50, 33, 7, '#ffd34d');
-    return;
-  }
   if (left) {
-    txt('J1', 8, 16, 10, col); bar(26, 8, 90, 8, r); txt(life, 122, 16, 10, p.out ? '#e66' : '#fff');
-    spBar(p, 26, 20, 90); txt(lab, 122, 27, 8, lc);
+    txt(pname(p, 5), 8, 16, 10, col); bar(60, 8, 90, 8, r); txt(life, 156, 16, 10, p.out ? '#e66' : '#fff');
+    spBar(p, 60, 20, 90); txt(lab, 156, 27, 8, lc);
     txt(String(p.score).padStart(6, '0') + '  NIV ' + (p.xl + 1), 8, 42, 9, '#fff'); g.fillStyle = '#2a2a55'; g.fillRect(8, 45, 90, 2); g.fillStyle = '#7dff9a'; g.fillRect(8, 45, Math.round(90 * p.xp / xpNeed(p.xl)), 2);
     if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [L] lancer', 8, 54, 8, '#ffd34d'); durBar(p, 8, 58); }
   } else {
-    txt('J2', W - 8, 16, 10, col, 'right'); bar(W - 116, 8, 90, 8, r); txt(life, W - 122, 16, 10, p.out ? '#e66' : '#fff', 'right');
-    spBar(p, W - 116, 20, 90); txt(lab, W - 122, 27, 8, lc, 'right');
+    txt(pname(p, 5), W - 8, 16, 10, col, 'right'); bar(W - 150, 8, 90, 8, r); txt(life, W - 156, 16, 10, p.out ? '#e66' : '#fff', 'right');
+    spBar(p, W - 150, 20, 90); txt(lab, W - 156, 27, 8, lc, 'right');
     txt('NIV ' + (p.xl + 1) + '  ' + String(p.score).padStart(6, '0'), W - 8, 42, 9, '#fff', 'right'); g.fillStyle = '#2a2a55'; g.fillRect(W - 98, 45, 90, 2); g.fillStyle = '#7dff9a'; g.fillRect(W - 98, 45, Math.round(90 * p.xp / xpNeed(p.xl)), 2);
     if (p.weapon) { txt(WEAPONS[p.weapon].name + '  [L] lancer', W - 8, 54, 8, '#ffd34d', 'right'); durBar(p, W - 58, 58); }
   }
 }
+/* 1 = c'est nous (panneau vertical), 0 = un autre joueur en ligne (bloc en haut), -1 = partie locale à 2 */
+function hudMe(p) { return online ? (p.slot === localSlot ? 1 : 0) : (nPlayers === 1 ? 1 : -1); }
+function hudRank(p) { let k = 0; for (const q of PS) { if (q === p) break; if (!q.absent && hudMe(q) === 0) k++; } return k; }
 function drawSpec() {
   g.fillStyle = 'rgba(5,3,15,.88)'; g.fillRect(0, 0, W, H);
   txt('NIVEAU TERMINÉ · CHOISISSEZ UNE SPÉCIALISATION', W / 2, 20, 11, '#ffcf4a', 'center');
@@ -84,7 +113,7 @@ function drawSpec() {
     const s = p.slot, x0 = x00 + k * (pw + gap), col = PCOL[s & 3];
     g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(x0, 34, pw, 206);
     g.strokeStyle = specLk[s] ? '#7dff9a' : col; g.lineWidth = 1; g.strokeRect(x0 + 0.5, 34.5, pw - 1, 205);
-    txt('J' + (s + 1) + ' · ' + HEROES[p.hero].name, x0 + pw / 2, 48, n > 2 ? 7 : 9, col, 'center');
+    txt(pname(p, 10) + ' · ' + HEROES[p.hero].name, x0 + pw / 2, 48, n > 2 ? 7 : 9, col, 'center');
     txt('niveau ' + (p.xl + 1) + (online && s === localSlot ? ' (vous)' : ''), x0 + pw / 2, 59, 7, '#9ab', 'center');
     SPECS[p.hero].forEach((sp, i) => {
       const y = 68 + i * 54, on = specCh[s] === i;
@@ -204,7 +233,7 @@ function drawMenu() {
 }
 function hud() {
   PS.forEach(hudPlayer);
-  txt('N' + (levelIdx + 1) + ' · ' + LV.name, W - 8, nPlayers > 2 ? 46 : 10, 8, '#cbd', 'right');
+  txt('N' + (levelIdx + 1) + ' · ' + LV.name, W - 8, 10, 8, '#cbd', 'right');
   if (tgt && tgtT > 0 && !tgt.gone && tgt.kind === 'e' && tgt.type !== 'boss') {
     txt(T[tgt.type].name, W / 2, 16, 9, '#fda', 'center');
     bar(W / 2 - 40, 20, 80, 6, tgt.hp / tgt.maxhp, '#e0663a');
@@ -221,7 +250,7 @@ function hud() {
     txt(LV.name, W / 2, 134, 22, '#fff', 'center');
     g.globalAlpha = 1;
   }
-  if (goT > 0 && waveI < LV.waves.length && ((tick >> 4) & 1)) txt('GO >>', W - 14, 60, 16, '#ffd34d', 'right');
+  if (goT > 0 && waveI < LV.waves.length && ((tick >> 4) & 1)) txt('GO >>', W - 52, 60, 16, '#ffd34d', 'right');
   if (online && room && localSlot === 0 && others() === 0 && !joinBusy) {
     const okR = rel && rel.bs.some(b => b.ready);
     g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, H - 11, W, 11);
@@ -251,7 +280,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 18h20 · mains détaillées, code rangé', W / 2, 264, 7, '#667', 'center');
+  txt('version 19h40 · jauges, équilibrage', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -348,7 +377,7 @@ function drawSelect() {
     const s = SEL[i], { cx, y0 } = pos(s.c), col = ['#4aa8ff', '#ff9a3a', '#6ae06a', '#ff7ad0'][i & 3];
     g.strokeStyle = col; g.lineWidth = 2;
     g.strokeRect(cx - 34 + i * 3, y0 - 2 + i * 3, 68 - i * 6, CH + 4 - i * 6);
-    txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + (s.lock ? ' PRÊT' : ''), i < 2 ? cx - 30 : cx + 30, y0 + 19, 6, col, i < 2 ? 'left' : 'right');
+    txt(String(NAMES[i] || 'J' + (i + 1)).slice(0, 8) + (s.lock ? ' ✔' : ''), i < 2 ? cx - 30 : cx + 30, y0 + 19, 6, col, i < 2 ? 'left' : 'right');
   }
   { const hk = HERO_KEYS[(SEL[online ? localSlot : 0] || SEL[0]).c], hh = HEROES[hk]; txt(hh.name + ' — ' + hh.role, W / 2, 242, 8, '#ffd34d', 'center'); txt('Spécial : ' + hh.special + '  ·  ' + hh.trait, W / 2, 254, 7, '#8fe0a8', 'center'); }
   txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : vos amis (jusqu\'à 3) cliquent sur EN LIGNE pour vous rejoindre' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');
@@ -551,7 +580,7 @@ function drawTrap(t) {
 }
 function endScores() {
   if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
-  PS.forEach((p, i) => p.absent || txt('J' + (i + 1) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0') + '  ' + (p.name || ''), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
+  PS.forEach((p, i) => p.absent || txt(String(p.name || 'J' + (i + 1)) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0'), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
 }
 
 /* effets de handicap (affichage seulement, la simulation n'est pas touchée) : daltonisme = filtre de couleurs, cécité = champ de vision réduit */

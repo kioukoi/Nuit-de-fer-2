@@ -65,7 +65,7 @@ function updPlayer(p) {
       p.t++;
       const a = hr.atk[p.stage];
       if (Pp.punch) p.buf = true;
-      if (p.hero === 'magicien' && p.stage === 2 && p.t === a.act[0]) PJ.push({ x: p.x + p.face * 14, y: p.y, z: p.z + 24, vx: p.face * 4.6, vy: 0, life: 60, rot: 0, orbm: true, magic: true, dmg: 13, own: p, hit: new Set() });
+      if (p.hero === 'magicien' && p.stage === 2 && p.t === a.act[0]) PJ.push({ x: p.x + p.face * 14, y: p.y, z: p.z + 24, vx: p.face * 4.6, vy: 0, life: 60, rot: 0, orbm: true, magic: true, dmg: 7, own: p, hit: new Set() });
       if (p.t >= a.act[0] && p.t <= a.act[1]) strike(p, withW(p, a));
       if (p.t >= a.dur) {
         if (p.buf && p.stage < 2) startAttack(p, p.stage + 1);
@@ -116,7 +116,7 @@ function updPlayer(p) {
         if (p.t >= 30) p.st = 'free';
       } else if (p.hero === 'magicien') {
         if (p.t === 8) {
-          for (let k = -2; k <= 2; k++) PJ.push({ x: p.x + p.face * 10, y: clamp(p.y + k * 7, Y0, Y1), z: p.z + 22, vx: p.face * (5.4 + (2 - Math.abs(k)) * 0.5), vy: 0, life: 52, rot: 0, card: true, magic: true, dmg: 9, own: p, hit: new Set() });
+          for (let k = -2; k <= 2; k++) PJ.push({ x: p.x + p.face * 10, y: clamp(p.y + k * 7, Y0, Y1), z: p.z + 22, vx: p.face * (5.4 + (2 - Math.abs(k)) * 0.5), vy: 0, life: 52, rot: 0, card: true, magic: true, dmg: 6, own: p, hit: new Set() });
           SFX.whoosh(); SFX.pick();
         }
         if (p.t >= 24) p.st = 'free';
@@ -137,6 +137,7 @@ function updPlayer(p) {
           p.hit = new Set();
           for (const q of PS) if (!q.out && !q.dying && (q === p || Math.abs(q.x - p.x) < 170)) {
             const h = Math.min(40, q.maxhp - q.hp); q.hp += h; q.flash = 8;
+            if (h > 0) { p.score += h * (q === p ? 3 : 6); gainXp(p, Math.ceil(h / 4)); }      // la médic marque des points en soignant
             FX.push({ x: q.x, y: q.y, z: q.z + 44, t: 0, life: 44, txt: '+' + h, col: '#6f6' });
           }
           strikeArea(p, { r: 34, dmg: 5, kd: true }); SFX.pick(); shake = Math.max(shake, 3);
@@ -553,7 +554,7 @@ function callKopins(p) {
   for (let i = 0; i < 3; i++) {
     const side = (i === 1) ? !fromL : fromL;
     AL.push({ kind: 'a', hero: 'gitan', owner: p, slot: p.slot, name: i === 0 ? 'KOPIN' : '', x: side ? cam - 14 - i * 10 : cam + W + 14 + i * 10, y: clamp(p.y + (i - 1) * 24, Y0, Y1), z: 0, vx: 0, vy: 0, face: side ? 1 : -1,
-      st: 'free', t: 0, stage: 0, walk: i * 2, mv: false, hit: new Set(), inv: 0, flash: 0, cd: 10 + i * 8, life: 480, leave: false, dying: false });
+      st: 'free', t: 0, stage: 0, walk: i * 2, mv: false, hit: new Set(), inv: 0, flash: 0, cd: 10 + i * 8, life: 300, leave: false, dying: false });
   }
   FX.push({ x: p.x, y: p.y, z: p.z + 50, t: 0, life: 50, txt: 'LA CALOTTE DE SES MORTS !', col: '#ffd34d' });
   SFX.pick();
@@ -580,12 +581,12 @@ function updAllies() {
           if (t.gone || t.dying || al.hit.has(t) || t.st === 'down' || t.inv > 0) continue;
           if (t.x < lo || t.x > hi || Math.abs(t.y - al.y) > 13) continue;
           al.hit.add(t);
-          hurt(t, al.owner, { dmg: Math.max(3, Math.round(a.dmg * 0.9)), kd: al.stage === 2, nosp: true, ally: true }, al.face);
+          hurt(t, al.owner, { dmg: Math.max(2, Math.round(a.dmg * 0.4)), kd: al.stage === 2, nosp: true, ally: true }, al.face);
         }
       }
       if (al.t >= a.dur) {
         if (al.stage < 2 && al.nextCombo) { al.stage++; al.t = 0; al.hit = new Set(); al.nextCombo = false; }
-        else { al.st = 'free'; al.cd = 26; }
+        else { al.st = 'free'; al.cd = 55; }
       }
       continue;
     }
@@ -618,7 +619,7 @@ function updProj() {
         if (t.gone || t.dying) continue;
         if (t.kind !== 'b' && t.st === 'down') continue;
         if (Math.abs(b.x - t.x) < 11 && Math.abs(b.y - t.y) < 10 && Math.abs(b.z - (t.z + 14)) < 28) {
-          if (b.magic) { if (!b.hit.has(t)) { b.hit.add(t); hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); } continue; }
+          if (b.magic) { if (!b.hit.has(t)) { b.hit.add(t); hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); if (b.orbm) { b.life = 0; break; } } continue; }
           if (b.star) { hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); b.life = 0; break; }
           if (b.cane) { hurt(t, b.own, { dmg: b.dmg, kd: true }, Math.sign(b.vx)); dropCane(b, t.x); b.life = 0; break; }
           hurt(t, b.own, { dmg: Math.round(9 * WEAPONS[b.wtype].mul), kd: true }, Math.sign(b.vx));

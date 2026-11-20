@@ -54,7 +54,7 @@ const HEROES = {
     col: { shirt: '#2a2c3e', pants: '#171822', skin: '#e0b48c', hair: '#111118', acc: '#d03030', acc2: '#8a8fa8', shoe: '#1a1a24' } },
   boxeur: { trait: 'Série de coups +50%', name: 'LE BOXEUR', role: 'Combos', special: 'Uppercut', sc: 1.05, hp: 105, spd: 1.4, jump: 4.2, dmg: 1.05, reach: 0, rate: 0.68, slam: 0, cost: 100,
     col: { shirt: '#c82828', pants: '#f0f0f4', skin: '#8f5e3c', hair: '#15100c', acc: '#f0c030', acc2: '#ffffff', shoe: '#c82828' } },
-  medic: { trait: 'Nourriture x2', name: 'LA MÉDIC', role: 'Soutien', special: 'Soins', sc: 1, hp: 90, spd: 1.5, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.9, slam: 0, cost: 100,
+  medic: { trait: 'Nourriture x2, points en soignant', name: 'LA MÉDIC', role: 'Soutien', special: 'Soins', sc: 1, hp: 90, spd: 1.5, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.9, slam: 0, cost: 100,
     col: { shirt: '#f4f4f8', pants: '#2a7a5a', skin: '#d8a07a', hair: '#6a3a20', acc: '#d82828', acc2: '#ffffff', shoe: '#f4f4f8' } },
   /* héros « handicap » : statistiques faibles ou contrainte de jeu (voir les effets d'écran dans le rendu) */
   fauteuil: { trait: 'Anti-choc, sprint +', name: 'LE ROULEUR', role: 'Fauteuil roulant', special: 'Charge-roues', sc: 1, hp: 70, spd: 0.95, jump: 1.7, dmg: 0.7, reach: 0, rate: 1.15, slam: 0, cost: 100,
@@ -65,11 +65,11 @@ const HEROES = {
     col: { shirt: '#d04a3a', pants: '#3a8a3a', skin: '#e2b08a', hair: '#6a4a2a', acc: '#3fb04a', acc2: '#f2f2f2', shoe: '#e8e8e8' } },
   aveugle: { trait: 'Spécial : voit 4 s', name: 'L\'AVEUGLE', role: 'Vue : presque nulle', special: 'Écholocation', sc: 1, hp: 80, spd: 1.35, jump: 4.0, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 70,
     col: { shirt: '#d8d8e0', pants: '#22222a', skin: '#dfae8a', hair: '#2a2a32', acc: '#e8e8f0', acc2: '#ffffff', shoe: '#222228' } },
-  gitan: { trait: 'Appelle 3 copains', name: 'LE GITAN', role: 'Famille nombreuse', special: 'Appel du kopin', sc: 1.08, hp: 90, spd: 1.55, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
+  gitan: { trait: 'Appelle 3 copains', name: 'LE GITAN', role: 'Famille nombreuse', special: 'Appel du kopin', sc: 1.08, hp: 85, spd: 1.45, jump: 4.4, dmg: 0.9, reach: 0, rate: 0.95, slam: 0, cost: 100,
     col: { shirt: '#17171c', pants: '#1c1e26', skin: '#d2a07a', hair: '#2a2420', acc: '#f0c030', acc2: '#e8b020', shoe: '#e8e8ee' } },
   magicien: { trait: 'Coup 3 : boule magique', name: 'LE MAGICIEN', role: 'Tours de magie', special: 'Pluie de cartes', sc: 1, hp: 75, spd: 1.4, jump: 4.4, dmg: 0.8, reach: 0, rate: 0.9, slam: 0, cost: 100,
     col: { shirt: '#26264a', pants: '#1c1c2c', skin: '#e2b48e', hair: '#2a1a28', acc: '#c02848', acc2: '#ffffff', shoe: '#14141e' } },
-  electricien: { trait: 'Insensible aux chocs', name: 'L\'ÉLECTRICIEN', role: 'Courant fort', special: 'Court-circuit', sc: 1, hp: 95, spd: 1.4, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
+  electricien: { trait: 'Insensible aux chocs', name: 'L\'ÉLECTRICIEN', role: 'Courant fort', special: 'Court-circuit', sc: 1, hp: 95, spd: 1.4, jump: 4.4, dmg: 1.05, reach: 0, rate: 0.95, slam: 0, cost: 100,
     col: { shirt: '#f08a1c', pants: '#2a4a8a', skin: '#d9a37a', hair: '#3a2a1a', acc: '#f5d020', acc2: '#ffffff', shoe: '#4a3a2a' } }
 };
 for (const k of HERO_KEYS) {
