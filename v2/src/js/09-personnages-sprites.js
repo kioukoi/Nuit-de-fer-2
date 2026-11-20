@@ -562,6 +562,14 @@ function drawChar(e) {
   g.setTransform(1, 0, 0, 1, 0, 0);
   if (fl) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = e.shock > 0 ? 'rgba(140,235,255,.85)' : 'rgba(255,255,255,.8)'; g.fillRect(RX * SS, RY * SS, RW * SS, RH * SS); g.globalCompositeOperation = 'source-over'; }
   g = mainG;
+  if (isP && e.kind === 'p' && !e.out && e.sp >= HEROES[e.hero].cost) {            // ultime prêt : le personnage s'illumine
+    const pl = 0.5 + 0.5 * Math.sin(tick * 0.2), cy = sy - 24 * s, rr = (30 + pl * 6) * s;
+    const gr = g.createRadialGradient(sx, cy, 4 * s, sx, cy, rr);
+    gr.addColorStop(0, 'rgba(255,225,110,' + (0.42 + pl * 0.25) + ')'); gr.addColorStop(1, 'rgba(255,200,60,0)');
+    g.fillStyle = gr; g.fillRect(sx - rr, cy - rr, rr * 2, rr * 2);
+    g.fillStyle = 'rgba(255,235,150,' + (0.5 + pl * 0.4) + ')'; g.beginPath(); g.ellipse(sx, sy + 1, (13 + pl * 3) * s, 3.4 * s, 0, 0, 7); g.fill();
+    for (let k = 0; k < 3; k++) { const ph = ((tick * 0.8 + k * 23) % 46), px = sx + Math.sin(k * 2.4 + tick * 0.05) * 11 * s; g.fillStyle = 'rgba(255,240,170,' + (1 - ph / 46) + ')'; g.fillRect(Math.round(px), Math.round(sy - 6 - ph), 2, 2); }
+  }
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.drawImage(sprC, RX * SS, RY * SS, RW * SS, RH * SS, Math.round(sx - 64 * s + RX * s), Math.round(sy - 100 * s + RY * s), Math.round(RW * s), Math.round(RH * s));
   g.imageSmoothingEnabled = false;
@@ -575,16 +583,10 @@ function drawChar(e) {
     const tw = Math.ceil(g.measureText(e.name).width) + 6;
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(sx - tw / 2, ny - 7, tw, 10);
     g.fillStyle = col; g.fillText(e.name, sx, ny + 1);
-    /* vie au-dessus de la tête, ultime au niveau du visage (jaune clignotant quand il est prêt) */
-    const r = Math.max(0, Math.min(1, e.hp / e.maxhp)), bw = 28, bx = Math.round(sx - bw / 2);
-    g.fillStyle = '#000'; g.fillRect(bx - 1, ny - 13, bw + 2, 5); g.fillStyle = '#3a1a1a'; g.fillRect(bx, ny - 12, bw, 3);
-    g.fillStyle = r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'); g.fillRect(bx, ny - 12, Math.round(bw * r), 3);
-    if (e.kind === 'p') {
-      const cost = HEROES[e.hero].cost, rd = e.sp >= cost, fl2 = rd && ((tick >> 3) & 1), sy2 = ny + 5;
-      g.fillStyle = '#000'; g.fillRect(bx - 1, sy2 - 1, bw + 2, 4); g.fillStyle = '#12203a'; g.fillRect(bx, sy2, bw, 2);
-      g.fillStyle = rd ? (fl2 ? '#fff7b0' : '#ffd34d') : '#4aa8ff'; g.fillRect(bx, sy2, Math.round(bw * Math.min(1, e.sp / 100)), 2);
-      if (rd) { g.strokeStyle = fl2 ? '#fff' : '#ffd34d'; g.lineWidth = 1; g.strokeRect(bx - 1.5, sy2 - 1.5, bw + 3, 5); }
-    }
+    /* petite barre de vie juste sous le pseudo */
+    const r = Math.max(0, Math.min(1, e.hp / e.maxhp)), bw = 20, bx = Math.round(sx - bw / 2), by = ny + 4;
+    g.fillStyle = '#000'; g.fillRect(bx - 1, by - 1, bw + 2, 4); g.fillStyle = '#3a1a1a'; g.fillRect(bx, by, bw, 2);
+    g.fillStyle = r > 0.5 ? '#4ccf4c' : (r > 0.25 ? '#e0c030' : '#e03030'); g.fillRect(bx, by, Math.round(bw * r), 2);
   }
   if (!isP && e.type === 'boss' && !e.dying) {
     const by = sy - Math.round(62 * s), bw = 44, bx = Math.round(sx - bw / 2), r = Math.max(0, e.hp / e.maxhp);

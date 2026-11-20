@@ -57,7 +57,11 @@ function hudBlock(p, x0) {
   txt(pname(p, 10), x0, 10, 7, col); txt(p.out ? 'HORS JEU' : 'x' + p.lives, x0 + 96, 10, 7, p.out ? '#e66' : '#fff', 'right');
   txt(String(p.score).padStart(6, '0'), x0, 21, 8, '#fff'); txt('NIV ' + (p.xl + 1), x0 + 96, 21, 7, '#cbd', 'right');
   g.fillStyle = '#000'; g.fillRect(x0 - 1, 24, 98, 4); g.fillStyle = '#2a2a55'; g.fillRect(x0, 25, 96, 2); g.fillStyle = '#7dff9a'; g.fillRect(x0, 25, Math.round(96 * p.xp / need), 2);
-  if (p.weapon) { const w = WEAPONS[p.weapon]; txt(w.name, x0, 37, 6, '#ffd34d'); bar(x0 + 40, 32, 56, 3, p.wd / w.uses, p.wd <= 3 ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050'); }
+  /* ultime : même taille que la barre d'XP, juste en dessous */
+  { const rd = p.sp >= HEROES[p.hero].cost, fl = rd && ((tick >> 3) & 1);
+    g.fillStyle = '#000'; g.fillRect(x0 - 1, 28, 98, 4); g.fillStyle = '#12203a'; g.fillRect(x0, 29, 96, 2);
+    g.fillStyle = rd ? (fl ? '#fff7b0' : '#ffd34d') : '#4aa8ff'; g.fillRect(x0, 29, Math.round(96 * Math.min(1, p.sp / 100)), 2); }
+  if (p.weapon) { const w = WEAPONS[p.weapon]; txt(w.name, x0, 41, 6, '#ffd34d'); bar(x0 + 40, 36, 56, 3, p.wd / w.uses, p.wd <= 3 ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050'); }
 }
 function hudPlayer(p, i) {
   if (p.absent) return;
@@ -238,7 +242,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 20h00 · jauges sur les têtes', W / 2, 264, 7, '#667', 'center');
+  txt('version 20h15 · ultime lumineux', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
