@@ -317,26 +317,26 @@ function withW(att, a) {
 }
 const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle'];
 const HEROES = {
-  cogneur: { name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0, cost: 100,
+  cogneur: { trait: 'Régénère hors combat', name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0, cost: 100,
     col: { shirt: '#2f6fd0', pants: '#3b4f8a', skin: '#e6b48c', hair: '#3a2418', acc: '#e03030', acc2: '#f2f2f2', shoe: '#f2f2f2' } },
-  vive: { name: 'LA VIVE', role: 'Rapide', special: 'Roulade', sc: 1, hp: 80, spd: 1.95, jump: 4.9, dmg: 0.8, reach: 0, rate: 0.8, slam: 0, cost: 50,
+  vive: { trait: 'Coup volant x1,8', name: 'LA VIVE', role: 'Rapide', special: 'Roulade', sc: 1, hp: 80, spd: 1.95, jump: 4.9, dmg: 0.8, reach: 0, rate: 0.8, slam: 0, cost: 50,
     col: { shirt: '#2fb59a', pants: '#22222e', skin: '#e8b894', hair: '#e0a030', acc: '#f5d442', acc2: '#ffffff', shoe: '#f5f5f5' } },
-  costaud: { name: 'LE COSTAUD', role: 'Lourd', special: 'Coup de masse', sc: 1.15, hp: 130, spd: 1.1, jump: 3.9, dmg: 1.45, reach: 4, rate: 1.25, slam: 14, cost: 100,
+  costaud: { trait: 'Armure, sprint lent', name: 'LE COSTAUD', role: 'Lourd', special: 'Coup de masse', sc: 1.15, hp: 130, spd: 1.1, jump: 3.9, dmg: 1.45, reach: 4, rate: 1.25, slam: 14, cost: 100,
     col: { shirt: '#d9622b', pants: '#3b4036', skin: '#b07850', hair: '#1a1210', acc: '#d9a21b', shoe: '#2a2a2a' } },
-  ombre: { name: 'L\'OMBRE', role: 'Ninja', special: 'Shurikens', sc: 1, hp: 85, spd: 1.8, jump: 5.0, dmg: 0.9, reach: 0, rate: 0.85, slam: 0, cost: 50,
+  ombre: { trait: 'Dos des ennemis x1,6', name: 'L\'OMBRE', role: 'Ninja', special: 'Shurikens', sc: 1, hp: 85, spd: 1.8, jump: 5.0, dmg: 0.9, reach: 0, rate: 0.85, slam: 0, cost: 50,
     col: { shirt: '#2a2c3e', pants: '#171822', skin: '#e0b48c', hair: '#111118', acc: '#d03030', acc2: '#8a8fa8', shoe: '#1a1a24' } },
-  boxeur: { name: 'LE BOXEUR', role: 'Combos', special: 'Uppercut', sc: 1.05, hp: 105, spd: 1.4, jump: 4.2, dmg: 1.05, reach: 0, rate: 0.68, slam: 0, cost: 100,
+  boxeur: { trait: 'Série de coups +50%', name: 'LE BOXEUR', role: 'Combos', special: 'Uppercut', sc: 1.05, hp: 105, spd: 1.4, jump: 4.2, dmg: 1.05, reach: 0, rate: 0.68, slam: 0, cost: 100,
     col: { shirt: '#c82828', pants: '#f0f0f4', skin: '#8f5e3c', hair: '#15100c', acc: '#f0c030', acc2: '#ffffff', shoe: '#c82828' } },
-  medic: { name: 'LA MÉDIC', role: 'Soutien', special: 'Soins', sc: 1, hp: 90, spd: 1.5, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.9, slam: 0, cost: 100,
+  medic: { trait: 'Nourriture x2', name: 'LA MÉDIC', role: 'Soutien', special: 'Soins', sc: 1, hp: 90, spd: 1.5, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.9, slam: 0, cost: 100,
     col: { shirt: '#f4f4f8', pants: '#2a7a5a', skin: '#d8a07a', hair: '#6a3a20', acc: '#d82828', acc2: '#ffffff', shoe: '#f4f4f8' } },
   /* héros « handicap » : statistiques faibles ou contrainte de jeu (voir les effets d'écran dans le rendu) */
-  fauteuil: { name: 'LE ROULEUR', role: 'Fauteuil roulant', special: 'Charge-roues', sc: 1, hp: 70, spd: 0.95, jump: 1.7, dmg: 0.7, reach: 0, rate: 1.15, slam: 0, cost: 100,
+  fauteuil: { trait: 'Anti-choc, sprint +', name: 'LE ROULEUR', role: 'Fauteuil roulant', special: 'Charge-roues', sc: 1, hp: 70, spd: 0.95, jump: 1.7, dmg: 0.7, reach: 0, rate: 1.15, slam: 0, cost: 100,
     col: { shirt: '#8a3fb0', pants: '#2a2f3a', skin: '#e0ac84', hair: '#2a1c12', acc: '#ffd23a', acc2: '#ffffff', shoe: '#f0f0f0' } },
-  papy: { name: 'LE PAPY', role: 'Canne et rhumatismes', special: 'Coup de canne', sc: 1, hp: 60, spd: 0.8, jump: 2.4, dmg: 0.6, reach: 2, rate: 1.3, slam: 0, cost: 100,
+  papy: { trait: 'Canne lancée, titube', name: 'LE PAPY', role: 'Canne et rhumatismes', special: 'Coup de canne', sc: 1, hp: 60, spd: 0.8, jump: 2.4, dmg: 0.6, reach: 2, rate: 1.3, slam: 0, cost: 100,
     col: { shirt: '#a8925a', pants: '#5a5a66', skin: '#ecc6a6', hair: '#e8e8ee', acc: '#8a5a28', acc2: '#ffffff', shoe: '#4a3a2a' } },
-  dalto: { name: 'LE DALTONIEN', role: 'Couleurs en vrac', special: 'Tourbillon', sc: 1, hp: 95, spd: 1.45, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
+  dalto: { trait: '1 coup sur 5 critique', name: 'LE DALTONIEN', role: 'Couleurs en vrac', special: 'Tourbillon', sc: 1, hp: 95, spd: 1.45, jump: 4.4, dmg: 0.95, reach: 0, rate: 0.95, slam: 0, cost: 100,
     col: { shirt: '#d04a3a', pants: '#3a8a3a', skin: '#e2b08a', hair: '#6a4a2a', acc: '#3fb04a', acc2: '#f2f2f2', shoe: '#e8e8e8' } },
-  aveugle: { name: 'L\'AVEUGLE', role: 'Vue : presque nulle', special: 'Écholocation', sc: 1, hp: 80, spd: 1.35, jump: 4.0, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 100,
+  aveugle: { trait: 'Spécial : voit 4 s', name: 'L\'AVEUGLE', role: 'Vue : presque nulle', special: 'Écholocation', sc: 1, hp: 80, spd: 1.35, jump: 4.0, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 70,
     col: { shirt: '#d8d8e0', pants: '#22222a', skin: '#dfae8a', hair: '#2a2a32', acc: '#e8e8f0', acc2: '#ffffff', shoe: '#222228' } }
 };
 for (const k of HERO_KEYS) {
@@ -556,9 +556,26 @@ function knock(t, dir) {
   if (t.weapon) { IT.push({ x: t.x, y: t.y, type: t.weapon, weapon: true, wd: t.wd, got: false, ttl: 720 }); t.weapon = null; t.wd = 0; }
   t.st = 'down'; t.t = 0; t.vz = 3.4; t.vx = dir * 2.1; t.z = Math.max(t.z, 1); t.kick = false; t.lie = 0;
 }
+/* particularités des héros : modifient les dégâts infligés (déterministe, uniquement des compteurs de simulation) */
+function heroBonus(att, t, a) {
+  let m = 1, txt = '', col = '#ffd34d';
+  if (att.hero === 'vive' && att.z > 2) m = 1.8;
+  else if (att.hero === 'ombre' && t.kind === 'e' && t.face === att.face) { m = 1.6; txt = 'DOS !'; }
+  else if (att.hero === 'boxeur') {
+    att.cn = (simF - (att.cT | 0) <= 45) ? Math.min(5, (att.cn | 0) + 1) : 0; att.cT = simF;
+    if (att.cn > 0) { m = 1 + 0.1 * att.cn; if (att.cn >= 2) txt = 'x' + (att.cn + 1); }
+  } else if (att.hero === 'dalto') {
+    att.hc = (att.hc | 0) + 1;
+    if (att.hc % 5 === 0) { m = 2; txt = 'CRITIQUE !'; col = '#ff8a4a'; }
+  }
+  if (txt) FX.push({ x: t.x, y: t.y, z: t.z + 50, t: 0, life: 26, txt, col });
+  return m === 1 ? a : Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * m)) });
+}
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
   const ff = att.kind === 'p' && t.kind === 'p';
+  if (att.kind === 'p' && !ff) a = heroBonus(att, t, a);
+  if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
   if (att.weapon && att.st === 'attack') {
     att.wd--;
     if (att.wd <= 0) {
@@ -583,7 +600,7 @@ function hurt(t, att, a, dir) {
   }
   const armored = (t.kind === 'e' && T[t.type].armor && !a.kd && (t.st === 'tele' || t.st === 'attack' || t.st === 'charge')) ||
     (t.kind === 'e' && t.type === 'boss' && t.st === 'bspec') ||
-    (t.kind === 'p' && t.hero === 'costaud' && !a.kd && t.st === 'attack');
+    (t.kind === 'p' && t.hero === 'costaud' && !a.kd && (t.st === 'attack' || t.st === 'free'));
   if (armored) return;
   if (a.kd || t.z > 0) knock(t, dir);
   else { t.st = 'hurt'; t.t = 0; t.vx = dir * 1.4; t.hit = new Set(); }
@@ -607,6 +624,7 @@ function updPlayer(p) {
   if (p.flash > 0) p.flash--;
   if (p.cd > 0) p.cd--;
   if (p.ping > 0) p.ping--;
+  if (p.hero === 'cogneur' && !p.dying && p.hp < p.maxhp && simF - (p.hurtT | 0) > 300 && simF % 90 === 0) { p.hp++; FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 22, txt: '+1', col: '#6f6' }); }
   p.mv = false;
   if (Pp.punch) p.bp = 9; else if (p.bp > 0) p.bp--;       // tampon : une frappe demandée un peu trop tôt est conservée
   if (Pp.special) p.bs = 9; else if (p.bs > 0) p.bs--;
@@ -625,7 +643,7 @@ function updPlayer(p) {
       const dp = Pp.right ? 1 : (Pp.left ? -1 : 0);           // sprint : double appui rapide sur une direction
       if (dp) { if (p.dtD === dp && simF - p.dtT <= 16) { if (!p.sprint) FX.push({ x: p.x - dp * 8, y: p.y, z: 3, t: 0, life: 10 }); p.sprint = true; } p.dtD = dp; p.dtT = simF; }
       if (!dx || (p.sprint && dx !== p.dtD)) p.sprint = false;
-      const sm = p.sprint ? 1.7 : 1;
+      const sm = p.sprint ? (p.hero === 'costaud' ? 1.35 : p.hero === 'fauteuil' ? 2.2 : 1.7) : 1;
       if (dx && dy) { dx *= 0.8; dy *= 0.8; }
       p.x += dx * hr.spd * sm; p.y += dy * hr.spd * 0.7;
       if (p.hero === 'papy' && !p.cane && (dx || dy)) {                      // sans canne : il titube, dévie, et finit par trébucher
@@ -693,7 +711,7 @@ function updPlayer(p) {
         if (p.t >= 32) p.st = 'free';
       } else if (p.hero === 'aveugle') {
         if (p.t === 8) {
-          p.hit = new Set(); p.ping = 110;
+          p.hit = new Set(); p.ping = 260;
           strikeArea(p, { r: 36, dmg: 8, kd: true }); SFX.pick(); shake = Math.max(shake, 2);
         }
         if (p.t >= 26) p.st = 'free';
@@ -752,7 +770,7 @@ function updPlayer(p) {
         if (p.hero === 'papy' && it.weapon) continue;                      // le papy ne ramasse pas d'armes (mais bien pommes, viande, potions)
         if (it.weapon) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
-        } else { p.hp = Math.min(p.maxhp, p.hp + it.heal); it.got = true; SFX.pick(); }
+        } else { const hh = it.heal * (p.hero === 'medic' ? 2 : 1); p.hp = Math.min(p.maxhp, p.hp + hh); it.got = true; SFX.pick(); if (p.hero === 'medic') FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: '+' + hh, col: '#6f6' }); }
       }
     }
     IT = IT.filter(i => !i.got);
@@ -763,6 +781,7 @@ function updPlayer(p) {
 /* ---------- pièges : l'état dépend uniquement du compteur de simulation simF (identique chez les deux joueurs) ---------- */
 function trapHit(q, dmg, kind) {
   if (q.tcd > 0 || q.inv > 0 || q.hp <= 0) return;
+  if (kind === 'shock' && q.hero === 'fauteuil') { q.tcd = 90; FX.push({ x: q.x, y: q.y, z: q.z + 44, t: 0, life: 30, txt: 'ISOLÉ !', col: '#9df' }); return; }
   q.tcd = 90; q.hp -= dmg; q.flash = 8;
   hitstop = Math.max(hitstop, 5); shake = Math.max(shake, 8);
   FX.push({ x: q.x, y: q.y, z: q.z + 40, t: 0, life: 36, txt: '-' + dmg, col: '#ff5050' });
@@ -2530,7 +2549,7 @@ function drawTitle() {
   else if (menuIdx === 2) txt(unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant', W / 2, 234, 9, '#cbd', 'center');
   else if ((tick >> 5) & 1) txt('ENTRÉE pour valider', W / 2, 234, 10, '#cbd', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 13h35 · papy : démarche et potions', W / 2, 264, 7, '#667', 'center');
+  txt('version 13h55 · chaque héros a sa particularité', W / 2, 264, 7, '#667', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -2588,8 +2607,8 @@ function drawSelect() {
   g.fillStyle = 'rgba(5,3,15,.78)'; g.fillRect(0, 0, W, H);
   txt(nPlayers === 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 18, 12, '#ffcf4a', 'center');
   const CW = 92, X0 = 46, CH = 110, n = HERO_KEYS.length, per = Math.ceil(n / 2);
-  const pos = i => ({ cx: X0 + (i % per) * CW, y0: 24 + Math.floor(i / per) * 114 });
-  if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: pos(i).cx, y: pos(i).y0 + 78 }));
+  const pos = i => ({ cx: X0 + (i % per) * CW, y0: 24 + Math.floor(i / per) * 115 });
+  if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: pos(i).cx, y: pos(i).y0 + 76 }));
   const c0 = cam; cam = 0;
   HERO_KEYS.forEach((k, i) => {
     const hr = HEROES[k], { cx, y0 } = pos(i), e = PREV[i];
@@ -2601,10 +2620,11 @@ function drawSelect() {
     if (locked) { e.st = 'attack'; e.stage = (tick >> 5) % 3; e.t = (tick >> 1) % hr.atk[e.stage].dur; } else { e.st = 'free'; e.t = 0; }
     e.name = '';
     drawChar(e);
-    txt('PV', cx - 39, y0 + 87, 6, '#9ab'); bar(cx - 26, y0 + 83, 62, 3, hr.hp / 130, '#4ccf4c');
-    txt('VIT', cx - 39, y0 + 94, 6, '#9ab'); bar(cx - 26, y0 + 90, 62, 3, hr.spd / 1.95, '#4aa8ff');
-    txt('FOR', cx - 39, y0 + 101, 6, '#9ab'); bar(cx - 26, y0 + 97, 62, 3, hr.dmg / 1.45, '#e0663a');
-    txt(hr.special, cx, y0 + 108, 6, '#fda', 'center');
+    txt('PV', cx - 39, y0 + 83, 6, '#9ab'); bar(cx - 26, y0 + 79, 62, 3, hr.hp / 130, '#4ccf4c');
+    txt('VIT', cx - 39, y0 + 89, 6, '#9ab'); bar(cx - 26, y0 + 85, 62, 3, hr.spd / 1.95, '#4aa8ff');
+    txt('FOR', cx - 39, y0 + 95, 6, '#9ab'); bar(cx - 26, y0 + 91, 62, 3, hr.dmg / 1.45, '#e0663a');
+    txt(hr.special, cx, y0 + 103, 6, '#fda', 'center');
+    txt(hr.trait, cx, y0 + 109, 6, '#8fe0a8', 'center');
   });
   cam = c0;
   for (let i = 0; i < nPlayers; i++) {
@@ -2781,7 +2801,7 @@ function applyFx() {
 function blindFx() {
   const q = online ? PS[localSlot] : PS.find(z => z.hero === 'aveugle');
   if (!q || q.hero !== 'aveugle' || q.out) return;
-  const sx = q.x - cam, sy = q.y - q.z - 20, pr = q.ping > 0 ? q.ping / 110 : 0, r = 30 + 420 * pr * pr;
+  const sx = q.x - cam, sy = q.y - q.z - 20, r = q.ping > 50 ? 700 : q.ping > 0 ? 30 + 670 * (q.ping / 50) * (q.ping / 50) : 30;
   if (r > 520) return;
   const gr = g.createRadialGradient(sx, sy, r * 0.35, sx, sy, r);
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.55, 'rgba(2,2,8,0.55)'); gr.addColorStop(1, 'rgba(2,2,8,0.97)');
