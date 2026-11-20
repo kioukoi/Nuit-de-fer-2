@@ -32,8 +32,13 @@ const WEAPONS = {
   batte: { name: 'BATTE', reach: 12, mul: 2.0, uses: 8 },
   couteau: { name: 'COUTEAU', reach: 5, mul: 1.5, uses: 12 },
   pancarte: { name: 'PANCARTE', reach: 16, mul: 1.7, uses: 10 },
-  pave: { name: 'PAVÉ', reach: 3, mul: 2.4, uses: 4 }
+  pave: { name: 'PAVÉ', reach: 3, mul: 2.4, uses: 4 },
+  /* armes à feu : rares. Tirer = touche de lancer (L) ; uses = munitions. En mêlée : coup de crosse. */
+  pistolet: { name: 'PISTOLET', reach: 2, mul: 1.2, uses: 8, gun: 'pistol' },
+  mitraillette: { name: 'MITRAILLETTE', reach: 2, mul: 1.2, uses: 24, gun: 'smg' },
+  grenade: { name: 'GRENADE', reach: 0, mul: 1, uses: 2, nade: true }
 };
+const GKEYS = ['pistolet', 'grenade', 'pistolet', 'mitraillette'];
 const WKEYS = ['tuyau', 'batte', 'couteau'];
 function withW(att, a) {
   const w = att.weapon && WEAPONS[att.weapon];
@@ -42,7 +47,7 @@ function withW(att, a) {
   const m = att.kind === 'e' ? 1 + (w.mul - 1) * 0.6 : w.mul;
   return Object.assign({}, a, { reach: a.reach + w.reach, dmg: Math.round(a.dmg * m) });
 }
-const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle', 'gitan', 'magicien', 'electricien'];
+const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle', 'gitan', 'magicien', 'electricien', 'livreur'];
 const HEROES = {
   cogneur: { trait: 'Régénère hors combat', name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0, cost: 100,
     col: { shirt: '#2f6fd0', pants: '#3b4f8a', skin: '#e6b48c', hair: '#3a2418', acc: '#e03030', acc2: '#f2f2f2', shoe: '#f2f2f2' } },
@@ -70,7 +75,9 @@ const HEROES = {
   magicien: { trait: 'Coup 3 : boule magique', name: 'LE MAGICIEN', role: 'Tours de magie', special: 'Pluie de cartes', sc: 1, hp: 75, spd: 1.4, jump: 4.4, dmg: 0.8, reach: 0, rate: 0.9, slam: 0, cost: 100,
     col: { shirt: '#26264a', pants: '#1c1c2c', skin: '#e2b48e', hair: '#2a1a28', acc: '#c02848', acc2: '#ffffff', shoe: '#14141e' } },
   electricien: { trait: 'Insensible aux chocs', name: 'L\'ÉLECTRICIEN', role: 'Courant fort', special: 'Court-circuit', sc: 1, hp: 95, spd: 1.4, jump: 4.4, dmg: 1.05, reach: 0, rate: 0.95, slam: 0, cost: 100,
-    col: { shirt: '#f08a1c', pants: '#2a4a8a', skin: '#d9a37a', hair: '#3a2a1a', acc: '#f5d020', acc2: '#ffffff', shoe: '#4a3a2a' } }
+    col: { shirt: '#f08a1c', pants: '#2a4a8a', skin: '#d9a37a', hair: '#3a2a1a', acc: '#f5d020', acc2: '#ffffff', shoe: '#4a3a2a' } },
+  livreur: { trait: 'Vélo : très rapide', name: 'LE LIVREUR', role: 'Livraison express', special: 'Tournée express', sc: 1, hp: 80, spd: 1.75, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.85, slam: 0, cost: 100,
+    col: { shirt: '#1fb5a3', pants: '#1d2530', skin: '#6b4430', hair: '#14100e', acc: '#1fb5a3', acc2: '#ffffff', shoe: '#e8e8ee' } }
 };
 for (const k of HERO_KEYS) {
   const h = HEROES[k];
@@ -97,7 +104,7 @@ const LEVELS = [
   { id: 1, bpm: 84, tr: -2, name: 'LE PORT', place: 'Docks au crépuscule', bg: 'port', hpM: 1.2, dmgM: 1.15, spdM: 1.08, coolM: 0.9, bossName: 'LE CAPITAINE', bossHp: 250, summon: ['marin', 'thrower'],
     tint: { thug: { shirt: '#2f6f9a', pants: '#3a3a2a', hair: '#3a2a1a', acc: '#f0c030' }, brute: { shirt: '#8a6a2a', pants: '#2a3a4a', acc: '#e0e0e0' },
       thrower: { shirt: '#2a7a6a', hair: '#e8e8e8', acc: '#f0c030' }, boss: { shirt: '#1f3a6a', pants: '#14203a', hair: '#e8e8e8', acc: '#e8c040' } },
-    weapons: [[190, 220, 'batte'], [420, 235, 'tuyau'], [700, 205, 'couteau'], [980, 230, 'tuyau'], [1240, 210, 'batte'], [1520, 232, 'couteau'], [1800, 215, 'batte']],
+    weapons: [[190, 220, 'batte'], [420, 235, 'tuyau'], [700, 205, 'couteau'], [980, 230, 'tuyau'], [1240, 210, 'batte'], [1520, 232, 'couteau'], [1800, 215, 'batte'], [1240, 222, 'pistolet']],
     barrels: [[260, 200], [480, 225], [720, 185], [940, 215], [1200, 200], [1460, 188], [1700, 222], [1900, 195]],
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
@@ -111,7 +118,7 @@ const LEVELS = [
   { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.45, dmgM: 1.3, spdM: 1.15, coolM: 0.8, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
     tint: { thug: { shirt: '#c87a1a', pants: '#4a4a5a', hair: '#2a1a10', acc: '#ffcc00' }, brute: { shirt: '#7a2a1a', pants: '#3a3a3a', acc: '#ffcc00' },
       thrower: { shirt: '#4a5a6a', hair: '#c04a2a', acc: '#ff8a2a' }, boss: { shirt: '#8a3a10', pants: '#2a1a10', hair: '#6a3a1a', acc: '#ffcc00' } },
-    weapons: [[200, 225, 'tuyau'], [460, 205, 'batte'], [740, 232, 'tuyau'], [1020, 215, 'couteau'], [1300, 200, 'batte'], [1580, 230, 'tuyau'], [1840, 210, 'couteau']],
+    weapons: [[200, 225, 'tuyau'], [460, 205, 'batte'], [740, 232, 'tuyau'], [1020, 215, 'couteau'], [1300, 200, 'batte'], [1580, 230, 'tuyau'], [1840, 210, 'couteau'], [740, 222, 'grenade'], [1580, 205, 'pistolet']],
     barrels: [[280, 195], [540, 228], [800, 182], [1060, 220], [1340, 190], [1600, 215], [1860, 200]],
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['thug', -1]] },
@@ -126,7 +133,7 @@ const LEVELS = [
   { id: 3, bpm: 120, tr: -5, name: 'LE TOIT', place: 'Tour du Patron, sous l\'orage', bg: 'roof', hpM: 1.75, dmgM: 1.5, spdM: 1.22, coolM: 0.7, bossName: 'LE PATRON', bossHp: 340, summon: ['garde', 'garde'],
     tint: { thug: { shirt: '#2a2a36', pants: '#15151f', hair: '#101018', acc: '#c0c0d0' }, brute: { shirt: '#40202a', pants: '#1a1a22', acc: '#c0c0d0' },
       thrower: { shirt: '#1a3a4a', hair: '#40e0ff', acc: '#40e0ff' }, boss: { shirt: '#e8e8f0', pants: '#d8d8e0', hair: '#d4a017', acc: '#d4a017' } },
-    weapons: [[210, 215, 'batte'], [480, 232, 'couteau'], [760, 208, 'tuyau'], [1040, 228, 'batte'], [1330, 205, 'couteau'], [1620, 225, 'tuyau']],
+    weapons: [[210, 215, 'batte'], [480, 232, 'couteau'], [760, 208, 'tuyau'], [1040, 228, 'batte'], [1330, 205, 'couteau'], [1620, 225, 'tuyau'], [1000, 222, 'grenade'], [1560, 208, 'mitraillette']],
     barrels: [[320, 190], [600, 222], [880, 195], [1180, 228], [1460, 192], [1740, 218]],
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['brute', -1]] },
@@ -140,7 +147,7 @@ const LEVELS = [
     ] },
   { id: 4, bpm: 132, tr: 4, name: 'PARIS', place: 'Boulevard parisien, jour de manifestation', bg: 'paris', hpM: 2.0, dmgM: 1.65, spdM: 1.28, coolM: 0.62, bossName: 'LE PRÉSIDENT', bossHp: 380, summon: ['crs', 'crsc'],
     tint: { boss: { shirt: '#1c2a52', pants: '#141c38', hair: '#b8bcc8', acc: '#c02030' } },
-    weapons: [[200, 218, 'pancarte'], [470, 232, 'pave'], [740, 205, 'pancarte'], [1010, 228, 'pave'], [1290, 210, 'pancarte'], [1580, 230, 'pave'], [1800, 208, 'pancarte']],
+    weapons: [[200, 218, 'pancarte'], [470, 232, 'pave'], [740, 205, 'pancarte'], [1010, 228, 'pave'], [1290, 210, 'pancarte'], [1580, 230, 'pave'], [1800, 208, 'pancarte'], [1010, 222, 'grenade'], [1620, 212, 'mitraillette']],
     barrels: [[330, 192], [610, 222], [890, 196], [1170, 226], [1450, 190], [1700, 218]],
     waves: [
       { cam: 120, spawn: [['crs', 1], ['crs', -1], ['crsc', 1]] },

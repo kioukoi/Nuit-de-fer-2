@@ -10,7 +10,7 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
   if (!t) return pal(d);
@@ -124,6 +124,15 @@ function drawWeapon(name, hx, hy, ang) {
     rrect(12, -11, 12, 10, 0.8, '#f4f0e0'); g.fillStyle = '#d03030'; g.fillRect(14, -8, 8, 1.8); g.fillRect(14, -5, 6, 1.4);
   } else if (name === 'pave') {
     poly([[-2, -3.4], [5, -4.2], [8, 0], [5, 3.6], [-1.6, 3.4], [-4, 0]], '#8c8f98'); g.fillStyle = '#b4b7c0'; g.fillRect(-1, -2.4, 5, 1.3);
+  } else if (name === 'pistolet') {
+    rrect(0, -2.2, 9, 3.4, 0.8, '#3c404a'); g.fillStyle = '#1e2026'; g.fillRect(7, -1.6, 3.6, 1.7); g.fillStyle = '#7a7f8a'; g.fillRect(1, -2.2, 6, 0.9);
+    poly([[0.2, 1], [3.6, 1], [2.6, 5.6], [-1, 5.6]], '#2a2018');
+  } else if (name === 'mitraillette') {
+    rrect(0, -2.6, 13, 4.2, 0.8, '#2e3138'); g.fillStyle = '#16181c'; g.fillRect(13, -1.4, 6, 1.8); g.fillRect(-4.5, -1.8, 4.5, 2.6);
+    rrect(4, 1.3, 3, 6.5, 0.6, '#1f2126'); poly([[0.2, 1.2], [3.2, 1.2], [2.2, 5.2], [-1, 5.2]], '#2a2018'); g.fillStyle = '#7a7f8a'; g.fillRect(1, -2.6, 9, 0.8);
+  } else if (name === 'grenade') {
+    ell(2, 0.5, 3.8, 4.4, '#4d7038', OL); g.fillStyle = 'rgba(0,0,0,.25)'; for (let k = -1; k <= 1; k++) g.fillRect(-1.5, 0.5 + k * 2, 7, 0.6);
+    g.fillStyle = '#9aa0a8'; g.fillRect(0.6, -5.4, 2.8, 1.8); g.strokeStyle = '#c9ced6'; g.lineWidth = 0.8; g.beginPath(); g.arc(5.2, -4.4, 1.6, 0, 7); g.stroke();
   } else if (name === 'canne') {
     g.strokeStyle = OL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-3, 0); g.lineTo(21, 0); g.stroke();
     g.strokeStyle = '#a06a30'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-3, 0); g.lineTo(21, 0); g.stroke();
@@ -182,6 +191,7 @@ function drawChar(e) {
   } else if (isP && st === 'special' && (e.hero === 'medic' || e.hero === 'aveugle' || e.hero === 'gitan' || e.hero === 'electricien')) {
     fhx = 6; fhy = -44; bhx = -3; bhy = -43; ffx = 4; bfx = -4; ring = e.t > 6 ? (e.t - 6) * 2.4 : 0;
   } else if (isP && st === 'special') { spin = true; ffx = 8; bfx = -8; fhx = 17; fhy = -26; bhx = -17; bhy = -26; }
+  else if (isP && st === 'rush') { lean = 8; ffx = 7; ffy = -5; bfx = -2; bfy = -4; fhx = 13; fhy = -22; bhx = 9; bhy = -20; }
   else if (isP && st === 'roll') { lean = 9; hipY = -9; ffx = 7; ffy = -4; bfx = -2; bfy = -3; fhx = 12; fhy = -20; bhx = 8; bhy = -18; }
   else if (isP && st === 'attack') {
     const a = HEROES[e.hero].atk[e.stage], u = Math.min(1, e.t / a.act[0]);
@@ -218,6 +228,8 @@ function drawChar(e) {
     hipY = -14 - bob; fhy -= bob; bhy -= bob;
     if (!isP) { fhx = 6; fhy = -24 - bob; bhx = 3; bhy = -22 - bob; }
   }
+  if (kind === 'livreur' && !down && st !== 'rush') { ffx = 5; ffy = -5; bfx = -3; bfy = -9 - Math.abs(Math.sin(e.walk * 1.2)) * 2; hipY = -15; }
+  if (kind === 'livreur' && st === 'rush') hipY = -15;
   if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }
   if (kind === 'papy' && !down) { lean += 2.4; if (st === 'free' || moving) hdx += 1.2; }
   if (kind === 'papy' && !down && !e.cane && (st === 'free' || st === 'attack') && !air) {   // sans canne : démarche hésitante, bras écartés pour l'équilibre
@@ -459,6 +471,10 @@ function drawChar(e) {
       g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(HX - 3, HY - 15.4, 1.3, 7);
       ell(HX + 3.8, HY + 2.9, 2.4, 0.9, '#2a1a28', false);
       break;
+    case 'livreur':
+      g.beginPath(); g.ellipse(HX - 0.4, HY - 3.6, 7.2, 5.2, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#1fb5a3'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = '#e9fffb'; g.fillRect(HX - 1.2, HY - 8.6, 2.4, 4.6); g.fillStyle = '#0f6f64'; g.fillRect(HX + 1.8, HY - 3.8, 6, 1.3);
+      break;
     case 'electricien':
       g.beginPath(); g.ellipse(HX - 0.2, HY - 4.4, 6.8, 4.6, 0, Math.PI, 0); g.closePath(); g.fillStyle = S.acc; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
       g.fillStyle = shade(S.acc, -0.2); g.fillRect(HX - 6.8, HY - 4.6, 13.6, 1.5); g.fillRect(HX + 1.6, HY - 4.6, 6.4, 2.2);
@@ -492,6 +508,19 @@ function drawChar(e) {
       break;
   }
 
+  if (kind === 'livreur' && !down) {                     /* vélo : roues, cadre, guidon, sac de livraison */
+    const wr = e.walk * 1.9 + (st === 'rush' ? tick * 0.8 : 0), cy0 = -6.6;
+    for (const cx0 of [-10, 10]) {
+      g.strokeStyle = OL; g.lineWidth = 2.1; g.beginPath(); g.arc(cx0, cy0, 6.6, 0, 7); g.stroke();
+      g.strokeStyle = '#2c2f38'; g.lineWidth = 1.3; g.beginPath(); g.arc(cx0, cy0, 6.6, 0, 7); g.stroke();
+      g.strokeStyle = 'rgba(210,215,225,.75)'; g.lineWidth = 0.4;
+      for (let k = 0; k < 4; k++) { const a2 = wr + k * Math.PI / 4; g.beginPath(); g.moveTo(cx0 + Math.cos(a2) * 5.6, cy0 + Math.sin(a2) * 5.6); g.lineTo(cx0 - Math.cos(a2) * 5.6, cy0 - Math.sin(a2) * 5.6); g.stroke(); }
+    }
+    g.strokeStyle = OL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-10, cy0); g.lineTo(-2, -15); g.lineTo(7, -15.5); g.lineTo(10, cy0); g.moveTo(-2, -15); g.lineTo(0, cy0); g.lineTo(-10, cy0); g.stroke();
+    g.strokeStyle = '#1fb5a3'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(-10, cy0); g.lineTo(-2, -15); g.lineTo(7, -15.5); g.lineTo(10, cy0); g.moveTo(-2, -15); g.lineTo(0, cy0); g.lineTo(-10, cy0); g.stroke();
+    g.strokeStyle = OL; g.lineWidth = 1.6; g.beginPath(); g.moveTo(7, -15.5); g.lineTo(8.6, -21); g.lineTo(12, -21.5); g.stroke();
+    rrect(-3.6, -16.6, 5.6, 1.6, 0.6, '#1d2530');
+  }
   if (kind === 'fauteuil' && !e.nochair) {
     const wr = e.walk * 1.7, cx0 = -1.5, cy0 = -9.2;
     g.strokeStyle = OL; g.lineWidth = 1.9; g.beginPath(); g.arc(cx0, cy0, 8.6, 0, 7); g.stroke();
@@ -502,6 +531,11 @@ function drawChar(e) {
     ell(cx0, cy0, 1.4, 1.4, '#c8ccd6');
     limb([[6, hipY + 3], [10.5, -3.4]], 1.2, ['#33353d', '#33353d']); ell(10.8, -2.6, 2.1, 2.1, '#2c2e35');
     rrect(7.6, -6.8, 5.4, 1.2, 0.5, '#33353d');
+  }
+  if (kind === 'livreur' && !down) {                     /* sac isotherme sur le dos */
+    const bx = lean - 13, by = shY - 1;
+    rrect(bx, by, 10, 11.5, 1.4, '#1fb5a3', OL); g.fillStyle = '#0f6f64'; g.fillRect(bx, by + 3.4, 10, 1.4);
+    g.fillStyle = '#fff'; g.fillRect(bx + 3, by + 6.4, 4, 3); g.fillStyle = '#1fb5a3'; g.fillRect(bx + 4.1, by + 7.4, 1.8, 1.1);
   }
   if (kind === 'gitan' && !down) {
     g.strokeStyle = '#a07810'; g.lineWidth = 2; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
@@ -549,6 +583,7 @@ function drawChar(e) {
     if (wa) {
       if (e.t < wa.act[0]) ang = -2.1; else if (e.t <= wa.act[1]) ang = -0.3 + 0.9 * (e.t - wa.act[0]) / Math.max(1, wa.act[1] - wa.act[0]); else ang = 1.05;
     } else if (st === 'tele') ang = -2.1; else if (st === 'hurt') ang = 1.2;
+    if (WEAPONS[e.weapon].gun && !wa && st !== 'hurt' && st !== 'tele') ang = -0.04;
     drawWeapon(e.weapon, fhx, fhy, ang);
     ell(fhx, fhy, armW * 0.72 + 0.5, armW * 0.72 + 0.5, S.skin);
   }

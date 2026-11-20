@@ -12,7 +12,19 @@ function updPlayer(p) {
   p.mv = false;
   if (Pp.punch) p.bp = 9; else if (p.bp > 0) p.bp--;       // tampon : une frappe demandée un peu trop tôt est conservée
   if (Pp.special) p.bs = 9; else if (p.bs > 0) p.bs--;
-  if (Pp.throw && p.weapon && (p.st === 'free' || p.st === 'air' || p.st === 'attack')) {
+  const gw = p.weapon && WEAPONS[p.weapon];
+  if (p.gcd > 0) p.gcd--;
+  if (gw && (gw.gun || gw.nade) && (p.st === 'free' || p.st === 'air' || p.st === 'attack')) {
+    if (gw.nade) {                                      // grenade : lancée en cloche, explose après ~0,8 s
+      if (Pp.throw) { PJ.push({ nade: true, x: p.x + p.face * 10, y: p.y, z: p.z + 20, vx: p.face * 3.4, vy: 0, vz: 2.4, life: 200, fuse: 50, rot: 0, own: p }); p.wd--; if (p.wd <= 0) { p.weapon = null; p.wd = 0; } SFX.whoosh(); }
+    } else if ((gw.gun === 'smg' ? I.throw : Pp.throw) && !(p.gcd > 0)) {   // pistolet : un coup par appui ; mitraillette : tir continu
+      const smg = gw.gun === 'smg';
+      PJ.push({ x: p.x + p.face * 14, y: p.y + (smg ? Math.round((rng() - 0.5) * 4) : 0), z: p.z + 24, vx: p.face * (smg ? 8 : 9), vy: 0, life: 44, rot: 0, bullet: true, magic: true, dmg: smg ? 4 : 10, own: p, hit: new Set() });
+      p.gcd = smg ? 5 : 14; p.wd--; p.recoil = 5; SFX.hit(); shake = Math.max(shake, smg ? 1 : 2);
+      FX.push({ x: p.x + p.face * 18, y: p.y, z: p.z + 24, t: 0, life: 5, big: false });
+      if (p.wd <= 0) { p.weapon = null; p.wd = 0; FX.push({ x: p.x, y: p.y, z: p.z + 40, t: 0, life: 36, txt: 'PLUS DE BALLES', col: '#ffd34d' }); }
+    }
+  } else if (Pp.throw && p.weapon && (p.st === 'free' || p.st === 'air' || p.st === 'attack')) {
     PJ.push({ x: p.x + p.face * 12, y: p.y, z: p.z + 22, vx: p.face * 5.2, life: 56, rot: 0, wtype: p.weapon, wd: p.wd, own: p });
     p.weapon = null; p.wd = 0; SFX.whoosh();
   }
@@ -55,6 +67,7 @@ function updPlayer(p) {
           if (p.hero === 'ombre') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 12; SFX.whoosh(); }
           else if (p.hero === 'vive') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
           else if (p.hero === 'gitan' || p.hero === 'magicien' || p.hero === 'electricien') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
+          else if (p.hero === 'livreur') { p.st = 'rush'; p.t = 0; p.hit = new Set(); p.inv = 9999; p.rd = p.face; p.rx = p.x; p.ph = 0; p.vx = 0; SFX.special(); }
           else if (p.hero === 'fauteuil') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 20; p.vx = p.face * 3.1; p.cd = 40; SFX.whoosh(); }
           else { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
         }
@@ -158,6 +171,16 @@ function updPlayer(p) {
       p.t++; p.x += p.vx; p.vx *= 0.96;
       if (p.hero === 'fauteuil') strike(p, { reach: 18, dmg: 11, kd: true }); else strike(p, { reach: 16, dmg: 5, kd: false });
       if (p.t >= 24) p.st = 'free';
+      break;
+    }
+    case 'rush': {                       /* ultime du livreur : aller-retour sur tout l'écran, renverse tout sur son passage */
+      p.t++; p.face = p.rd; p.inv = 9999; p.z = 0; p.vz = 0;
+      p.x += p.rd * 9.5;
+      strikeArea(p, { r: 26, dmg: 18, kd: true, nosp: true });
+      if (p.t % 3 === 0) FX.push({ x: p.x - p.rd * 14, y: p.y, z: 6, t: 0, life: 10, big: false });
+      if (p.t % 5 === 0) { shake = Math.max(shake, 3); SFX.hit(); }
+      if (p.ph === 0 && ((p.rd > 0 && p.x >= cam + W - 16) || (p.rd < 0 && p.x <= cam + 16))) { p.ph = 1; p.rd = -p.rd; p.hit = new Set(); }
+      else if (p.ph === 1 && ((p.rd > 0 && p.x >= p.rx) || (p.rd < 0 && p.x <= p.rx)) || p.t > 140) { p.st = 'free'; p.inv = 30; p.cd = 30; p.vx = 0; }
       break;
     }
     case 'hurt': {
@@ -611,15 +634,32 @@ function updAllies() {
   }
   AL = AL.filter(a => !a.gone);
 }
+function explode(b) {
+  for (let k = 0; k < 9; k++) FX.push({ x: b.x + rnd(-20, 20), y: b.y + rnd(-6, 6), z: rnd(4, 30), t: 0, life: 20, big: true });
+  shake = Math.max(shake, 10); hitstop = Math.max(hitstop, 5); SFX.big();
+  for (const t of E.concat(B)) {
+    if (t.gone || t.dying) continue;
+    if (Math.abs(t.x - b.x) > 48 || Math.abs(t.y - b.y) > 28) continue;
+    hurt(t, b.own, { dmg: 22, kd: true, nosp: true }, t.x >= b.x ? 1 : -1);
+  }
+  for (const q of livePlayers()) if (q !== b.own && Math.abs(q.x - b.x) < 40 && Math.abs(q.y - b.y) < 24) hurt(q, b.own, { dmg: 14, kd: true, nosp: true }, q.x >= b.x ? 1 : -1);
+}
 function updProj() {
   for (const b of PJ) {
+    if (b.nade) {
+      b.x += b.vx; b.z += b.vz; b.vz -= 0.2; b.rot += 0.3; b.fuse--;
+      if (b.z <= 0) { b.z = 0; b.vz = Math.abs(b.vz) * 0.35; b.vx *= 0.7; }
+      if (b.fuse <= 0) { explode(b); b.life = 0; }
+      if (b.x < cam - 20 || b.x > cam + W + 20) b.life = 0;
+      continue;
+    }
     b.x += b.vx; b.y += b.vy || 0; b.life--; b.rot += b.wtype ? 0.55 : 0.4;
     if (b.own) {                       // arme lancée par un joueur : touche ennemis et barils
       for (const t of E.concat(B)) {
         if (t.gone || t.dying) continue;
         if (t.kind !== 'b' && t.st === 'down') continue;
         if (Math.abs(b.x - t.x) < 11 && Math.abs(b.y - t.y) < 10 && Math.abs(b.z - (t.z + 14)) < 28) {
-          if (b.magic) { if (!b.hit.has(t)) { b.hit.add(t); hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); if (b.orbm) { b.life = 0; break; } } continue; }
+          if (b.magic) { if (!b.hit.has(t)) { b.hit.add(t); hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); if (b.orbm || b.bullet) { b.life = 0; break; } } continue; }
           if (b.star) { hurt(t, b.own, { dmg: b.dmg, kd: false, nosp: true }, Math.sign(b.vx)); b.life = 0; break; }
           if (b.cane) { hurt(t, b.own, { dmg: b.dmg, kd: true }, Math.sign(b.vx)); dropCane(b, t.x); b.life = 0; break; }
           hurt(t, b.own, { dmg: Math.round(9 * WEAPONS[b.wtype].mul), kd: true }, Math.sign(b.vx));

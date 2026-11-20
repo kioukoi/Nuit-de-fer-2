@@ -16,12 +16,6 @@ function drawItem(it) {
     g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
   }
 }
-function drawProj(b) {
-  const sx = Math.round(b.x - cam), sy = Math.round(b.y - b.z);
-  g.save(); g.translate(sx, sy); g.rotate(b.rot);
-  g.fillStyle = '#6c6'; g.fillRect(-2, -5, 4, 10); g.fillStyle = '#cfc'; g.fillRect(-1, -7, 2, 3);
-  g.restore();
-}
 function drawFX(f) {
   const sx = Math.round(f.x - cam), sy = Math.round(f.y - f.z), k = f.t / f.life;
   g.globalAlpha = 1 - k;
@@ -62,7 +56,7 @@ function hudBlock(p, x0) {
   g.fillStyle = '#3a1a1a'; g.fillRect(x0, 25, 96, 2); g.fillStyle = r1 > 0.5 ? '#4ccf4c' : (r1 > 0.25 ? '#e0c030' : '#e03030'); g.fillRect(x0, 25, Math.round(96 * r1), 2);
   g.fillStyle = '#12203a'; g.fillRect(x0, 29, 96, 2); g.fillStyle = rd ? (fl ? '#fff7b0' : '#ffd34d') : '#4aa8ff'; g.fillRect(x0, 29, Math.round(96 * Math.min(1, p.sp / 100)), 2);
   g.fillStyle = '#2a2a55'; g.fillRect(x0, 33, 96, 2); g.fillStyle = '#7dff9a'; g.fillRect(x0, 33, Math.round(96 * p.xp / need), 2);
-  if (p.weapon) { const w = WEAPONS[p.weapon]; txt(w.name, x0, 46, 6, '#ffd34d'); bar(x0 + 40, 41, 56, 3, p.wd / w.uses, p.wd <= 3 ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050'); }
+  if (p.weapon) { const w = WEAPONS[p.weapon]; txt(w.name, x0, 46, 6, '#ffd34d'); bar(x0 + 58, 41, 38, 3, p.wd / w.uses, p.wd <= 3 ? (((tick >> 3) & 1) ? '#ff6a4a' : '#c03020') : '#e8c050'); }
 }
 function hudPlayer(p, i) {
   if (p.absent) return;
@@ -143,6 +137,15 @@ function drawChair(p) {
 }
 function drawProj(b) {
   const sx = Math.round(b.x - cam), sy = Math.round(b.y - b.z);
+  if (b.bullet) {
+    const d = Math.sign(b.vx); g.fillStyle = 'rgba(255,230,140,.35)'; g.fillRect(d > 0 ? sx - 10 : sx, sy - 0.5, 10, 1);
+    g.fillStyle = '#fff3b0'; g.fillRect(d > 0 ? sx - 3 : sx, sy - 1, 3.5, 2); return;
+  }
+  if (b.nade) {
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(sx, Math.round(b.y) + 1, 5, 1.8, 0, 0, 7); g.fill();
+    g.save(); g.translate(sx, sy); g.rotate(b.rot); g.fillStyle = '#4d7038'; g.strokeStyle = OL; g.lineWidth = 1; g.beginPath(); g.ellipse(0, 0, 3.4, 4, 0, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = (tick >> 2) & 1 ? '#ff6a4a' : '#9aa0a8'; g.fillRect(-1, -5.6, 2, 2); g.restore(); return;
+  }
   if (b.wave) {
     const d = Math.sign(b.vx);
     g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 9, 3, 0, 0, 7); g.fill();
@@ -243,7 +246,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 20h30 · vie, ultime, XP', W / 2, 264, 7, '#667', 'center');
+  txt('version 21h05 · armes à feu, livreur', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

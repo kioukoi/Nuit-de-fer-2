@@ -191,7 +191,8 @@ const SPECS = {
   aveugle: [['Ouïe fine', '+12% de vitesse', { spd: 0.12 }], ['Écholocation', 'spécial +30% plus vite', { sp: 0.30 }], ['Instinct', '+12% de dégâts', { dmg: 0.12 }]],
   gitan: [['Grande famille', 'spécial +35% plus vite', { sp: 0.35 }], ['Sang chaud', '+12% de dégâts', { dmg: 0.12 }], ['Débrouillard', '+10% de vitesse, +10 PV', { spd: 0.10, pv: 10 }]],
   magicien: [['Illusionniste', '+14% de dégâts', { dmg: 0.14 }], ['Tour de passe-passe', 'spécial +30% plus vite', { sp: 0.30 }], ['Cape enchantée', '-10% de dégâts reçus', { dr: 0.10 }]],
-  electricien: [['Haute tension', '+12% de dégâts', { dmg: 0.12 }], ['Gants isolants', '-10% de dégâts reçus', { dr: 0.10 }], ['Batterie', 'spécial +30% plus vite', { sp: 0.30 }]]
+  electricien: [['Haute tension', '+12% de dégâts', { dmg: 0.12 }], ['Gants isolants', '-10% de dégâts reçus', { dr: 0.10 }], ['Batterie', 'spécial +30% plus vite', { sp: 0.30 }]],
+  livreur: [['Mollets d\'acier', '+10% de vitesse', { spd: 0.10 }], ['Casque renforcé', '-10% de dégâts reçus', { dr: 0.10 }], ['Pourboire', 'spécial +30% plus vite', { sp: 0.30 }]]
 };
 let specOn = false, specT = 0, specCh = [0, 0, 0, 0], specLk = [false, false, false, false];
 const specSkip = p => p.absent || (online && !act[p.slot]);
@@ -231,7 +232,7 @@ function hurt(t, att, a, dir) {
     if (dm > 0) a = Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * (1 + dm))) });
   }
   if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
-  if (att.weapon && att.st === 'attack' && !a.ally) {
+  if (att.weapon && att.st === 'attack' && !a.ally && !WEAPONS[att.weapon].gun && !WEAPONS[att.weapon].nade) {
     att.wd--;
     if (att.wd <= 0) {
       att.weapon = null; SFX.brk();
@@ -268,7 +269,7 @@ function breakBarrel(b) {
   b.gone = true; SFX.brk();
   for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
   const r = rng();
-  if (r < 0.14) { const wt = WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
+  if (r < 0.14) { const wt = rng() < 0.12 ? GKEYS[Math.floor(rng() * 4) % 4] : WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
   else if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
   else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
 }
