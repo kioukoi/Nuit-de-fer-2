@@ -345,7 +345,7 @@ function startRoom() {
 /* délai de saisie adapté à la latence mesurée (le pire des joueurs) : assez grand pour ne jamais attendre, assez petit pour rester réactif */
 function adaptDelay() {
   let mx = -1;
-  for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot && rttBy[s].length) mx = Math.max(mx, Math.max.apply(null, rttBy[s]));
+  for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot && rttBy[s].length) { const q = rttBy[s].slice().sort((a, b) => a - b); mx = Math.max(mx, q[q.length >> 1]); }     // médiane : un pic isolé (onglet en arrière-plan, relais lent) ne fait plus exploser le délai
   if (mx < 0) return;
   rttMax = mx;
   let want = Math.ceil((mx / 2 + 24) / (1000 / 60)) + 1;
