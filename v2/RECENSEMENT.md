@@ -30,7 +30,7 @@ _Valeurs relevées directement dans le jeu (version v2). Les multiplicateurs de 
 - **LE BOXEUR** — Rafale K.O. : salve de coups en avançant, uppercut final dévastateur.
 - **LA MÉDIC** — Défibrillateur : soigne et protège tous les alliés proches, blesse les ennemis autour.
 - **LE ROULEUR** — Turbo-roues : charge longue et enflammée qui renverse tout.
-- **LE PAPY** — Coup de canne divin : colonnes de lumière sur chaque ennemi de l'écran (+ un peu de vie).
+- **LE PAPY** — Coup de canne divin : colonnes de lumière et grosse frappe autour de lui seulement (environ 95 px devant et derrière, une rangée de marge) ; un peu de vie rendue.
 - **LE DALTONIEN** — Ouragan : même ultime que le Cogneur.
 - **L'AVEUGLE** — Écholocation : trois pulsations qui sonnent tous les ennemis de l'écran.
 - **LE GITAN** — La famille débarque : appelle trois kopins (Pépé, Tito, Nino) qui se battent, ramassent les objets et subissent les pièges.

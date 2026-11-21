@@ -637,7 +637,7 @@ function updUlt(p, hr) {
     if (t >= 58) p.st = 'free';
   } else if (h === 'papy') {
     if (t === 1) ultBanner('COUP DE CANNE DIVIN', '#ffe08a');
-    if (t === 14) { for (const e of liveE()) { pillar(e.x, e.y, 14, '#fff6c0', 24); } blast(p, cam + W / 2, p.y, W, 130, 36, true, 30); pillar(p.x + p.face * 20, p.y, 22, '#ffe08a', 24); p.hp = Math.min(p.maxhp, p.hp + 15); ring(p.x, p.y, 40, '#ffe08a', 24); shake = 14; SFX.big(); }
+    if (t === 14) { for (const e of liveE()) { if (Math.abs(e.x - p.x) < 95 && Math.abs(e.y - p.y) < 48) pillar(e.x, e.y, 14, '#fff6c0', 24); } blast(p, p.x, p.y, 95, 48, 36, true, 30); pillar(p.x + p.face * 20, p.y, 22, '#ffe08a', 24); p.hp = Math.min(p.maxhp, p.hp + 15); ring(p.x, p.y, 95, '#ffe08a', 24); shake = 14; SFX.big(); }
     if (t >= 44) p.st = 'free';
   } else if (h === 'aveugle') {
     if (t === 1) { ultBanner('ECHOLOCATION', '#9df'); p.ping = 300; }

@@ -1,5 +1,5 @@
 /* ---------- boucle principale (pas fixe à 60 Hz) ---------- */
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, rdSlow = 0, rdSkip = false;
 function advance(now) {
   acc += Math.min(online ? 600 : 100, now - last); last = now;
   if (acc > 600) acc = 600;
@@ -8,7 +8,12 @@ function advance(now) {
 function frame(now) {
   advance(performance.now());
   try { ambUpdate(); } catch (e) { /* ignoré */ }
-  try { render(); } catch (e) { try { console.error(e); } catch (e2) { /* ignoré */ } }
+  rdSkip = !rdSkip;
+  if (!(rdSlow > 11 && rdSkip)) {                      // machine lente : le dessin passe à une image sur deux, la simulation garde ses 60 Hz (sinon le jeu ralentit et le délai réseau monte chez tout le monde)
+    const t0 = performance.now();
+    try { render(); } catch (e) { try { console.error(e); } catch (e2) { /* ignoré */ } }
+    rdSlow = rdSlow * 0.9 + (performance.now() - t0) * 0.1;
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

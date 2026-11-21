@@ -1606,7 +1606,7 @@ function updUlt(p, hr) {
     if (t >= 58) p.st = 'free';
   } else if (h === 'papy') {
     if (t === 1) ultBanner('COUP DE CANNE DIVIN', '#ffe08a');
-    if (t === 14) { for (const e of liveE()) { pillar(e.x, e.y, 14, '#fff6c0', 24); } blast(p, cam + W / 2, p.y, W, 130, 36, true, 30); pillar(p.x + p.face * 20, p.y, 22, '#ffe08a', 24); p.hp = Math.min(p.maxhp, p.hp + 15); ring(p.x, p.y, 40, '#ffe08a', 24); shake = 14; SFX.big(); }
+    if (t === 14) { for (const e of liveE()) { if (Math.abs(e.x - p.x) < 95 && Math.abs(e.y - p.y) < 48) pillar(e.x, e.y, 14, '#fff6c0', 24); } blast(p, p.x, p.y, 95, 48, 36, true, 30); pillar(p.x + p.face * 20, p.y, 22, '#ffe08a', 24); p.hp = Math.min(p.maxhp, p.hp + 15); ring(p.x, p.y, 95, '#ffe08a', 24); shake = 14; SFX.big(); }
     if (t >= 44) p.st = 'free';
   } else if (h === 'aveugle') {
     if (t === 1) { ultBanner('ECHOLOCATION', '#9df'); p.ping = 300; }
@@ -4276,7 +4276,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 13h50 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 17h05 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -4786,7 +4786,7 @@ function render() {
 }
 
 /* ---------- boucle principale (pas fixe à 60 Hz) ---------- */
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, rdSlow = 0, rdSkip = false;
 function advance(now) {
   acc += Math.min(online ? 600 : 100, now - last); last = now;
   if (acc > 600) acc = 600;
@@ -4795,7 +4795,12 @@ function advance(now) {
 function frame(now) {
   advance(performance.now());
   try { ambUpdate(); } catch (e) { /* ignoré */ }
-  try { render(); } catch (e) { try { console.error(e); } catch (e2) { /* ignoré */ } }
+  rdSkip = !rdSkip;
+  if (!(rdSlow > 11 && rdSkip)) {                      // machine lente : le dessin passe à une image sur deux, la simulation garde ses 60 Hz (sinon le jeu ralentit et le délai réseau monte chez tout le monde)
+    const t0 = performance.now();
+    try { render(); } catch (e) { try { console.error(e); } catch (e2) { /* ignoré */ } }
+    rdSlow = rdSlow * 0.9 + (performance.now() - t0) * 0.1;
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
