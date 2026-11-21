@@ -299,6 +299,35 @@ const T = {
     atk: { reach: 22, dmg: 10, tele: 20, dur: 14, act: [5, 8] }, score: 280, name: 'CRS CHARGE' },
   crsgaz: { hp: 38, sp: 0.66, sc: 1.05, ranged: true, gas: true, col: { shirt: '#1a2a55', pants: '#10183a', skin: '#d8a888', hair: '#222', acc: '#9acd4a', shoe: '#0a0a0a' },
     atk: { reach: 22, dmg: 7, tele: 30, dur: 14, act: [5, 8] }, score: 260, name: 'CRS LACRYMO' },
+  /* ---- ennemis des niveaux 6 à 10 ---- */
+  rodeur: { hp: 36, sp: 0.95, sc: 1, col: { shirt: '#4a4a5a', pants: '#22222c', skin: '#b8a090', hair: '#1a1a22', acc: '#8a8aa0', shoe: '#111' },
+    atk: { reach: 22, dmg: 9, tele: 20, dur: 13, act: [4, 7] }, score: 160, name: 'RÔDEUR' },
+  mineur: { hp: 80, sp: 0.5, sc: 1.25, armor: true, col: { shirt: '#6a4a2a', pants: '#2a2a30', skin: '#b88a62', hair: '#1a120a', acc: '#ffcc33', shoe: '#1a1a1a' },
+    atk: { reach: 32, dmg: 17, tele: 36, dur: 22, act: [8, 12], kd: true }, score: 300, name: 'MINEUR' },
+  torche: { hp: 28, sp: 0.7, sc: 1, ranged: true, pj: '#ff8a2a', col: { shirt: '#5a2a2a', pants: '#2a2020', skin: '#c99a74', hair: '#2a1a10', acc: '#ff8a2a', shoe: '#1a1a1a' },
+    atk: { reach: 22, dmg: 8, tele: 30, dur: 14, act: [5, 8] }, score: 210, name: 'LANCE-FEU' },
+  croupier: { hp: 36, sp: 1.1, sc: 1, col: { shirt: '#f2f2f4', pants: '#14141a', skin: '#e0b090', hair: '#14100c', acc: '#c0202a', shoe: '#0a0a0a' },
+    atk: { reach: 22, dmg: 9, tele: 17, dur: 13, act: [4, 7] }, score: 190, name: 'CROUPIER' },
+  videur: { hp: 100, sp: 0.6, sc: 1.2, armor: true, col: { shirt: '#16161c', pants: '#101016', skin: '#8a5a3c', hair: '#0a0a0a', acc: '#d4a017', shoe: '#0a0a0a' },
+    atk: { reach: 28, dmg: 16, tele: 28, dur: 18, act: [7, 10], kd: true }, score: 340, name: 'VIDEUR' },
+  parieur: { hp: 30, sp: 0.72, sc: 1, ranged: true, pj: '#ffd34d', col: { shirt: '#7a2a5a', pants: '#2a1a28', skin: '#e0b090', hair: '#d8c8a0', acc: '#ffd34d', shoe: '#e8e8e8' },
+    atk: { reach: 22, dmg: 8, tele: 28, dur: 14, act: [5, 8] }, score: 220, name: 'PARIEUR' },
+  mercenaire: { hp: 56, sp: 0.8, sc: 1.05, col: { shirt: '#4a5a3a', pants: '#2a3020', skin: '#c99a74', hair: '#14140e', acc: '#8a9a6a', shoe: '#14140e' },
+    atk: { reach: 24, dmg: 13, tele: 22, dur: 15, act: [5, 8] }, score: 330, name: 'MERCENAIRE' },
+  blinde: { hp: 120, sp: 0.5, sc: 1.25, armor: true, col: { shirt: '#4a4e58', pants: '#2a2c34', skin: '#b88a62', hair: '#101010', acc: '#8a909c', shoe: '#14141a' },
+    atk: { reach: 30, dmg: 18, tele: 34, dur: 20, act: [8, 11], kd: true }, score: 420, name: 'BLINDÉ' },
+  tireur: { hp: 42, sp: 0.66, sc: 1.05, ranged: true, gun: true, col: { shirt: '#2a2e3a', pants: '#1a1c24', skin: '#d8a888', hair: '#14100c', acc: '#ff4a3a', shoe: '#0a0a0a' },
+    atk: { reach: 22, dmg: 9, tele: 38, dur: 14, act: [5, 8] }, score: 380, name: 'TIREUR' },
+  agent: { hp: 52, sp: 0.85, sc: 1.05, col: { shirt: '#e8ecf2', pants: '#1a2a4a', skin: '#e0b090', hair: '#2a2a30', acc: '#2f6fd0', shoe: '#14141a' },
+    atk: { reach: 24, dmg: 12, tele: 20, dur: 14, act: [5, 8] }, score: 360, name: 'AGENT' },
+  mecano: { hp: 96, sp: 0.55, sc: 1.2, armor: true, col: { shirt: '#e0701a', pants: '#2a3a5a', skin: '#a8703e', hair: '#1a120a', acc: '#ffd34d', shoe: '#222' },
+    atk: { reach: 34, dmg: 18, tele: 32, dur: 20, act: [8, 12], kd: true }, score: 430, name: 'MÉCANO' },
+  pisteur: { hp: 50, sp: 0.85, sc: 1.05, charger: true, col: { shirt: '#e8c020', pants: '#2a2a32', skin: '#d9a07a', hair: '#1a1a1a', acc: '#ffffff', shoe: '#14141a' },
+    atk: { reach: 22, dmg: 11, tele: 18, dur: 14, act: [5, 8] }, score: 380, name: 'PISTEUR' },
+  valet: { hp: 54, sp: 1.0, sc: 1.05, col: { shirt: '#f4f0e8', pants: '#1a1018', skin: '#e0b090', hair: '#e0e0e8', acc: '#8a1a3a', shoe: '#0a0a0a' },
+    atk: { reach: 24, dmg: 13, tele: 17, dur: 13, act: [4, 7] }, score: 400, name: 'VALET' },
+  armure: { hp: 150, sp: 0.45, sc: 1.3, armor: true, col: { shirt: '#8a909c', pants: '#5a606c', skin: '#c99a74', hair: '#202028', acc: '#d4a017', shoe: '#4a505c' },
+    atk: { reach: 32, dmg: 20, tele: 36, dur: 22, act: [8, 12], kd: true }, score: 520, name: 'ARMURE' },
   boss: { hp: 220, sp: 1.0, sc: 1.4, armor: true, col: { shirt: '#26262e', pants: '#1a1a22', skin: '#d9a07a', hair: '#d02828', acc: '#d02828', shoe: '#111' },
     atk: { reach: 30, dmg: 10, tele: 22, dur: 16, act: [5, 8] }, score: 2000, name: 'LE CHEF' }
 };
@@ -370,8 +399,11 @@ for (const k of HERO_KEYS) {
 }
 /* ---------- niveaux : 4 lieux, difficulté croissante ----------
    hpM / dmgM / spdM : multiplicateurs de vie, dégâts et vitesse des ennemis ; coolM : pause entre deux attaques. */
+/* raccourci pour écrire une vague : wv(1000, 'rodeur:3 torche:1') -> 3 rôdeurs + 1 lance-feu, répartis des deux côtés de l'écran */
+const wv = (cam, s) => { const sp = []; let side = 1; for (const tk of s.split(' ')) { const [t, n] = tk.split(':'); for (let k = 0; k < (n | 0 || 1); k++) { sp.push([t, side]); side = -side; } } return { cam, spawn: sp }; };
+const BOSSW = { cam: 1920, boss: true, spawn: [['boss', 1]] };
 const LEVELS = [
-  { id: 0, bpm: 96, tr: 0, name: 'LA RUE', place: 'Quartier nord, la nuit', bg: 'street', hpM: 1, dmgM: 1, spdM: 1, coolM: 1, bossName: 'LE CHEF', bossHp: 220, summon: ['thug', 'thug'], tint: {},
+  { id: 0, bpm: 96, tr: 0, name: 'LA RUE', place: 'Quartier nord, la nuit', bg: 'street', hpM: 1.0, dmgM: 1.0, spdM: 1.0, coolM: 1.0, bossName: 'LE CHEF', bossHp: 220, summon: ['thug', 'thug'], tint: {},
     weapons: [[170, 232, 'tuyau'], [330, 205, 'batte'], [640, 228, 'couteau'], [900, 205, 'batte'], [1180, 235, 'tuyau'], [1450, 215, 'couteau'], [1700, 200, 'batte'], [2000, 228, 'tuyau']],
     barrels: [[300, 190], [520, 220], [760, 175], [1000, 205], [1300, 222], [1500, 182], [1650, 185], [1880, 212]],
     waves: [
@@ -382,7 +414,7 @@ const LEVELS = [
       { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['thug', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
-  { id: 1, bpm: 84, tr: -2, name: 'LE PORT', place: 'Docks au crépuscule', bg: 'port', hpM: 1.2, dmgM: 1.15, spdM: 1.08, coolM: 0.9, bossName: 'LE CAPITAINE', bossHp: 250, summon: ['marin', 'thrower'],
+  { id: 1, bpm: 84, tr: -2, name: 'LE PORT', place: 'Docks au crépuscule', bg: 'port', hpM: 1.12, dmgM: 1.1, spdM: 1.05, coolM: 0.92, bossName: 'LE CAPITAINE', bossHp: 250, summon: ['marin', 'thrower'],
     tint: { thug: { shirt: '#2f6f9a', pants: '#3a3a2a', hair: '#3a2a1a', acc: '#f0c030' }, brute: { shirt: '#8a6a2a', pants: '#2a3a4a', acc: '#e0e0e0' },
       thrower: { shirt: '#2a7a6a', hair: '#e8e8e8', acc: '#f0c030' }, boss: { shirt: '#1f3a6a', pants: '#14203a', hair: '#e8e8e8', acc: '#e8c040' } },
     weapons: [[190, 220, 'batte'], [420, 235, 'tuyau'], [700, 205, 'couteau'], [980, 230, 'tuyau'], [1240, 210, 'batte'], [1520, 232, 'couteau'], [1800, 215, 'batte'], [1240, 222, 'pistolet']],
@@ -396,7 +428,7 @@ const LEVELS = [
       { cam: 1760, spawn: [['brute', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
-  { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.45, dmgM: 1.3, spdM: 1.15, coolM: 0.8, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
+  { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.25, dmgM: 1.2, spdM: 1.1, coolM: 0.85, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
     tint: { thug: { shirt: '#c87a1a', pants: '#4a4a5a', hair: '#2a1a10', acc: '#ffcc00' }, brute: { shirt: '#7a2a1a', pants: '#3a3a3a', acc: '#ffcc00' },
       thrower: { shirt: '#4a5a6a', hair: '#c04a2a', acc: '#ff8a2a' }, boss: { shirt: '#8a3a10', pants: '#2a1a10', hair: '#6a3a1a', acc: '#ffcc00' } },
     weapons: [[200, 225, 'tuyau'], [460, 205, 'batte'], [740, 232, 'tuyau'], [1020, 215, 'couteau'], [1300, 200, 'batte'], [1580, 230, 'tuyau'], [1840, 210, 'couteau'], [740, 222, 'grenade'], [1580, 205, 'pistolet']],
@@ -411,7 +443,7 @@ const LEVELS = [
       { cam: 1800, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['thrower', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
-  { id: 3, bpm: 120, tr: -5, name: 'LE TOIT', place: 'Tour du Patron, sous l\'orage', bg: 'roof', hpM: 1.75, dmgM: 1.5, spdM: 1.22, coolM: 0.7, bossName: 'LE PATRON', bossHp: 340, summon: ['garde', 'garde'],
+  { id: 3, bpm: 120, tr: -5, name: 'LE TOIT', place: 'Tour du Patron, sous l\'orage', bg: 'roof', hpM: 1.4, dmgM: 1.3, spdM: 1.15, coolM: 0.78, bossName: 'LE PATRON', bossHp: 330, summon: ['garde', 'garde'],
     tint: { thug: { shirt: '#2a2a36', pants: '#15151f', hair: '#101018', acc: '#c0c0d0' }, brute: { shirt: '#40202a', pants: '#1a1a22', acc: '#c0c0d0' },
       thrower: { shirt: '#1a3a4a', hair: '#40e0ff', acc: '#40e0ff' }, boss: { shirt: '#e8e8f0', pants: '#d8d8e0', hair: '#d4a017', acc: '#d4a017' } },
     weapons: [[210, 215, 'batte'], [480, 232, 'couteau'], [760, 208, 'tuyau'], [1040, 228, 'batte'], [1330, 205, 'couteau'], [1620, 225, 'tuyau'], [1000, 222, 'grenade'], [1560, 208, 'mitraillette']],
@@ -426,7 +458,7 @@ const LEVELS = [
       { cam: 1780, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
-  { id: 4, bpm: 132, tr: 4, name: 'PARIS', place: 'Boulevard parisien, jour de manifestation', bg: 'paris', hpM: 2.0, dmgM: 1.65, spdM: 1.28, coolM: 0.62, bossName: 'LE PRÉSIDENT', bossHp: 380, summon: ['crs', 'crsc'],
+  { id: 4, bpm: 132, tr: 4, name: 'PARIS', place: 'Boulevard parisien, jour de manifestation', bg: 'paris', hpM: 1.55, dmgM: 1.4, spdM: 1.2, coolM: 0.72, bossName: 'LE PRÉSIDENT', bossHp: 380, summon: ['crs', 'crsc'],
     tint: { boss: { shirt: '#1c2a52', pants: '#141c38', hair: '#b8bcc8', acc: '#c02030' } },
     weapons: [[200, 218, 'pancarte'], [470, 232, 'pave'], [740, 205, 'pancarte'], [1010, 228, 'pave'], [1290, 210, 'pancarte'], [1580, 230, 'pave'], [1800, 208, 'pancarte'], [1010, 222, 'grenade'], [1620, 212, 'mitraillette']],
     barrels: [[330, 192], [610, 222], [890, 196], [1170, 226], [1450, 190], [1700, 218]],
@@ -439,7 +471,53 @@ const LEVELS = [
       { cam: 1580, spawn: [['crs', 1], ['crs', -1], ['crs', 1], ['crsgaz', -1], ['crsgaz', 1], ['crsc', -1]] },
       { cam: 1780, spawn: [['crsc', 1], ['crsc', -1], ['crs', 1], ['crs', -1], ['crsgaz', 1], ['crsgaz', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
-    ] }
+    ] },
+  { id: 5, bpm: 92, tr: -4, name: 'LES CATACOMBES', place: 'Ossuaire sous Paris', bg: 'cata', hpM: 1.7, dmgM: 1.5, spdM: 1.24, coolM: 0.66, bossName: 'LE FOSSOYEUR', bossHp: 430, summon: ['rodeur', 'mineur'],
+    tint: { boss: { shirt: '#2a2a30', pants: '#1a1a20', skin: '#b8a090', hair: '#c8c8d0', acc: '#9a8a5a' } },
+    weapons: [[200, 222, 'tuyau'], [470, 205, 'pave'], [740, 230, 'batte'], [1010, 212, 'couteau'], [1290, 228, 'pave'], [1560, 206, 'tuyau'], [1830, 224, 'batte'], [1010, 224, 'grenade']],
+    barrels: [[300, 192], [560, 224], [830, 188], [1100, 220], [1380, 194], [1650, 216], [1880, 200]],
+    waves: [wv(120, 'rodeur:3'), wv(400, 'rodeur:3 torche:1'), wv(680, 'mineur:1 rodeur:2 torche:1'), wv(960, 'rodeur:3 torche:2'), wv(1240, 'mineur:2 rodeur:2'),
+      wv(1480, 'mineur:1 torche:2 rodeur:2'), wv(1690, 'mineur:2 torche:2 rodeur:1'), wv(1820, 'mineur:2 rodeur:3 torche:1'), BOSSW],
+    traps: [{ t: 'steam', x: 340, y: 198, per: 200, ph: 0 }, { t: 'steam', x: 700, y: 228, per: 200, ph: 70 }, { t: 'steam', x: 1180, y: 205, per: 210, ph: 130 }, { t: 'steam', x: 1640, y: 226, per: 200, ph: 30 },
+      { t: 'fire', x: 560, y: 214, per: 220, ph: 20 }, { t: 'fire', x: 960, y: 232, per: 230, ph: 100 }, { t: 'fire', x: 1440, y: 200, per: 220, ph: 60 },
+      { t: 'crate', sk: 'rock', x: 440, y: 226, per: 240, ph: 60 }, { t: 'crate', sk: 'rock', x: 860, y: 200, per: 250, ph: 150 }, { t: 'crate', sk: 'rock', x: 1560, y: 222, per: 230, ph: 0 }] },
+  { id: 6, bpm: 116, tr: 2, name: 'LE CASINO', place: 'Casino « Le Royal »', bg: 'casino', hpM: 1.85, dmgM: 1.6, spdM: 1.28, coolM: 0.6, bossName: 'LE BANQUIER', bossHp: 480, summon: ['videur', 'croupier'],
+    tint: { boss: { shirt: '#14141a', pants: '#14141a', skin: '#e0b090', hair: '#c8c8d0', acc: '#d4a017' } },
+    weapons: [[190, 214, 'batte'], [450, 232, 'couteau'], [720, 206, 'tuyau'], [1000, 228, 'batte'], [1280, 210, 'couteau'], [1560, 232, 'tuyau'], [1820, 214, 'batte'], [1280, 224, 'pistolet'], [1700, 208, 'grenade']],
+    barrels: [[310, 196], [590, 226], [870, 192], [1150, 222], [1430, 190], [1710, 220]],
+    waves: [wv(120, 'croupier:3 parieur:1'), wv(380, 'croupier:2 videur:1 parieur:1'), wv(640, 'videur:1 croupier:3 parieur:1'), wv(900, 'croupier:3 parieur:2'), wv(1130, 'videur:2 croupier:2 parieur:1'),
+      wv(1340, 'croupier:4 parieur:2'), wv(1530, 'videur:2 parieur:2 croupier:2'), wv(1700, 'videur:2 croupier:3 parieur:1'), wv(1820, 'videur:2 croupier:2 parieur:2'), BOSSW],
+    traps: [{ t: 'cable', x: 380, y: 210, per: 220, ph: 0 }, { t: 'cable', x: 820, y: 228, per: 230, ph: 90 }, { t: 'cable', x: 1300, y: 200, per: 220, ph: 40 },
+      { t: 'fire', x: 600, y: 222, per: 230, ph: 40 }, { t: 'fire', x: 1480, y: 214, per: 220, ph: 120 },
+      { t: 'crate', sk: 'lustre', x: 520, y: 206, per: 240, ph: 30 }, { t: 'crate', sk: 'lustre', x: 1020, y: 230, per: 250, ph: 130 }, { t: 'crate', sk: 'lustre', x: 1700, y: 210, per: 230, ph: 80 }] },
+  { id: 7, bpm: 140, tr: 5, name: 'LE TRAIN', place: 'Train de nuit, plein vent', bg: 'train', hpM: 2.0, dmgM: 1.7, spdM: 1.32, coolM: 0.55, bossName: 'LE COLONEL', bossHp: 540, summon: ['mercenaire', 'tireur'],
+    tint: { boss: { shirt: '#4a5a32', pants: '#2a3220', skin: '#c99a74', hair: '#8a1a1a', acc: '#d4a017' } },
+    weapons: [[200, 226, 'tuyau'], [480, 208, 'batte'], [760, 230, 'couteau'], [1040, 212, 'tuyau'], [1320, 228, 'batte'], [1600, 206, 'couteau'], [1860, 224, 'tuyau'], [760, 218, 'pistolet'], [1600, 222, 'mitraillette']],
+    barrels: [[320, 198], [610, 228], [900, 194], [1180, 224], [1460, 196], [1740, 222]],
+    waves: [wv(120, 'mercenaire:3 tireur:1'), wv(360, 'mercenaire:2 blinde:1 tireur:1'), wv(600, 'tireur:2 mercenaire:3'), wv(830, 'blinde:1 mercenaire:2 tireur:2'), wv(1050, 'mercenaire:4 tireur:2'),
+      wv(1250, 'blinde:2 mercenaire:2 tireur:1'), wv(1440, 'tireur:3 mercenaire:2 blinde:1'), wv(1620, 'blinde:2 mercenaire:3 tireur:2'), wv(1790, 'blinde:2 tireur:2 mercenaire:2'), BOSSW],
+    traps: [{ t: 'cable', x: 360, y: 214, per: 210, ph: 0 }, { t: 'cable', x: 760, y: 200, per: 220, ph: 70 }, { t: 'cable', x: 1180, y: 232, per: 210, ph: 120 }, { t: 'cable', x: 1620, y: 208, per: 220, ph: 30 },
+      { t: 'steam', x: 560, y: 226, per: 200, ph: 40 }, { t: 'steam', x: 980, y: 198, per: 200, ph: 110 }, { t: 'steam', x: 1440, y: 222, per: 200, ph: 10 },
+      { t: 'belt', x: 640, w: 200, dir: -1 }, { t: 'belt', x: 1260, w: 240, dir: 1 }] },
+  { id: 8, bpm: 128, tr: -1, name: 'L\'AÉRODROME', place: 'Piste privée, à l\'aube', bg: 'aero', hpM: 2.15, dmgM: 1.8, spdM: 1.36, coolM: 0.5, bossName: 'LE CHEF DE PISTE', bossHp: 600, summon: ['agent', 'tireur'],
+    tint: { boss: { shirt: '#ff8a1a', pants: '#2a2a32', skin: '#a8703e', hair: '#e8e8e8', acc: '#e8e8e8' } },
+    weapons: [[210, 218, 'tuyau'], [490, 232, 'pave'], [770, 206, 'batte'], [1050, 228, 'tuyau'], [1330, 210, 'pave'], [1610, 230, 'batte'], [1870, 212, 'tuyau'], [770, 224, 'grenade'], [1330, 222, 'mitraillette'], [1870, 226, 'pistolet']],
+    barrels: [[300, 196], [580, 226], [860, 192], [1140, 222], [1420, 194], [1700, 220]],
+    waves: [wv(120, 'agent:3 pisteur:2'), wv(330, 'mecano:1 agent:2 tireur:2'), wv(520, 'pisteur:3 tireur:2 agent:1'), wv(710, 'mecano:2 agent:3'), wv(890, 'tireur:3 pisteur:2 agent:2'),
+      wv(1070, 'mecano:2 tireur:2 pisteur:2'), wv(1250, 'agent:4 tireur:2 mecano:1'), wv(1430, 'mecano:2 pisteur:3 tireur:2'), wv(1610, 'mecano:2 tireur:3 agent:2'), wv(1780, 'mecano:3 pisteur:2 tireur:2'), BOSSW],
+    traps: [{ t: 'belt', x: 420, w: 220, dir: 1 }, { t: 'belt', x: 1150, w: 250, dir: -1 },
+      { t: 'steam', x: 330, y: 202, per: 200, ph: 0 }, { t: 'steam', x: 800, y: 228, per: 200, ph: 60 }, { t: 'steam', x: 1000, y: 198, per: 190, ph: 120 }, { t: 'steam', x: 1560, y: 224, per: 200, ph: 30 },
+      { t: 'fire', x: 700, y: 216, per: 220, ph: 80 }, { t: 'fire', x: 1480, y: 204, per: 220, ph: 20 },
+      { t: 'crate', sk: 'cargo', x: 560, y: 224, per: 230, ph: 40 }, { t: 'crate', sk: 'cargo', x: 1300, y: 204, per: 240, ph: 130 }, { t: 'crate', sk: 'cargo', x: 1780, y: 226, per: 230, ph: 90 }] },
+  { id: 9, bpm: 148, tr: -7, name: 'LE CHÂTEAU', place: 'Château de l\'Architecte, sous l\'orage', bg: 'chateau', hpM: 2.3, dmgM: 1.9, spdM: 1.4, coolM: 0.46, bossName: 'L\'ARCHITECTE', bossHp: 700, summon: ['armure', 'valet'],
+    tint: { boss: { shirt: '#5a1a6a', pants: '#2a1030', skin: '#e0b090', hair: '#e8e8f0', acc: '#d4a017' } },
+    weapons: [[220, 222, 'batte'], [500, 206, 'tuyau'], [780, 230, 'pave'], [1060, 212, 'couteau'], [1340, 228, 'batte'], [1620, 208, 'pave'], [1880, 226, 'tuyau'], [780, 218, 'pistolet'], [1340, 214, 'mitraillette'], [1620, 224, 'grenade'], [1880, 208, 'grenade']],
+    barrels: [[310, 194], [590, 224], [870, 190], [1150, 220], [1430, 192], [1710, 218]],
+    waves: [wv(120, 'valet:3 tireur:1'), wv(320, 'armure:1 valet:2 tireur:1'), wv(510, 'tireur:2 valet:3'), wv(700, 'armure:2 valet:2 tireur:1'), wv(880, 'mercenaire:3 tireur:2 valet:1'),
+      wv(1060, 'armure:2 tireur:2 valet:2'), wv(1240, 'armure:1 mercenaire:3 tireur:3'), wv(1420, 'armure:3 valet:2 tireur:2'), wv(1600, 'armure:2 valet:3 tireur:3'), wv(1770, 'armure:3 tireur:3 mercenaire:2'), BOSSW],
+    traps: [{ t: 'bolt', per: 200, ph: 0 }, { t: 'bolt', per: 250, ph: 120 },
+      { t: 'fire', x: 420, y: 214, per: 220, ph: 0 }, { t: 'fire', x: 820, y: 198, per: 230, ph: 70 }, { t: 'fire', x: 1260, y: 230, per: 220, ph: 140 }, { t: 'fire', x: 1700, y: 206, per: 230, ph: 40 },
+      { t: 'crate', sk: 'rock', x: 560, y: 226, per: 230, ph: 50 }, { t: 'crate', sk: 'rock', x: 1040, y: 204, per: 240, ph: 150 }, { t: 'crate', sk: 'rock', x: 1500, y: 224, per: 230, ph: 100 }] }
 ];
 /* ---------- pièges : t = type ; per = durée du cycle (images) ; ph = décalage ----------
    cable : fil électrique (danger à la fin du cycle) · crate : caisse de grue · steam : jet de vapeur · press : presse · belt : tapis roulant · bolt : foudre */
@@ -476,7 +554,29 @@ LEVELS[1].bspec = [['wave'], ['wave', 'leap'], ['wave', 'leap']]; LEVELS[1].ult 
 LEVELS[2].bspec = [['quake'], ['quake', 'leap'], ['quake', 'leap']]; LEVELS[2].ult = 'furnace';
 LEVELS[3].bspec = [['shots'], ['shots', 'blink'], ['shots', 'blink']]; LEVELS[3].ult = 'storm';
 LEVELS[4].bspec = [['shots'], ['shots', 'escort'], ['shots', 'blink', 'escort']]; LEVELS[4].ult = 'jets';
+LEVELS[5].bspec = [['quake'], ['quake', 'wave'], ['quake', 'wave', 'leap']]; LEVELS[5].ult = 'rain'; LEVELS[5].ultTxt = 'LE PLAFOND S\'EFFONDRE : FUYEZ LES MARQUES !';
+LEVELS[6].bspec = [['shots'], ['shots', 'blink'], ['shots', 'blink', 'escort']]; LEVELS[6].ult = 'storm'; LEVELS[6].ultTxt = 'PLUIE DE JETONS : FUYEZ LES MARQUES !';
+LEVELS[7].bspec = [['leap'], ['leap', 'shots'], ['leap', 'shots', 'wave']]; LEVELS[7].ult = 'rush'; LEVELS[7].ultTxt = 'LE COLONEL CHARGE : ESQUIVEZ !';
+LEVELS[8].bspec = [['wave', 'shots'], ['wave', 'shots', 'blink'], ['wave', 'shots', 'blink', 'escort']]; LEVELS[8].ult = 'jets'; LEVELS[8].ultTxt = 'SOUFFLE DES RÉACTEURS : SORTEZ DES JETS !';
+LEVELS[9].bspec = [['shots', 'quake'], ['shots', 'blink', 'leap', 'wave'], ['shots', 'blink', 'escort', 'quake', 'leap', 'wave']]; LEVELS[9].ult = 'furnace'; LEVELS[9].ultTxt = 'SAUTEZ PAR-DESSUS LES ONDES !';
+/* ---------- histoire : un carton avant chaque niveau (chap = titre du chapitre) ---------- */
+const STORY = [
+  ['Racket', ['Quartier nord, minuit. Le Chef et sa bande font payer chaque commerce.', 'Personne n\'ose parler. Ce soir, quelqu\'un va leur répondre.', 'Nettoie la rue et remonte jusqu\'au Chef.']],
+  ['Cargaison', ['Dans la poche du Chef : un bordereau. Des caisses arrivent au port cette nuit.', 'Le Capitaine les réceptionne sans poser de questions.', 'Ce qu\'il y a dedans n\'a rien de légal.']],
+  ['Les fours', ['Les caisses étaient pleines de pièces d\'armes, toutes marquées du même sceau.', 'Elles sortent d\'une fonderie abandonnée qui tourne pourtant jour et nuit.', 'Le contremaître garde les clés. Il va falloir les lui reprendre.']],
+  ['Tout en haut', ['Les clés ouvrent un ascenseur privé. Un seul nom dans le registre : le Patron.', 'Il dirige tout depuis le sommet de sa tour, sous l\'orage.', 'Plus rien ne le protège, sauf ses gardes… et le vide.']],
+  ['Le sommet', ['Avant de tomber, le Patron souffle : « Je ne suis qu\'un employé. »', 'Son vrai patron, c\'est le pouvoir : un Président, au milieu d\'une manifestation.', 'La foule gronde et les CRS ont l\'ordre de te barrer la route.']],
+  ['Sous la ville', ['Le Président tombé laisse un carnet noir : un plan des catacombes, un point rouge.', 'Sous Paris, un ossuaire sert de coffre-fort à un Syndicat que personne ne connaît.', 'Il fait noir, il fait froid. Le Fossoyeur garde la porte.']],
+  ['Tapis rouge', ['Dans le coffre : des jetons, tous estampillés « Le Royal ».', 'Là-bas, l\'argent sale se lave dans le bruit des machines à sous.', 'Le Banquier compte ses gains. Fais sauter la banque.']],
+  ['Dernier wagon', ['Le Banquier a craqué : les valises partent chaque nuit par le train de trois heures.', 'Direction la côte et un aérodrome privé. Le convoi est déjà lancé.', 'Saute sur le toit. Le Colonel tient le dernier wagon.']],
+  ['Décollage immédiat', ['À l\'aube, le train s\'arrête au bord d\'une piste. Un jet chauffe ses moteurs.', 'Le chef du Syndicat doit s\'y trouver, prêt à disparaître pour de bon.', 'Le chef de piste a ordre de le protéger. Empêche ce jet de décoller !']],
+  ['L\'Architecte', ['Le jet était un leurre : l\'Architecte avait prévu l\'embuscade.', 'Il attend dans son château, entouré de valets, d\'armures et de mercenaires.', 'C\'est lui qui tirait toutes les ficelles depuis le début. Finis-le.']]
+];
+STORY.forEach((s, i) => { LEVELS[i].chap = s[0]; LEVELS[i].story = s[1]; });
+const ENDING = ['Le Syndicat est tombé. Les caisses, les fours, la tour, le pouvoir : tout se tenait par un seul fil.', 'Au petit matin, le quartier nord rouvre ses volets. Personne ne saura qui a fait ça.', 'Mais dans la rue, on raconte qu\'une nuit de fer a suffi.'];
 const ULT_TXT = { rush: 'ESQUIVEZ SES CHARGES !', rain: 'FUYEZ LES MARQUES AU SOL !', furnace: 'SAUTEZ PAR-DESSUS LES ONDES !', storm: 'FUYEZ LES MARQUES : FOUDRE !', jets: 'SORTEZ DES JETS DES CANONS À EAU !' };
+/* carton d'histoire (gèle la simulation pendant son affichage) */
+let storyOn = false, storyC = 0, storyA = 0, storyH = 0, storyTot = 0, storyD = null, storyEnd = false;
 let TR = [], simF = 0, HZ = [], ultT = 0, ultK = '';
 let LV = LEVELS[0], levelIdx = 0, startLevel = 0, introT = 0;
 
@@ -570,6 +670,16 @@ function loadLevel(i) {
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
   cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
+  if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
+}
+function startStory(chap, lines, last) { storyD = { chap, lines }; storyTot = lines.join('').length; storyC = 0; storyA = 0; storyH = 0; storyOn = true; storyEnd = !!last; }
+function updStory() {
+  storyA++;
+  if (storyC < storyTot) storyC = Math.min(storyTot, storyC + 1.1); else storyH++;
+  let press = false;
+  for (const p of PS) if (!p.out && (PRS[p.slot].punch || PRS[p.slot].jump)) press = true;
+  if (storyA > 45 && press) { if (storyC < storyTot) storyC = storyTot; else storyH = 9999; }     /* 1er appui : tout le texte ; 2e : on continue */
+  if (storyH > 420) { storyOn = false; if (storyEnd) { storyEnd = false; endGame('win'); } }
 }
 function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
@@ -1224,7 +1334,7 @@ function updEnemy(e) {
         }
       }
       if (goW) { tx = goW.x; ty = goW.y; }
-      else if (d.ranged && !e.weapon) tx = clamp(p.x + e.side * 150, cam + 24, cam + W - 24);
+      else if (d.ranged && !e.weapon && E.filter(z => !z.gone && !z.dying && z.type !== 'boss').length > 2) tx = clamp(p.x + e.side * 150, cam + 24, cam + W - 24);
       else tx = p.x + e.side * (busy ? 60 + e.slot : rr - 8);
       const dx = tx - e.x, dy = ty - e.y, dist = Math.sqrt(dx * dx + dy * dy);
       if (goW && Math.abs(dx) < 9 && Math.abs(dy) < 8) { goW.got = true; e.weapon = goW.type; e.wd = goW.wd; SFX.pick(); }
@@ -1247,7 +1357,8 @@ function updEnemy(e) {
       if (e.t >= e.tele) {
         e.t = 0; e.hit = new Set();
         if (e.mode === 'throw') {
-          PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
+          if (d.gun && !e.weapon) { PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.hit(); e.st = 'recover'; e.t = 0; break; }
+          PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, col: d.pj, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
           e.weapon = null; e.wd = 0;
           e.st = 'recover'; SFX.whoosh();
         } else if (e.mode === 'charge') { e.st = 'charge'; e.vx = e.face * (e.rush > 0 || e.ultR ? 5.4 : 3.8); SFX.whoosh(); }
@@ -2088,6 +2199,7 @@ function updOnline() {
 
 /* ---------- simulation d'une image de jeu (identique chez les deux joueurs en ligne) ---------- */
 function simStep() {
+  if (storyOn) { updStory(); return; }
   if (specOn) { updSpec(); return; }
   if (shake > 0) shake -= 0.5;
   if (tgtT > 0) tgtT--;
@@ -2118,7 +2230,7 @@ function simStep() {
   cam = Math.min(camLimit, Math.max(cam, lead - W * 0.42));
   if (waveI >= LV.waves.length && !waveActive && endT > 0) {
     endT--;
-    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else endGame('win'); }
+    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else startStory('Épilogue', ENDING, true); }
   }
 }
 
@@ -2509,7 +2621,245 @@ function drawBGParis(c) {
     g.globalAlpha = 0.14; g.fillStyle = '#e4eebc'; g.beginPath(); g.ellipse(x, y, 60 + hash(i + 2) * 30, 14, 0, 0, 7); g.fill(); g.globalAlpha = 1;
   }
 }
-function drawBG(c) { ({ street: drawBGStreet, port: drawBGPort, factory: drawBGFactory, roof: drawBGRoof, paris: drawBGParis }[LV.bg] || drawBGStreet)(c); }
+function drawBG(c) { ({ street: drawBGStreet, port: drawBGPort, factory: drawBGFactory, roof: drawBGRoof, paris: drawBGParis, cata: drawBGCata, casino: drawBGCasino, train: drawBGTrain, aero: drawBGAero, chateau: drawBGChateau }[LV.bg] || drawBGStreet)(c); }
+/* ====================================================================
+   DÉCORS DES NIVEAUX 6 À 10 : catacombes, casino, train, aérodrome, château
+   (même principe que les autres : plusieurs plans qui défilent à des vitesses différentes ; le sol commence à y = 150)
+   ==================================================================== */
+const gradCache = {};
+function vgrad(key, y1, stops) {
+  if (!gradCache[key]) { const gr = g.createLinearGradient(0, 0, 0, y1); for (const [o, col] of stops) gr.addColorStop(o, col); gradCache[key] = gr; }
+  return gradCache[key];
+}
+/* répète fn(i, x) pour chaque motif visible : step = espacement, par = vitesse de défilement du plan */
+function eachVis(c, par, step, fn) {
+  const cp = c * par;
+  for (let i = Math.floor(cp / step) - 1; i <= Math.floor((cp + W) / step) + 1; i++) fn(i, Math.round(i * step - cp));
+}
+
+/* ---------- 6 · CATACOMBES ---------- */
+function drawBGCata(c) {
+  g.fillStyle = vgrad('cata', 150, [[0, '#0c090f'], [1, '#2a1c26']]); g.fillRect(0, 0, W, 150);
+  // voûtes lointaines
+  eachVis(c, 0.22, 130, (i, x) => {
+    g.fillStyle = '#05040a'; g.beginPath(); g.moveTo(x + 14, 150); g.lineTo(x + 14, 78); g.arc(x + 65, 78, 51, Math.PI, 0); g.lineTo(x + 116, 150); g.closePath(); g.fill();
+    g.fillStyle = '#241b24'; g.fillRect(x - 2, 0, 16, 150); g.fillStyle = '#31242f'; g.fillRect(x, 0, 3, 150);
+    g.fillStyle = '#1c151d'; g.fillRect(x - 5, 0, 22, 6);
+  });
+  // mur d'ossements
+  eachVis(c, 0.55, 15, (i, x) => {
+    for (let r = 0; r < 3; r++) {
+      const h = hash(i * 7 + r * 31), yy = 112 + r * 12, ox = (r & 1) * 7;
+      if (h < 0.18) { g.fillStyle = '#b8b09a'; g.fillRect(x + ox, yy + 3, 12, 2); g.fillRect(x + ox - 1, yy + 2, 3, 4); g.fillRect(x + ox + 10, yy + 2, 3, 4); continue; }
+      g.fillStyle = '#cfc6aa'; g.fillRect(x + ox + 1, yy, 8, 7); g.fillRect(x + ox + 2, yy + 7, 6, 3);
+      g.fillStyle = '#1a1214'; g.fillRect(x + ox + 2, yy + 2, 2, 3); g.fillRect(x + ox + 6, yy + 2, 2, 3); g.fillRect(x + ox + 4, yy + 6, 1, 2);
+    }
+  });
+  g.fillStyle = 'rgba(8,5,10,.55)'; g.fillRect(0, 106, W, 44);
+  g.fillStyle = '#17111a'; g.fillRect(0, 104, W, 3);
+  // torches
+  eachVis(c, 0.8, 210, (i, x) => {
+    const fl = 0.8 + 0.2 * Math.sin(tick * 0.31 + i * 5) + (hash((tick >> 2) + i) > 0.9 ? 0.15 : 0);
+    g.fillStyle = '#2b2128'; g.fillRect(x + 8, 58, 5, 70); g.fillStyle = '#4a3a2a'; g.fillRect(x + 4, 54, 13, 5); g.fillRect(x + 6, 59, 9, 3);
+    g.globalAlpha = 0.1 * fl; g.fillStyle = '#ffb45a'; g.beginPath(); g.arc(x + 10, 50, 46, 0, 7); g.fill(); g.globalAlpha = 0.08 * fl; g.beginPath(); g.arc(x + 10, 50, 80, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.fillStyle = '#ff6a20'; g.beginPath(); g.moveTo(x + 6, 54); g.quadraticCurveTo(x + 5 + Math.sin(tick * 0.4 + i) * 2, 42 - 4 * fl, x + 10.5, 34 - 5 * fl); g.quadraticCurveTo(x + 15, 44, x + 15, 54); g.fill();
+    g.fillStyle = '#ffd070'; g.beginPath(); g.moveTo(x + 8, 54); g.quadraticCurveTo(x + 8, 46, x + 10.5, 41 - 3 * fl); g.quadraticCurveTo(x + 13, 47, x + 13, 54); g.fill();
+  });
+  // gouttes
+  for (let k = 0; k < 4; k++) { const ph = (tick * 1.6 + k * 61) % 150, x = Math.round(hash(k + 40) * W); if (ph > 40) { g.fillStyle = 'rgba(140,190,220,.7)'; g.fillRect(x, ph, 1, 3); } }
+  // sol : dalles, flaques, os
+  g.fillStyle = '#34292f'; g.fillRect(0, 150, W, H - 150);
+  g.fillStyle = '#3f3339'; g.fillRect(0, 150, W, 5); g.fillStyle = '#1a1318'; g.fillRect(0, 155, W, 1);
+  g.fillStyle = '#251c22';
+  for (let y = 168; y < H; y += 20) g.fillRect(0, y, W, 1);
+  eachVis(c, 1, 44, (i, x) => { for (let r = 0; r < 5; r++) g.fillRect(x + ((r & 1) ? 22 : 0), 156 + r * 20, 1, 20); });
+  eachVis(c, 1, 190, (i, x) => {
+    const yy = 190 + hash(i + 3) * 56;
+    g.fillStyle = 'rgba(70,110,140,.28)'; g.beginPath(); g.ellipse(x + 40, yy, 30 + hash(i) * 14, 5, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgba(160,200,230,.18)'; g.fillRect(x + 26, yy - 2, 12, 1);
+  });
+  eachVis(c, 1, 150, (i, x) => { if (hash(i + 90) > 0.45) { const yy = 176 + hash(i + 5) * 70; g.fillStyle = '#b8b09a'; g.fillRect(x + 20, yy, 9, 2); g.fillRect(x + 19, yy - 1, 2, 4); g.fillRect(x + 28, yy - 1, 2, 4); } });
+  // brume
+  for (let k = 0; k < 4; k++) { const x = ((hash(k + 20) * (W + 200) - tick * 0.25 - c * 0.3) % (W + 200) + W + 200) % (W + 200) - 100; g.globalAlpha = 0.07; g.fillStyle = '#b8c0d0'; g.beginPath(); g.ellipse(x, 168 + hash(k) * 70, 90, 12, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+}
+
+/* ---------- 7 · CASINO ---------- */
+function drawBGCasino(c) {
+  g.fillStyle = vgrad('casino', 150, [[0, '#1a0a14'], [1, '#4a1426']]); g.fillRect(0, 0, W, 150);
+  // tapisserie
+  eachVis(c, 0.3, 24, (i, x) => { g.fillStyle = (i & 1) ? '#3a0f1c' : '#45142a'; g.fillRect(x, 0, 24, 150); g.fillStyle = 'rgba(212,160,23,.18)'; g.fillRect(x + 11, 0, 2, 150); g.beginPath(); for (let y = 12; y < 140; y += 26) { g.moveTo(x + 12, y - 4); g.lineTo(x + 17, y); g.lineTo(x + 12, y + 4); g.lineTo(x + 7, y); g.closePath(); } g.fill(); });
+  g.fillStyle = '#1a0a10'; g.fillRect(0, 0, W, 8); g.fillStyle = '#d4a017'; g.fillRect(0, 8, W, 2);
+  // enseigne néon
+  eachVis(c, 0.45, 520, (i, x) => {
+    const on = hash((tick >> 4) + i) > 0.07;
+    g.font = 'bold 20px monospace'; g.textAlign = 'center';
+    g.globalAlpha = on ? 0.28 : 0.1; g.fillStyle = '#ff4aa0'; g.fillText('LE ROYAL', x + 150, 47); g.fillText('LE ROYAL', x + 151, 49); g.globalAlpha = 1;
+    g.fillStyle = on ? '#ffd0ea' : '#7a3a5a'; g.fillText('LE ROYAL', x + 150, 48);
+    g.strokeStyle = on ? '#ff4aa0' : '#5a2a44'; g.lineWidth = 1.5; g.strokeRect(x + 82, 24, 136, 32);
+  });
+  // lustres
+  eachVis(c, 0.5, 200, (i, x) => {
+    g.strokeStyle = '#333'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 40, 10); g.lineTo(x + 40, 62); g.stroke();
+    g.strokeStyle = '#d4a017'; g.lineWidth = 2; g.beginPath(); g.ellipse(x + 40, 64, 22, 6, 0, 0, 7); g.stroke();
+    for (let k = -2; k <= 2; k++) { const fl = hash((tick >> 3) + i * 5 + k) > 0.95 ? 0.6 : 1; g.fillStyle = fl > 0.9 ? '#fff4c0' : '#9a8a50'; g.fillRect(x + 40 + k * 8 - 1, 58, 2, 5); g.globalAlpha = 0.1; g.fillStyle = '#ffe9a0'; g.beginPath(); g.arc(x + 40 + k * 8, 58, 9, 0, 7); g.fill(); g.globalAlpha = 1; }
+    g.fillStyle = 'rgba(220,240,255,.7)'; for (let k = -4; k <= 4; k++) g.fillRect(x + 40 + k * 4.6, 68, 1, 5 + (k & 1) * 4);
+  });
+  // colonnes de marbre
+  eachVis(c, 0.7, 260, (i, x) => {
+    g.fillStyle = '#d8d0d8'; g.fillRect(x + 20, 12, 18, 138); g.fillStyle = '#f0e8f0'; g.fillRect(x + 22, 12, 4, 138); g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x + 33, 12, 5, 138);
+    g.fillStyle = '#d4a017'; g.fillRect(x + 16, 10, 26, 5); g.fillRect(x + 16, 144, 26, 6);
+  });
+  // rangée de machines à sous
+  eachVis(c, 0.9, 36, (i, x) => {
+    if (hash(i * 3 + 11) < 0.35) return;
+    const hue = hash(i + 50), body = hue < 0.5 ? '#3a1a5a' : '#1a3a5a', blink = hash((tick >> 3) + i) > 0.5;
+    g.fillStyle = body; g.fillRect(x + 3, 98, 28, 52); g.fillStyle = '#d4a017'; g.fillRect(x + 3, 98, 28, 3); g.fillRect(x + 3, 98, 2, 52); g.fillRect(x + 29, 98, 2, 52);
+    g.fillStyle = '#0a0a14'; g.fillRect(x + 7, 108, 20, 14); g.fillStyle = blink ? '#ff4a4a' : '#ffd34d'; g.fillRect(x + 9, 111, 4, 8); g.fillRect(x + 15, 111, 4, 8); g.fillRect(x + 21, 111, 4, 8);
+    g.fillStyle = blink ? '#ffd34d' : '#ff4aa0'; g.fillRect(x + 8, 102, 2, 2); g.fillRect(x + 16, 102, 2, 2); g.fillRect(x + 24, 102, 2, 2);
+    g.fillStyle = '#2a2a34'; g.fillRect(x + 8, 128, 18, 6); g.fillStyle = '#c0c0c8'; g.fillRect(x + 12, 130, 10, 2);
+  });
+  // sol : moquette rouge
+  g.fillStyle = '#5a0e1e'; g.fillRect(0, 150, W, H - 150);
+  g.fillStyle = '#d4a017'; g.fillRect(0, 150, W, 3); g.fillStyle = '#2a0610'; g.fillRect(0, 153, W, 5);
+  g.fillStyle = '#7a1a2c';
+  eachVis(c, 1, 48, (i, x) => { for (let r = 0; r < 4; r++) { const yy = 170 + r * 24, ox = (r & 1) * 24; g.beginPath(); g.moveTo(x + ox + 24, yy - 10); g.lineTo(x + ox + 36, yy); g.lineTo(x + ox + 24, yy + 10); g.lineTo(x + ox + 12, yy); g.closePath(); g.fill(); } });
+  g.fillStyle = 'rgba(212,160,23,.55)'; eachVis(c, 1, 48, (i, x) => { for (let r = 0; r < 4; r++) g.fillRect(x + ((r & 1) * 24) + 22, 170 + r * 24 - 1, 4, 2); });
+  g.fillStyle = '#d4a017'; g.fillRect(0, 262, W, 2);
+}
+
+/* ---------- 8 · TRAIN ---------- */
+function drawBGTrain(c) {
+  g.fillStyle = vgrad('train', 150, [[0, '#050818'], [1, '#2a3a66']]); g.fillRect(0, 0, W, 150);
+  g.fillStyle = '#dfe6f4'; for (let i = 0; i < 40; i++) g.fillRect(Math.floor(hash(i + 700) * W), Math.floor(hash(i + 800) * 90), 1, 1);
+  g.fillStyle = '#e8eefc'; g.beginPath(); g.arc(90, 38, 15, 0, 7); g.fill(); g.fillStyle = '#c0cbe4'; g.fillRect(84, 34, 5, 4); g.fillRect(94, 42, 4, 3);
+  // collines lointaines (défilent avec le temps : le train roule)
+  const d = tick * 0.6 + c * 0.1;
+  g.fillStyle = '#10183a'; g.beginPath(); g.moveTo(0, 150);
+  for (let x = 0; x <= W; x += 16) g.lineTo(x, 118 - 22 * Math.sin((x + d) * 0.011) - 12 * Math.sin((x + d) * 0.027 + 2)); g.lineTo(W, 150); g.closePath(); g.fill();
+  const d2 = tick * 1.6 + c * 0.3;
+  g.fillStyle = '#0a1028'; g.beginPath(); g.moveTo(0, 150);
+  for (let x = 0; x <= W; x += 12) g.lineTo(x, 134 - 10 * Math.sin((x + d2) * 0.03 + 1) - 5 * Math.sin((x + d2) * 0.09)); g.lineTo(W, 150); g.closePath(); g.fill();
+  // village : fenêtres allumées qui filent
+  for (let i = -1; i < 6; i++) {
+    const x = Math.round(((i * 130 - d2 * 0.9) % (W + 260) + W + 260) % (W + 260) - 100);
+    g.fillStyle = '#070a1c'; g.fillRect(x, 126, 22, 24); g.beginPath(); g.moveTo(x - 2, 126); g.lineTo(x + 11, 116); g.lineTo(x + 24, 126); g.fill();
+    if (hash(i + 31) > 0.3) { g.fillStyle = '#ffd27a'; g.fillRect(x + 5, 133, 4, 4); g.fillRect(x + 13, 133, 4, 4); }
+  }
+  // poteaux et lignes aériennes
+  const dp = tick * 4.2 + c * 0.9;
+  for (let i = -1; i < 6; i++) {
+    const x = Math.round(((i * 150 - dp) % (W + 300) + W + 300) % (W + 300) - 120);
+    g.fillStyle = '#05060f'; g.fillRect(x, 54, 3, 96); g.fillRect(x - 9, 60, 21, 3); g.fillRect(x - 7, 70, 17, 2);
+    g.strokeStyle = 'rgba(5,6,15,.8)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 8, 61); g.quadraticCurveTo(x + 75, 78, x + 142, 61); g.moveTo(x + 10, 61); g.quadraticCurveTo(x + 85, 74, x + 160, 61); g.stroke();
+  }
+  // traînées de vitesse
+  for (let k = 0; k < 8; k++) { const x = ((hash(k + 90) * (W + 120) - tick * (7 + hash(k) * 5)) % (W + 120) + W + 120) % (W + 120) - 60; g.globalAlpha = 0.16; g.fillStyle = '#cfd8f0'; g.fillRect(x, 60 + hash(k + 5) * 85, 28 + hash(k + 8) * 30, 1); g.globalAlpha = 1; }
+  // toit du train
+  g.fillStyle = '#323842'; g.fillRect(0, 150, W, H - 150);
+  g.fillStyle = '#5a626e'; g.fillRect(0, 150, W, 4); g.fillStyle = '#1a1e26'; g.fillRect(0, 154, W, 3);
+  g.fillStyle = '#2a2e38'; for (let y = 172; y < H; y += 16) g.fillRect(0, y, W, 1);
+  eachVis(c, 1, 300, (i, x) => {                                   // jonction entre deux wagons
+    g.fillStyle = '#0a0c12'; g.fillRect(x + 140, 150, 10, H - 150); g.fillStyle = '#4a505c'; g.fillRect(x + 138, 150, 2, H - 150); g.fillRect(x + 150, 150, 2, H - 150);
+    g.fillStyle = '#6a707c'; g.fillRect(x + 142, 160, 6, 3); g.fillRect(x + 142, 250, 6, 3);
+  });
+  eachVis(c, 1, 150, (i, x) => {                                   // lucarnes et ventilateurs
+    const yy = 176 + hash(i + 4) * 68;
+    g.fillStyle = '#1e222b'; g.fillRect(x + 40, yy, 34, 10); g.fillStyle = '#464c58'; g.fillRect(x + 40, yy, 34, 3);
+    g.fillStyle = '#12151b'; for (let k = 0; k < 5; k++) g.fillRect(x + 44 + k * 6, yy + 4, 3, 4);
+  });
+  eachVis(c, 1, 300, (i, x) => { g.fillStyle = '#7a808c'; for (let k = 0; k < 7; k++) { g.fillRect(x + 4, 160 + k * 14, 2, 2); } });
+}
+
+/* ---------- 9 · AÉRODROME ---------- */
+function drawBGAero(c) {
+  g.fillStyle = vgrad('aero', 150, [[0, '#1a1f55'], [0.5, '#a0507a'], [1, '#ffb066']]); g.fillRect(0, 0, W, 150);
+  g.fillStyle = '#ffe2a0'; g.beginPath(); g.arc(320, 142, 34, Math.PI, 0); g.fill(); g.globalAlpha = 0.18; g.fillStyle = '#fff0c0'; g.beginPath(); g.arc(320, 142, 58, Math.PI, 0); g.fill(); g.globalAlpha = 1;
+  // nuages
+  for (let k = 0; k < 5; k++) { const x = ((hash(k + 2) * (W + 240) - tick * 0.12 - c * 0.05) % (W + 240) + W + 240) % (W + 240) - 120; g.globalAlpha = 0.35; g.fillStyle = '#ffc8c0'; g.beginPath(); g.ellipse(x, 30 + hash(k) * 50, 70, 6, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  // lisière d'arbres
+  g.fillStyle = '#2a1a3a'; eachVis(c, 0.12, 26, (i, x) => { const h = 12 + hash(i + 60) * 22; g.beginPath(); g.ellipse(x + 13, 146 - h * 0.5, 15, h, 0, 0, 7); g.fill(); });
+  // tour de contrôle
+  eachVis(c, 0.3, 640, (i, x) => {
+    g.fillStyle = '#4a3a5a'; g.fillRect(x + 300, 70, 10, 80); g.fillStyle = '#6a5a7a'; g.fillRect(x + 288, 52, 34, 20); g.fillStyle = '#3a2a4a'; g.fillRect(x + 284, 48, 42, 5);
+    g.fillStyle = '#ffd27a'; for (let k = 0; k < 4; k++) g.fillRect(x + 291 + k * 8, 58, 6, 8);
+    g.fillStyle = (tick >> 4) & 1 ? '#ff4a3a' : '#5a1a1a'; g.fillRect(x + 304, 38, 2, 10); g.fillRect(x + 303, 36, 4, 3);
+  });
+  // hangars
+  eachVis(c, 0.42, 380, (i, x) => {
+    g.fillStyle = '#5a4a6a'; g.beginPath(); g.moveTo(x + 20, 150); g.lineTo(x + 20, 112); g.quadraticCurveTo(x + 110, 70, x + 200, 112); g.lineTo(x + 200, 150); g.closePath(); g.fill();
+    g.fillStyle = '#463858'; for (let k = 0; k < 8; k++) g.fillRect(x + 20 + k * 22.5, 100 + Math.abs(k - 3.5) * 4, 1, 50 - Math.abs(k - 3.5) * 4);
+    g.fillStyle = '#2a2038'; g.fillRect(x + 70, 118, 80, 32); g.fillStyle = '#ffe9a0'; g.globalAlpha = 0.5; g.fillRect(x + 100, 122, 20, 28); g.globalAlpha = 1;
+  });
+  // avions garés
+  eachVis(c, 0.62, 420, (i, x) => {
+    const sx = x + 120;
+    g.fillStyle = '#e8e4f0'; g.beginPath(); g.ellipse(sx, 128, 46, 9, 0, 0, 7); g.fill();
+    g.fillStyle = '#b8b4c8'; g.beginPath(); g.moveTo(sx - 34, 124); g.lineTo(sx - 52, 98); g.lineTo(sx - 44, 98); g.lineTo(sx - 22, 124); g.fill();
+    g.fillStyle = '#c8c4d8'; g.beginPath(); g.moveTo(sx - 4, 130); g.lineTo(sx - 28, 142); g.lineTo(sx + 10, 134); g.closePath(); g.fill();
+    g.fillStyle = '#2a3a6a'; for (let k = 0; k < 9; k++) g.fillRect(sx - 28 + k * 5.6, 125, 3, 3); g.fillRect(sx + 28, 124, 10, 4);
+    g.fillStyle = '#c04a3a'; g.fillRect(sx - 40, 128, 78, 1.5);
+  });
+  // clôture + balises de piste
+  g.fillStyle = '#20182c'; g.fillRect(0, 146, W, 4);
+  eachVis(c, 0.9, 40, (i, x) => { g.fillStyle = '#20182c'; g.fillRect(x, 132, 2, 18); const on = ((tick >> 4) + i) % 3 === 0; g.fillStyle = on ? '#ffe36a' : '#8a7a3a'; g.fillRect(x - 1, 130, 4, 3); });
+  // sol : tarmac
+  g.fillStyle = '#3a3c48'; g.fillRect(0, 150, W, H - 150);
+  g.fillStyle = '#4a4c5a'; g.fillRect(0, 150, W, 4); g.fillStyle = '#2a2c36'; g.fillRect(0, 154, W, 2);
+  g.fillStyle = '#e8c020'; eachVis(c, 1, 64, (i, x) => g.fillRect(x, 205, 36, 3));
+  g.fillStyle = '#2f313c'; eachVis(c, 1, 120, (i, x) => { g.fillRect(x, 160, 1, H - 160); });
+  eachVis(c, 1, 170, (i, x) => { g.fillStyle = 'rgba(20,20,30,.4)'; g.beginPath(); g.ellipse(x + 50, 180 + hash(i + 11) * 66, 20, 4, 0, 0, 7); g.fill(); });
+  g.fillStyle = '#c8c8d4'; eachVis(c, 1, 300, (i, x) => { for (let k = 0; k < 4; k++) g.fillRect(x + 20 + k * 6, 236, 3, 12); });
+}
+
+/* ---------- 10 · CHÂTEAU ---------- */
+function drawBGChateau(c) {
+  g.fillStyle = vgrad('chateau', 150, [[0, '#07040f'], [1, '#3a1430']]); g.fillRect(0, 0, W, 150);
+  // éclairs
+  const fz = (tick % 360) < 5 ? 0.35 : (tick % 211) < 3 ? 0.2 : 0;
+  if (fz) { g.globalAlpha = fz; g.fillStyle = '#e8e0ff'; g.fillRect(0, 0, W, 150); g.globalAlpha = 1; }
+  // nuages
+  for (let k = 0; k < 6; k++) { const x = ((hash(k + 4) * (W + 260) - tick * 0.3 - c * 0.08) % (W + 260) + W + 260) % (W + 260) - 130; g.globalAlpha = 0.5; g.fillStyle = '#1a0e24'; g.beginPath(); g.ellipse(x, 20 + hash(k) * 55, 90, 10, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  g.fillStyle = '#c04a5a'; g.beginPath(); g.arc(380, 40, 14, 0, 7); g.fill(); g.globalAlpha = 0.15; g.beginPath(); g.arc(380, 40, 26, 0, 7); g.fill(); g.globalAlpha = 1;
+  // silhouette du château lointain
+  eachVis(c, 0.16, 300, (i, x) => {
+    g.fillStyle = '#12091c'; g.fillRect(x + 20, 80, 260, 70);
+    for (const [tx, th, tw] of [[10, 100, 30], [120, 64, 26], [190, 110, 34], [262, 72, 26]]) {
+      g.fillRect(x + tx, 150 - th, tw, th); g.beginPath(); g.moveTo(x + tx - 3, 150 - th); g.lineTo(x + tx + tw / 2, 150 - th - 28); g.lineTo(x + tx + tw + 3, 150 - th); g.closePath(); g.fill();
+      g.fillStyle = '#ffd27a'; g.fillRect(x + tx + tw / 2 - 1.5, 150 - th + 12, 3, 6); g.fillRect(x + tx + tw / 2 - 1.5, 150 - th + 34, 3, 6); g.fillStyle = '#12091c';
+    }
+    for (let k = 0; k < 12; k++) g.fillRect(x + 20 + k * 22, 74, 12, 7);
+  });
+  // rempart
+  eachVis(c, 0.45, 120, (i, x) => {
+    g.fillStyle = '#241a34'; g.fillRect(x, 92, 120, 58); for (let k = 0; k < 6; k++) g.fillRect(x + k * 20 + 2, 85, 12, 8);
+    g.fillStyle = '#31244a'; for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) g.fillRect(x + k * 20 + (r & 1) * 10, 100 + r * 12, 18, 1);
+    if (hash(i + 77) > 0.4) { g.fillStyle = '#0a0612'; g.beginPath(); g.moveTo(x + 40, 150); g.lineTo(x + 40, 118); g.arc(x + 60, 118, 20, Math.PI, 0); g.lineTo(x + 80, 150); g.fill(); g.fillStyle = '#ffb45a'; g.globalAlpha = 0.25; g.fillRect(x + 50, 124, 20, 26); g.globalAlpha = 1; }
+  });
+  // bannières et torches en avant-plan
+  eachVis(c, 0.8, 200, (i, x) => {
+    g.fillStyle = '#2a2234'; g.fillRect(x + 10, 20, 5, 130); g.fillStyle = '#d4a017'; g.fillRect(x + 4, 18, 17, 3);
+    const w = Math.sin(tick * 0.08 + i * 2) * 3;
+    g.fillStyle = '#7a1a8a'; g.beginPath(); g.moveTo(x + 20, 24); g.lineTo(x + 58 + w, 26); g.lineTo(x + 52 + w, 52); g.lineTo(x + 58 + w, 78); g.lineTo(x + 20, 76); g.closePath(); g.fill();
+    g.fillStyle = '#d4a017'; g.fillRect(x + 32, 40, 12, 12);
+    const fl = 0.8 + 0.2 * Math.sin(tick * 0.33 + i);
+    g.fillStyle = '#ff6a20'; g.beginPath(); g.moveTo(x + 5, 104); g.quadraticCurveTo(x + 3, 92 - 3 * fl, x + 12, 84 - 4 * fl); g.quadraticCurveTo(x + 21, 92, x + 19, 104); g.fill();
+    g.globalAlpha = 0.1 * fl; g.fillStyle = '#ffb45a'; g.beginPath(); g.arc(x + 12, 94, 40, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.fillStyle = '#4a3a2a'; g.fillRect(x + 4, 104, 16, 5);
+  });
+  // sol : cour pavée et tapis rouge
+  g.fillStyle = '#2a2430'; g.fillRect(0, 150, W, H - 150);
+  g.fillStyle = '#3a3242'; g.fillRect(0, 150, W, 4); g.fillStyle = '#16101c'; g.fillRect(0, 154, W, 2);
+  g.fillStyle = '#1e1826';
+  for (let y = 166; y < H; y += 14) g.fillRect(0, y, W, 1);
+  eachVis(c, 1, 36, (i, x) => { for (let r = 0; r < 7; r++) g.fillRect(x + ((r & 1) ? 18 : 0), 156 + r * 14, 1, 14); });
+  g.fillStyle = '#6a1230'; g.fillRect(0, 196, W, 34); g.fillStyle = '#d4a017'; g.fillRect(0, 196, W, 2); g.fillRect(0, 228, W, 2);
+  g.fillStyle = 'rgba(212,160,23,.5)'; eachVis(c, 1, 40, (i, x) => { g.fillRect(x + 8, 211, 10, 2); });
+  eachVis(c, 1, 210, (i, x) => { g.fillStyle = 'rgba(90,120,160,.22)'; g.beginPath(); g.ellipse(x + 60, 176 + hash(i + 8) * 76, 28, 4, 0, 0, 7); g.fill(); });
+  // pluie
+  g.strokeStyle = 'rgba(170,190,230,.35)'; g.lineWidth = 1; g.beginPath();
+  for (let k = 0; k < 46; k++) { const x = (hash(k + 300) * W + tick * 3.4) % (W + 40) - 20, y = (hash(k + 400) * H + tick * 9) % H; g.moveTo(x, y); g.lineTo(x - 3, y + 9); }
+  g.stroke();
+}
 /* ---------- personnages : rendu vectoriel lissé (haute définition) ----------
    Chaque personnage est dessiné en vectoriel (courbes, dégradés, contours fins) dans un canvas
    suréchantillonné (SS fois), puis réduit en douceur sur le jeu, qui tourne lui-même en 3x. */
@@ -2522,7 +2872,8 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug', rodeur: 'thug', mineur: 'brute', torche: 'thrower', croupier: 'thug', videur: 'thug', parieur: 'thrower', mercenaire: 'thug', blinde: 'thug', tireur: 'thug', agent: 'thug', mecano: 'thug', pisteur: 'thug', valet: 'thug', armure: 'thug' };
+const SUIT = { croupier: 1, videur: 1, agent: 1, valet: 1, mecano: 1, mercenaire: 1, blinde: 1, tireur: 1, armure: 1, pisteur: 1, garde: 1 };     /* manches longues : bras couverts */
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
   if (!t) return pal(d);
@@ -2755,7 +3106,7 @@ function drawChar(e) {
   const tw = { cogneur: [6.2, 5.2], vive: [5.2, 4.2], costaud: [8, 6.6], thug: [5.8, 4.8], brute: [8, 6.4], thrower: [5.8, 5.2], boss: [6.4, 5.8], papy: [5.2, 4.8] }[type];
   const hx = lean + hdx, hy = shY - 11 + (st === 'hurt' ? 1 : 0);
   const armW = (type === 'brute' || type === 'costaud') ? 4.4 : 3.4;
-  const bare = type === 'thug' || type === 'brute' || type === 'vive' || type === 'costaud';
+  const bare = (type === 'thug' || type === 'brute' || type === 'vive' || type === 'costaud') && !SUIT[kind];
   const sleeveN = bare ? S.skin : S.shirt, sleeveF = bare ? S.skinD : S.shirtD;
   const armColN = type === 'vive' ? S.skin : S.skin;
 
@@ -2814,7 +3165,7 @@ function drawChar(e) {
       g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(cf(0.7) - 0.4, shY + 8.5, 0.8, 3);
       break;
     case 'thug':
-      g.fillStyle = S.skin; g.fillRect(TL - 3, ty, 3.2, 6); g.fillRect(TR - 0.2, ty, 4, 6);
+      g.fillStyle = SUIT[kind] ? S.shirtD : S.skin; g.fillRect(TL - 3, ty, 3.2, 6); g.fillRect(TR - 0.2, ty, 4, 6);
       g.fillStyle = S.acc; g.fillRect(cf(0.2) - 0.9, shY + 3, 1.8, 3);
       band(12, 14, '#222');
       break;
@@ -2843,7 +3194,15 @@ function drawChar(e) {
   switch (kind) {
     case 'marin': for (let i = 0; i < 5; i++) band(i * 3 - 0.4, i * 3 + 1, S.acc); break;
     case 'soudeur': band(3, 14, '#7a5a2a'); g.fillStyle = '#563c1a'; g.fillRect(cf(0.45) - 2.2, shY + 5.5, 4.4, 3.4); g.fillStyle = '#c9c9c9'; g.fillRect(TL + 1, ty, 1.2, 4); g.fillRect(TR - 2.2, ty, 1.2, 4); break;
-    case 'garde':
+    case 'croupier':
+      band(5, 14, '#14141a'); poly([[cf(0.02) - 2, ty], [cf(0.02) + 2.6, ty], [cf(0.5) + 0.6, shY + 6]], '#f2f2f4', false);
+      g.fillStyle = '#c0202a'; g.fillRect(cf(0.3) - 0.2, shY + 0.4, 3.2, 1.5); break;
+    case 'mecano': band(5, 14, S.pants); g.fillStyle = S.pantsD; g.fillRect(cf(0.5) - 1, shY + 6, 4, 3); g.fillStyle = S.acc; g.fillRect(cf(0.2) - 0.8, shY + 5, 1.2, 2); break;
+    case 'mercenaire': band(1, 10, '#2c3424'); g.fillStyle = '#14180e'; for (const k of [0.25, 0.5, 0.75]) g.fillRect(cf(k) - 1.2, shY + 5, 2.6, 3.2); break;
+    case 'blinde': case 'armure': band(0, 11, kind === 'armure' ? '#9aa0ac' : '#6a707c'); g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(TL + 1, ty + 1, 1.6, 8); g.fillStyle = S.acc; for (const k of [0.2, 0.8]) g.fillRect(cf(k) - 0.6, shY + 2, 1.4, 1.4); band(11, 14, '#3a3e48'); break;
+    case 'tireur': band(1, 11, '#1a1c24'); g.fillStyle = S.acc; g.fillRect(cf(0.5) - 0.5, shY + 1, 1.2, 10); break;
+    case 'pisteur': band(3.2, 4.8, '#f4f4f8'); band(8, 9.6, '#f4f4f8'); break;
+    case 'garde': case 'videur': case 'agent': case 'valet':
       poly([[cf(0.02) - 2, ty], [cf(0.02) + 2.6, ty], [cf(0.5) + 0.6, shY + 7.5]], '#e8e8f0', false);
       g.fillStyle = '#b02020'; g.fillRect(cf(0.3) - 0.2, shY + 0.5, 1.5, 7.5);
       g.strokeStyle = 'rgba(255,255,255,.16)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(cf(0.02) - 2.2, ty); g.lineTo(cf(0.6) + 0.4, shY + 9); g.stroke();
@@ -2856,6 +3215,9 @@ function drawChar(e) {
     const sw = 2.2; g.lineWidth = sw;
     for (const [off, col] of [[-2.2, '#2a4bd0'], [0, '#f4f4f8'], [2.2, '#d02838']]) { g.strokeStyle = col; g.beginPath(); g.moveTo(TL - 1 + off, ty - 1); g.lineTo(BR + 1 + off, by + 1); g.stroke(); }
   }
+  if (type === 'boss' && LV.id === 7) { for (let i = 0; i < 3; i++) { g.fillStyle = ['#d4a017', '#c02030', '#2f6fd0'][i]; g.fillRect(cf(0.12) + i * 2.4, shY + 2.4, 1.8, 2.4); } }
+  else if (type === 'boss' && LV.id === 8) { band(3, 4.4, '#f4f4f8'); band(8.4, 9.8, '#f4f4f8'); }
+  else if (type === 'boss' && LV.id === 9) { band(0, 1.4, '#d4a017'); band(12.4, 14, '#d4a017'); }
   if (kind === 'dalto') { g.fillStyle = '#35a845'; g.fillRect(cf(0.5) - 6.4, ty, 3, 22); g.fillRect(cf(0.5) + 3.4, ty, 3, 22); g.fillStyle = '#e8a020'; g.fillRect(cf(0.5) - 2.6, ty, 1.4, 22); }
   g.restore();
   torsoPath(); g.lineWidth = LW; g.strokeStyle = OL; g.lineJoin = 'round'; g.stroke();
@@ -2918,8 +3280,8 @@ function drawChar(e) {
     case 'thug':
       g.beginPath(); g.moveTo(HX - 5.5, HY + 0.6); g.quadraticCurveTo(HX - 6, HY - 6, HX, HY - 6.4); g.quadraticCurveTo(HX + 5.4, HY - 6.2, HX + 5.6, HY - 2.6); g.quadraticCurveTo(HX + 2, HY - 4, HX - 1.6, HY - 2.8); g.quadraticCurveTo(HX - 3.4, HY - 1.6, HX - 3.6, HY + 1); g.closePath();
       g.fillStyle = S.hair; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
-      g.strokeStyle = '#c04040'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX + 1.4, HY - 1.8); g.lineTo(HX + 2.3, HY + 1.4); g.stroke();
-      ell(HX - 2.1, HY + 2.6, 0.9, 0.9, S.acc, false);
+      if (kind === 'thug') { g.strokeStyle = '#c04040'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX + 1.4, HY - 1.8); g.lineTo(HX + 2.3, HY + 1.4); g.stroke();
+      ell(HX - 2.1, HY + 2.6, 0.9, 0.9, S.acc, false); }
       g.fillStyle = 'rgba(30,20,20,.35)'; g.beginPath(); g.ellipse(HX + 2.8, HY + 4, 2.6, 1.2, 0, 0, 7); g.fill();
       break;
     case 'brute':
@@ -2992,7 +3354,35 @@ function drawChar(e) {
       g.fillStyle = shade(S.acc, -0.2); g.fillRect(HX - 6.8, HY - 4.6, 13.6, 1.5); g.fillRect(HX + 1.6, HY - 4.6, 6.4, 2.2);
       g.fillStyle = '#6a4a10'; g.fillRect(HX - 0.8, HY - 8.6, 1.6, 4);
       break;
-    case 'garde':
+    case 'rodeur':
+      poly([[HX - 6.6, HY + 3], [HX - 6.8, HY - 6.4], [HX, HY - 9], [HX + 6.4, HY - 6], [HX + 6.6, HY - 1.2], [HX + 3, HY - 3.6], [HX - 3.4, HY - 3.2]], shade(S.shirt, -0.12));
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(HX + 0.6, HY - 2.6, 6, 2.2); break;
+    case 'mineur': case 'mecano':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 4.2, 6.9, 4.4, 0, Math.PI, 0); g.closePath(); g.fillStyle = kind === 'mineur' ? '#ffcc33' : '#f0e040'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(HX - 6.8, HY - 4.4, 13.6, 1.4);
+      if (kind === 'mineur') { ell(HX + 5.6, HY - 5.4, 1.8, 1.6, (tick >> 3) & 1 ? '#fffbe0' : '#ffe9a0'); g.globalAlpha = 0.12; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(HX + 6, HY - 5.4); g.lineTo(HX + 40, HY - 16); g.lineTo(HX + 40, HY + 8); g.closePath(); g.fill(); g.globalAlpha = 1; } break;
+    case 'torche': poly([[HX - 5.8, HY - 3.6], [HX + 5.9, HY - 3.8], [HX + 5.9, HY - 2.2], [HX - 5.8, HY - 2]], S.acc); ell(HX - 6.4, HY - 2.6, 1.8, 2, S.acc);
+      g.fillStyle = '#1c1c24'; g.fillRect(HX + 1.2, HY - 1.6, 5.4, 2.4); g.fillStyle = '#7fe8ff'; g.fillRect(HX + 2, HY - 1.2, 1.4, 1.2); g.fillRect(HX + 4.4, HY - 1.2, 1.4, 1.2); break;
+    case 'croupier': poly([[HX - 5, HY - 3.2], [HX + 7.2, HY - 3.2], [HX + 5, HY - 0.6], [HX - 4, HY - 0.8]], 'rgba(60,200,120,.9)'); g.fillStyle = '#14141a'; g.fillRect(HX - 5.8, HY - 4, 12.6, 1); break;
+    case 'parieur': ell(HX - 0.3, HY - 5.2, 7.6, 1.7, '#2a1a28', OL); rrect(HX - 4.4, HY - 11.4, 8.8, 6.6, 1.4, '#2a1a28', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.3, HY - 7.4, 8.6, 1.5); break;
+    case 'mercenaire':
+      poly([[HX - 6.2, HY + 2.4], [HX - 6.4, HY - 6], [HX, HY - 8.2], [HX + 6, HY - 6], [HX + 6.4, HY - 1.8], [HX + 1.2, HY - 2.6], [HX - 3.6, HY - 2.4], [HX - 4, HY + 2.4]], '#181a16');
+      g.fillStyle = '#d8c0a0'; g.fillRect(HX + 0.8, HY - 2.2, 5.6, 1.7); break;
+    case 'blinde': case 'armure':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 1.6, 7, 7.4, 0, 0, 7); g.fillStyle = kind === 'armure' ? '#9aa0ac' : '#5a606c'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = '#0c0c12'; g.fillRect(HX + 0.2, HY - 2.4, 6.6, 1.6); if (kind === 'armure') { g.fillRect(HX + 3.4, HY - 0.8, 0.9, 4); poly([[HX - 1, HY - 8.6], [HX + 3, HY - 8.6], [HX + 7, HY - 13 + Math.sin(tick * 0.2) * 1.2], [HX - 3, HY - 10]], S.acc); } else { g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(HX - 4, HY - 7, 5, 1.2); } break;
+    case 'tireur':
+      poly([[HX - 5.8, HY - 3], [HX - 5.4, HY - 6.4], [HX, HY - 7.6], [HX + 5.6, HY - 6.2], [HX + 6, HY - 3], [HX + 1, HY - 3.8]], '#20242e');
+      g.strokeStyle = '#9aa0ac'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX - 5.6, HY - 1); g.quadraticCurveTo(HX - 6, HY + 4, HX - 2, HY + 5); g.stroke();
+      rrect(HX + 0.6, HY - 1.6, 6, 2.8, 0.9, '#08080e'); ell(HX + 6.8, HY - 0.2, 1.1, 1.1, (tick >> 3) & 1 ? '#ff3a2a' : '#a01808', false); break;
+    case 'agent':
+      poly([[HX - 5.8, HY - 2.6], [HX - 5.4, HY - 6.6], [HX, HY - 7.8], [HX + 5.4, HY - 6.4], [HX + 6, HY - 2.8], [HX + 1, HY - 3.8]], '#1a2a4a');
+      poly([[HX + 1.8, HY - 3.8], [HX + 8.6, HY - 3], [HX + 8.2, HY - 1.9], [HX + 1.8, HY - 2.8]], '#101a30'); ell(HX - 0.4, HY - 5.2, 1.4, 1.2, S.acc, false); break;
+    case 'pisteur':
+      g.strokeStyle = '#e8e8ee'; g.lineWidth = 1.5; g.beginPath(); g.arc(HX - 0.4, HY - 1.4, 6.6, Math.PI * 1.02, Math.PI * 1.98); g.stroke();
+      ell(HX - 5.8, HY + 0.8, 2.4, 3, '#d02828', OL); ell(HX + 5.2, HY + 0.8, 2.2, 2.8, '#d02828', OL); break;
+    case 'valet': ell(HX - 1, HY - 4.6, 6.4, 3.8, '#f0f0f6', OL); ell(HX - 5.4, HY - 1.4, 2, 2.4, '#f0f0f6', OL); break;
+    case 'garde': case 'videur':
       rrect(HX + 0.4, HY - 1.8, 6.2, 3, 0.9, '#08080e'); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(HX + 1.2, HY - 1.3, 1.6, 0.6);
       g.strokeStyle = S.acc; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX - 1.6, HY + 1); g.quadraticCurveTo(HX - 3.4, HY + 5, HX - 2.2, HY + 9); g.stroke();
       break;
@@ -3016,6 +3406,16 @@ function drawChar(e) {
         rrect(HX + 0.2, HY - 1.8, 6.6, 3.6, 1, S.skin, false); ell(HX + 3.1, HY - 0.2, 0.8, 0.9, '#1a1a2a', false); g.strokeStyle = S.hairD; g.lineWidth = 0.8; g.beginPath(); g.moveTo(HX + 0.8, HY - 2); g.lineTo(HX + 4.6, HY - 1.8); g.stroke();
         poly([[HX + 0.6, HY + 6.4], [HX + 3.4, HY + 6.4], [HX + 4.4, HY + 11], [HX + 2, HY + 12.4], [HX - 0.4, HY + 11]], S.acc);
       }
+      else if (LV.id === 5) { ell(HX - 0.4, HY - 5.2, 8.6, 1.9, '#14141a', OL); rrect(HX - 4.4, HY - 12.2, 8.8, 7.2, 1.4, '#14141a', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.3, HY - 7.6, 8.6, 1.4);
+        poly([[HX - 5, HY + 4], [HX + 5.4, HY + 4], [HX + 6, HY + 8], [HX - 4, HY + 8.4]], '#5a4a3a'); }
+      else if (LV.id === 6) { rrect(HX - 4.8, HY - 14, 9.6, 9.6, 1.2, '#101016', OL); ell(HX - 0.3, HY - 4.8, 7.6, 1.6, '#101016', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.7, HY - 8.4, 9.4, 1.6);
+        g.strokeStyle = S.acc; g.lineWidth = 0.9; g.beginPath(); g.arc(HX + 3.2, HY - 0.2, 2.2, 0, 7); g.stroke(); g.beginPath(); g.moveTo(HX + 3.2, HY + 2); g.lineTo(HX + 3.6, HY + 8); g.stroke(); }
+      else if (LV.id === 7) { poly([[HX - 5.6, HY - 2.4], [HX - 5.4, HY - 6.2], [HX + 1, HY - 8.6], [HX + 8.4, HY - 5.2], [HX + 6.4, HY - 3.2], [HX + 1, HY - 4.4]], '#8a1a1a'); ell(HX + 4.6, HY - 7.4, 1.1, 1.1, S.acc, false);
+        rrect(HX + 0.2, HY - 1.8, 7, 3.4, 1.6, '#0a0a12'); g.fillStyle = 'rgba(120,170,255,.45)'; g.fillRect(HX + 1.2, HY - 1.3, 3, 0.8); }
+      else if (LV.id === 8) { g.beginPath(); g.ellipse(HX - 0.2, HY - 4.2, 7, 4.6, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#ff8a1a'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+        g.fillStyle = '#e8e8e8'; g.fillRect(HX - 1, HY - 8.6, 2, 4.4); ell(HX - 5.8, HY + 0.4, 2.4, 3, '#d02828', OL); ell(HX + 5.6, HY + 0.4, 2.2, 2.8, '#d02828', OL); }
+      else if (LV.id === 9) { poly([[HX - 5.4, HY - 3.4], [HX - 5.6, HY - 11], [HX - 2.6, HY - 7], [HX - 0.2, HY - 12.4], [HX + 2.4, HY - 7], [HX + 5.4, HY - 11], [HX + 5.6, HY - 3.4]], '#d4a017'); g.fillStyle = '#fff3b0'; g.fillRect(HX - 0.8, HY - 7.4, 1.6, 1.6);
+        rrect(HX + 0.2, HY - 2.2, 6.8, 3, 1.2, '#d4a017'); g.fillStyle = '#14101a'; g.fillRect(HX + 1.4, HY - 1.4, 1.8, 1); g.fillRect(HX + 4.2, HY - 1.4, 1.8, 1); }
       else if (LV.id === 3) { g.fillStyle = '#ddd'; g.fillRect(HX + 4.2, HY + 3.2, 5, 1); g.fillStyle = (tick >> 3) & 1 ? '#ff7a30' : '#c04010'; g.fillRect(HX + 9.2, HY + 3.1, 1.2, 1.2); }
       break;
   }
@@ -3290,6 +3690,11 @@ function drawChair(p) {
   g.fillStyle = '#44464f'; g.fillRect(sx - 6, sy - 10, 12, 2.4); g.fillStyle = '#33353d'; g.fillRect(sx - 7, sy - 18, 2.4, 9);
   if (bl) { g.fillStyle = '#ffd34d'; g.fillRect(sx - 1, sy - 28, 2, 5); g.fillRect(sx - 1, sy - 21, 2, 2); }
 }
+function drawAim(e) {                                   /* tireur : ligne de visée rouge pendant qu'il épaule (esquivable en changeant de ligne ou en sautant) */
+  const sx = Math.round(e.x - cam), sy = Math.round(e.y - 24), k = Math.min(1, e.t / Math.max(1, e.tele)), L = 170;
+  g.globalAlpha = 0.25 + 0.5 * k * (((tick >> 1) & 1) ? 1 : 0.6); g.fillStyle = '#ff3a2a';
+  g.fillRect(e.face > 0 ? sx + 12 : sx - 12 - L, sy, L, 1); g.globalAlpha = 1;
+}
 function drawProj(b) {
   const sx = Math.round(b.x - cam), sy = Math.round(b.y - b.z);
   if (b.bullet) {
@@ -3332,6 +3737,8 @@ function drawProj(b) {
     g.rotate(-b.rot); g.globalAlpha = 0.4; g.fillStyle = '#dfeab0'; g.beginPath(); g.arc(-6 * Math.sign(b.vx), 0, 4 + (tick % 5), 0, 7); g.fill(); g.globalAlpha = 1;
   } else if (b.wtype) { g.translate(-9, 0); drawWeaponGround(b.wtype); }
   else if (b.cane) { g.scale(1.3, 1.3); drawWeapon('canne', -9, 0, 0); }
+  else if (b.col === '#ffd34d') { g.fillStyle = '#ffd34d'; g.strokeStyle = OL; g.lineWidth = 0.8; g.beginPath(); g.ellipse(0, 0, 4.4, 4.4 * Math.abs(Math.cos(b.rot * 1.5)) + 0.8, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff3b0'; g.fillRect(-0.7, -1.5, 1.4, 3); }
+  else if (b.col) { g.fillStyle = '#3a2a1a'; g.strokeStyle = OL; g.lineWidth = 0.8; g.fillRect(-2.2, -4, 4.4, 8); g.strokeRect(-2.2, -4, 4.4, 8); g.fillStyle = '#ff8a2a'; g.beginPath(); g.moveTo(-2.4, -4); g.lineTo(0, -9 - (tick % 3)); g.lineTo(2.4, -4); g.fill(); g.fillStyle = '#ffd34d'; g.fillRect(-0.8, -6.4, 1.6, 2.4); }
   else { g.fillStyle = '#6c6'; g.fillRect(-2, -5, 4, 10); g.fillStyle = '#cfc'; g.fillRect(-1, -7, 2, 3); }
   g.restore();
 }
@@ -3365,7 +3772,8 @@ function hud() {
     txt(LV.bossName, W / 2, H - 20, 10, '#f88', 'center');
     bar(W / 2 - 100, H - 14, 200, 8, boss.hp / boss.maxhp, '#d03030');
   }
-  if (introT > 0 && state === 'play') {
+  if (storyOn) drawStory();
+  else if (introT > 0 && state === 'play') {
     const a = Math.min(1, introT / 30, (170 - introT) / 20);
     g.globalAlpha = Math.max(0, a); g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 88, W, 62); g.globalAlpha = Math.max(0, a);
     txt('NIVEAU ' + (levelIdx + 1) + ' / ' + LEVELS.length, W / 2, 112, 11, '#ffd34d', 'center');
@@ -3402,7 +3810,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 00h05 · armes au sol', W / 2, 264, 7, '#667', 'center');
+  txt('version 01h00 · 10 niveaux et une histoire', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -3571,7 +3979,7 @@ function drawHzTop() {
     g.globalAlpha = a; g.fillStyle = 'rgba(120,0,0,' + (0.18 + 0.1 * ((tick >> 3) & 1)) + ')'; g.fillRect(0, 0, W, H);
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 70, W, 44);
     txt('⚠ ATTAQUE ULTIME ⚠', W / 2, 92, 16, ((tick >> 2) & 1) ? '#ff5050' : '#ffd34d', 'center');
-    txt(ULT_TXT[ultK] || '', W / 2, 108, 9, '#fff', 'center');
+    txt(LV.ultTxt || ULT_TXT[ultK] || '', W / 2, 108, 9, '#fff', 'center');
     g.globalAlpha = 1;
   }
 }
@@ -3605,7 +4013,7 @@ function drawTrapGround(t) {
   } else if (t.t === 'crate') {
     if (c >= t.per - 50) { const k = (c - (t.per - 50)) / 50; g.fillStyle = 'rgba(0,0,0,' + (0.25 + k * 0.3) + ')'; g.beginPath(); g.ellipse(sx, t.y, 6 + k * 14, 2 + k * 5, 0, 0, 7); g.fill();
       if ((tick >> 3) & 1) { g.strokeStyle = '#ff4040'; g.lineWidth = 1; g.beginPath(); g.ellipse(sx, t.y, 19, 7, 0, 0, 7); g.stroke(); } }
-    else if (c < 50) { g.globalAlpha = 1 - c / 50; g.fillStyle = '#8a5a30'; g.strokeStyle = OL; g.lineWidth = 0.7;
+    else if (c < 50) { g.globalAlpha = 1 - c / 50; g.fillStyle = t.sk === 'rock' ? '#7a7a82' : t.sk === 'lustre' ? '#e8d890' : t.sk === 'cargo' ? '#3a5a8a' : '#8a5a30'; g.strokeStyle = OL; g.lineWidth = 0.7;
       for (const [dx, dy, w, r] of [[-12, 2, 10, 0.3], [4, 3, 9, -0.4], [-3, -2, 7, 1.2], [10, -1, 8, 0.1]]) { g.save(); g.translate(sx + dx, t.y + dy); g.rotate(r); g.fillRect(-w / 2, -1.5, w, 3); g.strokeRect(-w / 2, -1.5, w, 3); g.restore(); }
       g.globalAlpha = 1; }
   } else if (t.t === 'press') {
@@ -3688,9 +4096,21 @@ function drawTrap(t) {
   } else if (t.t === 'crate') {
     if (c >= t.per - 15) {
       const zz = (t.per - c) * 8;
-      g.fillStyle = '#9a6a38'; g.strokeStyle = OL; g.lineWidth = 1; g.fillRect(sx - 11, t.y - zz - 20, 22, 20); g.strokeRect(sx - 11, t.y - zz - 20, 22, 20);
-      g.strokeStyle = '#5a3a1c'; g.beginPath(); g.moveTo(sx - 11, t.y - zz - 20); g.lineTo(sx + 11, t.y - zz); g.moveTo(sx + 11, t.y - zz - 20); g.lineTo(sx - 11, t.y - zz); g.stroke();
-      g.strokeStyle = '#333'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(sx, t.y - zz - 20 - 40); g.lineTo(sx, t.y - zz - 20); g.stroke();
+      const yy = t.y - zz;
+      if (t.sk === 'rock') {                         /* bloc de pierre qui se détache de la voûte */
+        g.fillStyle = '#8a8a94'; g.strokeStyle = OL; g.lineWidth = 1; g.beginPath(); g.moveTo(sx - 12, yy - 4); g.lineTo(sx - 7, yy - 19); g.lineTo(sx + 6, yy - 22); g.lineTo(sx + 12, yy - 9); g.lineTo(sx + 8, yy); g.lineTo(sx - 6, yy); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(sx - 6, yy - 18, 8, 3); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(sx + 2, yy - 10, 8, 8);
+      } else if (t.sk === 'lustre') {               /* lustre qui se décroche du plafond */
+        g.strokeStyle = '#d4a017'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(sx, yy - 8, 13, 5, 0, 0, 7); g.stroke();
+        g.fillStyle = '#ffe9a0'; for (let k = -2; k <= 2; k++) { g.fillRect(sx + k * 5 - 0.8, yy - 16, 1.6, 6); g.fillStyle = '#fff'; g.fillRect(sx + k * 5 - 0.5, yy - 18, 1, 2); g.fillStyle = '#ffe9a0'; }
+        g.fillStyle = 'rgba(220,240,255,.8)'; for (let k = -3; k <= 3; k++) g.fillRect(sx + k * 3.6 - 0.6, yy - 3, 1.2, 4 + (k & 1) * 3);
+        g.strokeStyle = '#333'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(sx, yy - 20 - 40); g.lineTo(sx, yy - 17); g.stroke();
+      } else {
+        const cg = t.sk === 'cargo';
+        g.fillStyle = cg ? '#3a5a8a' : '#9a6a38'; g.strokeStyle = OL; g.lineWidth = 1; g.fillRect(sx - 11, yy - 20, 22, 20); g.strokeRect(sx - 11, yy - 20, 22, 20);
+        g.strokeStyle = cg ? '#c8d0dc' : '#5a3a1c'; g.beginPath(); g.moveTo(sx - 11, yy - 20); g.lineTo(sx + 11, yy); g.moveTo(sx + 11, yy - 20); g.lineTo(sx - 11, yy); g.stroke();
+        g.strokeStyle = '#333'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(sx, yy - 20 - 40); g.lineTo(sx, yy - 20); g.stroke();
+      }
     }
   } else if (t.t === 'press') {
     let hy = -74;
@@ -3699,6 +4119,28 @@ function drawTrap(t) {
     g.fillStyle = '#3a3a44'; g.strokeStyle = OL; g.lineWidth = 1; g.fillRect(sx - 22, t.y + hy - 14, 44, 14); g.strokeRect(sx - 22, t.y + hy - 14, 44, 14);
     g.fillStyle = '#e0b020'; for (let k = -20; k < 20; k += 8) g.fillRect(sx + k, t.y + hy - 4, 4, 3);
   }
+}
+function wrapLines(s, maxw) {
+  const out = []; let cur = '';
+  for (const w of s.split(' ')) { const t = cur ? cur + ' ' + w : w; if (cur && g.measureText(t).width > maxw) { out.push(cur); cur = w; } else cur = t; }
+  if (cur) out.push(cur); return out;
+}
+function drawStory() {
+  const a = Math.min(1, storyA / 18), ep = storyEnd, lv = LV;
+  g.globalAlpha = 0.86 * a; g.fillStyle = '#06050c'; g.fillRect(0, 0, W, H); g.globalAlpha = a;
+  g.fillStyle = '#ffd34d'; g.fillRect(W / 2 - 60, 50, 120, 1);
+  txt(ep ? 'ÉPILOGUE' : 'NIVEAU ' + (levelIdx + 1) + ' / ' + LEVELS.length + ' · ' + lv.name, W / 2, 46, 9, '#99a', 'center');
+  txt(storyD.chap.toUpperCase(), W / 2, 82, 22, '#ffd34d', 'center');
+  if (!ep) txt(lv.place, W / 2, 98, 8, '#8a8aa8', 'center');
+  g.font = 'bold 8px monospace';
+  let left = Math.floor(storyC), y = 128;
+  for (const ln of storyD.lines) {
+    const rows = wrapLines(ln, 420);
+    for (const r of rows) { const sh = r.slice(0, Math.max(0, left)); left -= r.length + 1; if (sh) txt(sh, W / 2 - g.measureText(r).width / 2, y, 8, '#e8e4f4', 'left'); y += 12; }
+    y += 6;
+  }
+  if (storyC >= storyTot && ((tick >> 5) & 1)) txt('J ou ESPACE : continuer', W / 2, H - 16, 8, '#99a', 'center');
+  g.globalAlpha = 1;
 }
 function endScores() {
   if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
@@ -3747,7 +4189,7 @@ function render() {
     for (const t of TR) if (t.t !== 'belt') list.push([t.t === 'bolt' ? 999 : t.y - 1, () => drawTrap(t)]);
     for (const b of B) list.push([b.y, () => drawBarrel(b)]);
     for (const it of IT) list.push([it.y - 1, () => drawItem(it)]);
-    for (const e of E) list.push([e.y, () => drawChar(e)]);
+    for (const e of E) list.push([e.y, () => { if (e.st === 'tele' && e.mode === 'throw' && T[e.type] && T[e.type].gun && !e.weapon) drawAim(e); drawChar(e); }]);
     for (const p of PS) if (!p.out) { list.push([p.y, () => drawChar(p)]); if (p.nochair) list.push([p.chy, () => drawChair(p)]); }
     for (const a of AL) list.push([a.y, () => drawChar(a)]);
     for (const b of PJ) list.push([b.y, () => drawProj(b)]);
@@ -3782,7 +4224,7 @@ function render() {
     if (state === 'win') {
       g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
       txt('VICTOIRE !', W / 2, 96, 28, '#ffd34d', 'center');
-      txt('Les 4 niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
+      txt('Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
       endScores();
       if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 200, 11, '#cbd', 'center');
     }

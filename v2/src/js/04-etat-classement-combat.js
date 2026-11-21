@@ -87,6 +87,16 @@ function loadLevel(i) {
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
   cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
+  if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
+}
+function startStory(chap, lines, last) { storyD = { chap, lines }; storyTot = lines.join('').length; storyC = 0; storyA = 0; storyH = 0; storyOn = true; storyEnd = !!last; }
+function updStory() {
+  storyA++;
+  if (storyC < storyTot) storyC = Math.min(storyTot, storyC + 1.1); else storyH++;
+  let press = false;
+  for (const p of PS) if (!p.out && (PRS[p.slot].punch || PRS[p.slot].jump)) press = true;
+  if (storyA > 45 && press) { if (storyC < storyTot) storyC = storyTot; else storyH = 9999; }     /* 1er appui : tout le texte ; 2e : on continue */
+  if (storyH > 420) { storyOn = false; if (storyEnd) { storyEnd = false; endGame('win'); } }
 }
 function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });

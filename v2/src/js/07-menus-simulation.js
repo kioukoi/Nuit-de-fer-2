@@ -64,6 +64,7 @@ function updOnline() {
 
 /* ---------- simulation d'une image de jeu (identique chez les deux joueurs en ligne) ---------- */
 function simStep() {
+  if (storyOn) { updStory(); return; }
   if (specOn) { updSpec(); return; }
   if (shake > 0) shake -= 0.5;
   if (tgtT > 0) tgtT--;
@@ -94,7 +95,7 @@ function simStep() {
   cam = Math.min(camLimit, Math.max(cam, lead - W * 0.42));
   if (waveI >= LV.waves.length && !waveActive && endT > 0) {
     endT--;
-    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else endGame('win'); }
+    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else startStory('Épilogue', ENDING, true); }
   }
 }
 

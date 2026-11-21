@@ -283,4 +283,4 @@ function drawBGParis(c) {
     g.globalAlpha = 0.14; g.fillStyle = '#e4eebc'; g.beginPath(); g.ellipse(x, y, 60 + hash(i + 2) * 30, 14, 0, 0, 7); g.fill(); g.globalAlpha = 1;
   }
 }
-function drawBG(c) { ({ street: drawBGStreet, port: drawBGPort, factory: drawBGFactory, roof: drawBGRoof, paris: drawBGParis }[LV.bg] || drawBGStreet)(c); }
+function drawBG(c) { ({ street: drawBGStreet, port: drawBGPort, factory: drawBGFactory, roof: drawBGRoof, paris: drawBGParis, cata: drawBGCata, casino: drawBGCasino, train: drawBGTrain, aero: drawBGAero, chateau: drawBGChateau }[LV.bg] || drawBGStreet)(c); }

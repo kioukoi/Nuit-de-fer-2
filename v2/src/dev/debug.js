@@ -1,6 +1,6 @@
 window.__dbg = {
   step, render, keys,
-  start: (n, hs) => { nPlayers = n; SEL = [0, 1, 2, 3].map(i => ({ c: Math.max(0, HERO_KEYS.indexOf(hs[i] || ['cogneur', 'vive', 'costaud', 'ombre'][i])), lock: true })); startGame(); },
+  start: (n, hs) => { nPlayers = n; SEL = [0, 1, 2, 3].map(i => ({ c: Math.max(0, HERO_KEYS.indexOf(hs[i] || ['cogneur', 'vive', 'costaud', 'ombre'][i])), lock: true })); startGame(); storyOn = false; },
   ev: s => eval(s),
   net: () => ({ frameNo, desync, online, hostCode, stallT, state, hash: stateHash(), localSlot, room, peerIn: others() > 0, joinBusy, nPlayers, act: act.slice(), paused: netPaused, rttMax, curDelay, ff: FRIENDLY }),
   hits: () => ({ myHash, theirHash }),

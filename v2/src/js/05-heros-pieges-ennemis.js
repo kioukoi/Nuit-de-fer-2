@@ -465,7 +465,7 @@ function updEnemy(e) {
         }
       }
       if (goW) { tx = goW.x; ty = goW.y; }
-      else if (d.ranged && !e.weapon) tx = clamp(p.x + e.side * 150, cam + 24, cam + W - 24);
+      else if (d.ranged && !e.weapon && E.filter(z => !z.gone && !z.dying && z.type !== 'boss').length > 2) tx = clamp(p.x + e.side * 150, cam + 24, cam + W - 24);
       else tx = p.x + e.side * (busy ? 60 + e.slot : rr - 8);
       const dx = tx - e.x, dy = ty - e.y, dist = Math.sqrt(dx * dx + dy * dy);
       if (goW && Math.abs(dx) < 9 && Math.abs(dy) < 8) { goW.got = true; e.weapon = goW.type; e.wd = goW.wd; SFX.pick(); }
@@ -488,7 +488,8 @@ function updEnemy(e) {
       if (e.t >= e.tele) {
         e.t = 0; e.hit = new Set();
         if (e.mode === 'throw') {
-          PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
+          if (d.gun && !e.weapon) { PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.hit(); e.st = 'recover'; e.t = 0; break; }
+          PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, col: d.pj, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
           e.weapon = null; e.wd = 0;
           e.st = 'recover'; SFX.whoosh();
         } else if (e.mode === 'charge') { e.st = 'charge'; e.vx = e.face * (e.rush > 0 || e.ultR ? 5.4 : 3.8); SFX.whoosh(); }

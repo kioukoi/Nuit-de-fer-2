@@ -10,7 +10,8 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug', rodeur: 'thug', mineur: 'brute', torche: 'thrower', croupier: 'thug', videur: 'thug', parieur: 'thrower', mercenaire: 'thug', blinde: 'thug', tireur: 'thug', agent: 'thug', mecano: 'thug', pisteur: 'thug', valet: 'thug', armure: 'thug' };
+const SUIT = { croupier: 1, videur: 1, agent: 1, valet: 1, mecano: 1, mercenaire: 1, blinde: 1, tireur: 1, armure: 1, pisteur: 1, garde: 1 };     /* manches longues : bras couverts */
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
   if (!t) return pal(d);
@@ -243,7 +244,7 @@ function drawChar(e) {
   const tw = { cogneur: [6.2, 5.2], vive: [5.2, 4.2], costaud: [8, 6.6], thug: [5.8, 4.8], brute: [8, 6.4], thrower: [5.8, 5.2], boss: [6.4, 5.8], papy: [5.2, 4.8] }[type];
   const hx = lean + hdx, hy = shY - 11 + (st === 'hurt' ? 1 : 0);
   const armW = (type === 'brute' || type === 'costaud') ? 4.4 : 3.4;
-  const bare = type === 'thug' || type === 'brute' || type === 'vive' || type === 'costaud';
+  const bare = (type === 'thug' || type === 'brute' || type === 'vive' || type === 'costaud') && !SUIT[kind];
   const sleeveN = bare ? S.skin : S.shirt, sleeveF = bare ? S.skinD : S.shirtD;
   const armColN = type === 'vive' ? S.skin : S.skin;
 
@@ -302,7 +303,7 @@ function drawChar(e) {
       g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(cf(0.7) - 0.4, shY + 8.5, 0.8, 3);
       break;
     case 'thug':
-      g.fillStyle = S.skin; g.fillRect(TL - 3, ty, 3.2, 6); g.fillRect(TR - 0.2, ty, 4, 6);
+      g.fillStyle = SUIT[kind] ? S.shirtD : S.skin; g.fillRect(TL - 3, ty, 3.2, 6); g.fillRect(TR - 0.2, ty, 4, 6);
       g.fillStyle = S.acc; g.fillRect(cf(0.2) - 0.9, shY + 3, 1.8, 3);
       band(12, 14, '#222');
       break;
@@ -331,7 +332,15 @@ function drawChar(e) {
   switch (kind) {
     case 'marin': for (let i = 0; i < 5; i++) band(i * 3 - 0.4, i * 3 + 1, S.acc); break;
     case 'soudeur': band(3, 14, '#7a5a2a'); g.fillStyle = '#563c1a'; g.fillRect(cf(0.45) - 2.2, shY + 5.5, 4.4, 3.4); g.fillStyle = '#c9c9c9'; g.fillRect(TL + 1, ty, 1.2, 4); g.fillRect(TR - 2.2, ty, 1.2, 4); break;
-    case 'garde':
+    case 'croupier':
+      band(5, 14, '#14141a'); poly([[cf(0.02) - 2, ty], [cf(0.02) + 2.6, ty], [cf(0.5) + 0.6, shY + 6]], '#f2f2f4', false);
+      g.fillStyle = '#c0202a'; g.fillRect(cf(0.3) - 0.2, shY + 0.4, 3.2, 1.5); break;
+    case 'mecano': band(5, 14, S.pants); g.fillStyle = S.pantsD; g.fillRect(cf(0.5) - 1, shY + 6, 4, 3); g.fillStyle = S.acc; g.fillRect(cf(0.2) - 0.8, shY + 5, 1.2, 2); break;
+    case 'mercenaire': band(1, 10, '#2c3424'); g.fillStyle = '#14180e'; for (const k of [0.25, 0.5, 0.75]) g.fillRect(cf(k) - 1.2, shY + 5, 2.6, 3.2); break;
+    case 'blinde': case 'armure': band(0, 11, kind === 'armure' ? '#9aa0ac' : '#6a707c'); g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(TL + 1, ty + 1, 1.6, 8); g.fillStyle = S.acc; for (const k of [0.2, 0.8]) g.fillRect(cf(k) - 0.6, shY + 2, 1.4, 1.4); band(11, 14, '#3a3e48'); break;
+    case 'tireur': band(1, 11, '#1a1c24'); g.fillStyle = S.acc; g.fillRect(cf(0.5) - 0.5, shY + 1, 1.2, 10); break;
+    case 'pisteur': band(3.2, 4.8, '#f4f4f8'); band(8, 9.6, '#f4f4f8'); break;
+    case 'garde': case 'videur': case 'agent': case 'valet':
       poly([[cf(0.02) - 2, ty], [cf(0.02) + 2.6, ty], [cf(0.5) + 0.6, shY + 7.5]], '#e8e8f0', false);
       g.fillStyle = '#b02020'; g.fillRect(cf(0.3) - 0.2, shY + 0.5, 1.5, 7.5);
       g.strokeStyle = 'rgba(255,255,255,.16)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(cf(0.02) - 2.2, ty); g.lineTo(cf(0.6) + 0.4, shY + 9); g.stroke();
@@ -344,6 +353,9 @@ function drawChar(e) {
     const sw = 2.2; g.lineWidth = sw;
     for (const [off, col] of [[-2.2, '#2a4bd0'], [0, '#f4f4f8'], [2.2, '#d02838']]) { g.strokeStyle = col; g.beginPath(); g.moveTo(TL - 1 + off, ty - 1); g.lineTo(BR + 1 + off, by + 1); g.stroke(); }
   }
+  if (type === 'boss' && LV.id === 7) { for (let i = 0; i < 3; i++) { g.fillStyle = ['#d4a017', '#c02030', '#2f6fd0'][i]; g.fillRect(cf(0.12) + i * 2.4, shY + 2.4, 1.8, 2.4); } }
+  else if (type === 'boss' && LV.id === 8) { band(3, 4.4, '#f4f4f8'); band(8.4, 9.8, '#f4f4f8'); }
+  else if (type === 'boss' && LV.id === 9) { band(0, 1.4, '#d4a017'); band(12.4, 14, '#d4a017'); }
   if (kind === 'dalto') { g.fillStyle = '#35a845'; g.fillRect(cf(0.5) - 6.4, ty, 3, 22); g.fillRect(cf(0.5) + 3.4, ty, 3, 22); g.fillStyle = '#e8a020'; g.fillRect(cf(0.5) - 2.6, ty, 1.4, 22); }
   g.restore();
   torsoPath(); g.lineWidth = LW; g.strokeStyle = OL; g.lineJoin = 'round'; g.stroke();
@@ -406,8 +418,8 @@ function drawChar(e) {
     case 'thug':
       g.beginPath(); g.moveTo(HX - 5.5, HY + 0.6); g.quadraticCurveTo(HX - 6, HY - 6, HX, HY - 6.4); g.quadraticCurveTo(HX + 5.4, HY - 6.2, HX + 5.6, HY - 2.6); g.quadraticCurveTo(HX + 2, HY - 4, HX - 1.6, HY - 2.8); g.quadraticCurveTo(HX - 3.4, HY - 1.6, HX - 3.6, HY + 1); g.closePath();
       g.fillStyle = S.hair; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
-      g.strokeStyle = '#c04040'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX + 1.4, HY - 1.8); g.lineTo(HX + 2.3, HY + 1.4); g.stroke();
-      ell(HX - 2.1, HY + 2.6, 0.9, 0.9, S.acc, false);
+      if (kind === 'thug') { g.strokeStyle = '#c04040'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX + 1.4, HY - 1.8); g.lineTo(HX + 2.3, HY + 1.4); g.stroke();
+      ell(HX - 2.1, HY + 2.6, 0.9, 0.9, S.acc, false); }
       g.fillStyle = 'rgba(30,20,20,.35)'; g.beginPath(); g.ellipse(HX + 2.8, HY + 4, 2.6, 1.2, 0, 0, 7); g.fill();
       break;
     case 'brute':
@@ -480,7 +492,35 @@ function drawChar(e) {
       g.fillStyle = shade(S.acc, -0.2); g.fillRect(HX - 6.8, HY - 4.6, 13.6, 1.5); g.fillRect(HX + 1.6, HY - 4.6, 6.4, 2.2);
       g.fillStyle = '#6a4a10'; g.fillRect(HX - 0.8, HY - 8.6, 1.6, 4);
       break;
-    case 'garde':
+    case 'rodeur':
+      poly([[HX - 6.6, HY + 3], [HX - 6.8, HY - 6.4], [HX, HY - 9], [HX + 6.4, HY - 6], [HX + 6.6, HY - 1.2], [HX + 3, HY - 3.6], [HX - 3.4, HY - 3.2]], shade(S.shirt, -0.12));
+      g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(HX + 0.6, HY - 2.6, 6, 2.2); break;
+    case 'mineur': case 'mecano':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 4.2, 6.9, 4.4, 0, Math.PI, 0); g.closePath(); g.fillStyle = kind === 'mineur' ? '#ffcc33' : '#f0e040'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(HX - 6.8, HY - 4.4, 13.6, 1.4);
+      if (kind === 'mineur') { ell(HX + 5.6, HY - 5.4, 1.8, 1.6, (tick >> 3) & 1 ? '#fffbe0' : '#ffe9a0'); g.globalAlpha = 0.12; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(HX + 6, HY - 5.4); g.lineTo(HX + 40, HY - 16); g.lineTo(HX + 40, HY + 8); g.closePath(); g.fill(); g.globalAlpha = 1; } break;
+    case 'torche': poly([[HX - 5.8, HY - 3.6], [HX + 5.9, HY - 3.8], [HX + 5.9, HY - 2.2], [HX - 5.8, HY - 2]], S.acc); ell(HX - 6.4, HY - 2.6, 1.8, 2, S.acc);
+      g.fillStyle = '#1c1c24'; g.fillRect(HX + 1.2, HY - 1.6, 5.4, 2.4); g.fillStyle = '#7fe8ff'; g.fillRect(HX + 2, HY - 1.2, 1.4, 1.2); g.fillRect(HX + 4.4, HY - 1.2, 1.4, 1.2); break;
+    case 'croupier': poly([[HX - 5, HY - 3.2], [HX + 7.2, HY - 3.2], [HX + 5, HY - 0.6], [HX - 4, HY - 0.8]], 'rgba(60,200,120,.9)'); g.fillStyle = '#14141a'; g.fillRect(HX - 5.8, HY - 4, 12.6, 1); break;
+    case 'parieur': ell(HX - 0.3, HY - 5.2, 7.6, 1.7, '#2a1a28', OL); rrect(HX - 4.4, HY - 11.4, 8.8, 6.6, 1.4, '#2a1a28', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.3, HY - 7.4, 8.6, 1.5); break;
+    case 'mercenaire':
+      poly([[HX - 6.2, HY + 2.4], [HX - 6.4, HY - 6], [HX, HY - 8.2], [HX + 6, HY - 6], [HX + 6.4, HY - 1.8], [HX + 1.2, HY - 2.6], [HX - 3.6, HY - 2.4], [HX - 4, HY + 2.4]], '#181a16');
+      g.fillStyle = '#d8c0a0'; g.fillRect(HX + 0.8, HY - 2.2, 5.6, 1.7); break;
+    case 'blinde': case 'armure':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 1.6, 7, 7.4, 0, 0, 7); g.fillStyle = kind === 'armure' ? '#9aa0ac' : '#5a606c'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = '#0c0c12'; g.fillRect(HX + 0.2, HY - 2.4, 6.6, 1.6); if (kind === 'armure') { g.fillRect(HX + 3.4, HY - 0.8, 0.9, 4); poly([[HX - 1, HY - 8.6], [HX + 3, HY - 8.6], [HX + 7, HY - 13 + Math.sin(tick * 0.2) * 1.2], [HX - 3, HY - 10]], S.acc); } else { g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(HX - 4, HY - 7, 5, 1.2); } break;
+    case 'tireur':
+      poly([[HX - 5.8, HY - 3], [HX - 5.4, HY - 6.4], [HX, HY - 7.6], [HX + 5.6, HY - 6.2], [HX + 6, HY - 3], [HX + 1, HY - 3.8]], '#20242e');
+      g.strokeStyle = '#9aa0ac'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX - 5.6, HY - 1); g.quadraticCurveTo(HX - 6, HY + 4, HX - 2, HY + 5); g.stroke();
+      rrect(HX + 0.6, HY - 1.6, 6, 2.8, 0.9, '#08080e'); ell(HX + 6.8, HY - 0.2, 1.1, 1.1, (tick >> 3) & 1 ? '#ff3a2a' : '#a01808', false); break;
+    case 'agent':
+      poly([[HX - 5.8, HY - 2.6], [HX - 5.4, HY - 6.6], [HX, HY - 7.8], [HX + 5.4, HY - 6.4], [HX + 6, HY - 2.8], [HX + 1, HY - 3.8]], '#1a2a4a');
+      poly([[HX + 1.8, HY - 3.8], [HX + 8.6, HY - 3], [HX + 8.2, HY - 1.9], [HX + 1.8, HY - 2.8]], '#101a30'); ell(HX - 0.4, HY - 5.2, 1.4, 1.2, S.acc, false); break;
+    case 'pisteur':
+      g.strokeStyle = '#e8e8ee'; g.lineWidth = 1.5; g.beginPath(); g.arc(HX - 0.4, HY - 1.4, 6.6, Math.PI * 1.02, Math.PI * 1.98); g.stroke();
+      ell(HX - 5.8, HY + 0.8, 2.4, 3, '#d02828', OL); ell(HX + 5.2, HY + 0.8, 2.2, 2.8, '#d02828', OL); break;
+    case 'valet': ell(HX - 1, HY - 4.6, 6.4, 3.8, '#f0f0f6', OL); ell(HX - 5.4, HY - 1.4, 2, 2.4, '#f0f0f6', OL); break;
+    case 'garde': case 'videur':
       rrect(HX + 0.4, HY - 1.8, 6.2, 3, 0.9, '#08080e'); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(HX + 1.2, HY - 1.3, 1.6, 0.6);
       g.strokeStyle = S.acc; g.lineWidth = 0.7; g.beginPath(); g.moveTo(HX - 1.6, HY + 1); g.quadraticCurveTo(HX - 3.4, HY + 5, HX - 2.2, HY + 9); g.stroke();
       break;
@@ -504,6 +544,16 @@ function drawChar(e) {
         rrect(HX + 0.2, HY - 1.8, 6.6, 3.6, 1, S.skin, false); ell(HX + 3.1, HY - 0.2, 0.8, 0.9, '#1a1a2a', false); g.strokeStyle = S.hairD; g.lineWidth = 0.8; g.beginPath(); g.moveTo(HX + 0.8, HY - 2); g.lineTo(HX + 4.6, HY - 1.8); g.stroke();
         poly([[HX + 0.6, HY + 6.4], [HX + 3.4, HY + 6.4], [HX + 4.4, HY + 11], [HX + 2, HY + 12.4], [HX - 0.4, HY + 11]], S.acc);
       }
+      else if (LV.id === 5) { ell(HX - 0.4, HY - 5.2, 8.6, 1.9, '#14141a', OL); rrect(HX - 4.4, HY - 12.2, 8.8, 7.2, 1.4, '#14141a', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.3, HY - 7.6, 8.6, 1.4);
+        poly([[HX - 5, HY + 4], [HX + 5.4, HY + 4], [HX + 6, HY + 8], [HX - 4, HY + 8.4]], '#5a4a3a'); }
+      else if (LV.id === 6) { rrect(HX - 4.8, HY - 14, 9.6, 9.6, 1.2, '#101016', OL); ell(HX - 0.3, HY - 4.8, 7.6, 1.6, '#101016', OL); g.fillStyle = S.acc; g.fillRect(HX - 4.7, HY - 8.4, 9.4, 1.6);
+        g.strokeStyle = S.acc; g.lineWidth = 0.9; g.beginPath(); g.arc(HX + 3.2, HY - 0.2, 2.2, 0, 7); g.stroke(); g.beginPath(); g.moveTo(HX + 3.2, HY + 2); g.lineTo(HX + 3.6, HY + 8); g.stroke(); }
+      else if (LV.id === 7) { poly([[HX - 5.6, HY - 2.4], [HX - 5.4, HY - 6.2], [HX + 1, HY - 8.6], [HX + 8.4, HY - 5.2], [HX + 6.4, HY - 3.2], [HX + 1, HY - 4.4]], '#8a1a1a'); ell(HX + 4.6, HY - 7.4, 1.1, 1.1, S.acc, false);
+        rrect(HX + 0.2, HY - 1.8, 7, 3.4, 1.6, '#0a0a12'); g.fillStyle = 'rgba(120,170,255,.45)'; g.fillRect(HX + 1.2, HY - 1.3, 3, 0.8); }
+      else if (LV.id === 8) { g.beginPath(); g.ellipse(HX - 0.2, HY - 4.2, 7, 4.6, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#ff8a1a'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+        g.fillStyle = '#e8e8e8'; g.fillRect(HX - 1, HY - 8.6, 2, 4.4); ell(HX - 5.8, HY + 0.4, 2.4, 3, '#d02828', OL); ell(HX + 5.6, HY + 0.4, 2.2, 2.8, '#d02828', OL); }
+      else if (LV.id === 9) { poly([[HX - 5.4, HY - 3.4], [HX - 5.6, HY - 11], [HX - 2.6, HY - 7], [HX - 0.2, HY - 12.4], [HX + 2.4, HY - 7], [HX + 5.4, HY - 11], [HX + 5.6, HY - 3.4]], '#d4a017'); g.fillStyle = '#fff3b0'; g.fillRect(HX - 0.8, HY - 7.4, 1.6, 1.6);
+        rrect(HX + 0.2, HY - 2.2, 6.8, 3, 1.2, '#d4a017'); g.fillStyle = '#14101a'; g.fillRect(HX + 1.4, HY - 1.4, 1.8, 1); g.fillRect(HX + 4.2, HY - 1.4, 1.8, 1); }
       else if (LV.id === 3) { g.fillStyle = '#ddd'; g.fillRect(HX + 4.2, HY + 3.2, 5, 1); g.fillStyle = (tick >> 3) & 1 ? '#ff7a30' : '#c04010'; g.fillRect(HX + 9.2, HY + 3.1, 1.2, 1.2); }
       break;
   }
