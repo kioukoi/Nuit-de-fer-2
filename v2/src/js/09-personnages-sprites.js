@@ -19,6 +19,23 @@ function palT(e, d) {
   if (!d._pt[LV.id]) d._pt[LV.id] = pal({ col: Object.assign({}, d.col, t) });
   return d._pt[LV.id];
 }
+/* variantes d'apparence : deux ennemis du même type n'ont pas exactement la même tête ni les mêmes couleurs (purement visuel, dérivé de e.slot) */
+const HAIRV = ['#2a1a10', '#6a4a2a', '#c8a050', '#454550', '#8a2a1a'];
+function palV(e, d) {
+  if (e.type === 'boss' || !d.col) return palT(e, d);
+  const v = e.slot | 0, vi = v & 3, hi = (v >> 2) % 5, si = (v >> 1) % 3;
+  if (vi === 0 && hi === 0 && si === 0) return palT(e, d);
+  const key = e.type + ':' + LV.id + ':' + vi + hi + si;
+  gradCache.pv = gradCache.pv || {};
+  if (gradCache.pv[key]) return gradCache.pv[key];
+  const base = Object.assign({}, d.col, (LV && LV.tint && LV.tint[e.type]) || {});
+  const uni = SUIT[e.type] ? 0.4 : 1;
+  const col = Object.assign({}, base, {
+    shirt: shade(base.shirt, [0, -0.14, 0.16, -0.06][vi] * uni), pants: shade(base.pants, [0, 0.1, -0.12, 0.05][vi] * uni),
+    skin: shade(base.skin, [0, -0.16, 0.1][si]), hair: hi ? HAIRV[hi] : base.hair
+  });
+  return (gradCache.pv[key] = pal({ col }));
+}
 function pal(d) {
   if (d._p) return d._p;
   const c = d.col;
@@ -147,7 +164,7 @@ function drawWeapon(name, hx, hy, ang) {
 }
 
 function drawChar(e) {
-  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = isP ? pal(d) : palT(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
+  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = isP ? pal(d) : palV(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
   const sx = Math.round(e.x - cam), sy = Math.round(e.y - e.z);
   g.fillStyle = 'rgba(0,0,0,.35)';
   g.beginPath(); g.ellipse(sx, Math.round(e.y) + 1, 12 * s * (1 - Math.min(0.5, e.z / 80)), 3 * s, 0, 0, 7); g.fill();
@@ -507,7 +524,7 @@ function drawChar(e) {
       poly([[HX - 6.2, HY + 2.4], [HX - 6.4, HY - 6], [HX, HY - 8.2], [HX + 6, HY - 6], [HX + 6.4, HY - 1.8], [HX + 1.2, HY - 2.6], [HX - 3.6, HY - 2.4], [HX - 4, HY + 2.4]], '#181a16');
       g.fillStyle = '#d8c0a0'; g.fillRect(HX + 0.8, HY - 2.2, 5.6, 1.7); break;
     case 'blinde': case 'armure':
-      g.beginPath(); g.ellipse(HX - 0.2, HY - 1.6, 7, 7.4, 0, 0, 7); g.fillStyle = kind === 'armure' ? '#9aa0ac' : '#5a606c'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 1.6, 7, 7.4, 0, 0, 7); g.fillStyle = kind === 'armure' ? '#9aa0ac' : '#5a606c'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke(); { const hc = kind === 'armure' ? '#9aa0ac' : '#5a606c'; g.fillStyle = shade(hc, -0.25); g.fillRect(HX - 6.6, HY + 1.2, 12.8, 3.6); g.fillStyle = shade(hc, 0.3); g.fillRect(HX - 0.8, HY - 8.6, 1.6, 7); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(HX - 5, HY - 5.4, 2, 5); g.fillStyle = shade(hc, -0.4); for (const rv of [-4.6, 4.2]) { g.beginPath(); g.arc(HX + rv, HY + 2.9, 0.7, 0, 7); g.fill(); } }
       g.fillStyle = '#0c0c12'; g.fillRect(HX + 0.2, HY - 2.4, 6.6, 1.6); if (kind === 'armure') { g.fillRect(HX + 3.4, HY - 0.8, 0.9, 4); poly([[HX - 1, HY - 8.6], [HX + 3, HY - 8.6], [HX + 7, HY - 13 + Math.sin(tick * 0.2) * 1.2], [HX - 3, HY - 10]], S.acc); } else { g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(HX - 4, HY - 7, 5, 1.2); } break;
     case 'tireur':
       poly([[HX - 5.8, HY - 3], [HX - 5.4, HY - 6.4], [HX, HY - 7.6], [HX + 5.6, HY - 6.2], [HX + 6, HY - 3], [HX + 1, HY - 3.8]], '#20242e');
@@ -638,6 +655,14 @@ function drawChar(e) {
     ell(fhx, fhy, armW * 0.72 + 0.5, armW * 0.72 + 0.5, S.skin);
   }
   if (bottle) { rrect(fhx - 1.6, fhy - 10, 3.4, 9.5, 1.2, S.acc); ell(fhx, fhy - 10.4, 1, 1.4, '#ddd'); }
+  if (isP && st === 'attack' && !air) {                                       // traînée du coup : un croissant derrière la main
+    const a = HEROES[e.hero].atk[e.stage];
+    if (e.t >= a.act[0] && e.t <= a.act[1] + 3) {
+      const u = (e.t - a.act[0]) / Math.max(1, a.act[1] - a.act[0] + 3);
+      g.strokeStyle = 'rgba(255,255,255,' + (0.55 * (1 - u)).toFixed(2) + ')'; g.lineWidth = 1.2 + e.stage * 0.7; g.lineCap = 'round';
+      g.beginPath(); g.arc(fhx - 7 - e.stage * 2, fhy + 1, 9 + e.stage * 3 + u * 3, -1.0, 1.0); g.stroke(); g.lineCap = 'butt';
+    }
+  }
   if (spin) {
     g.strokeStyle = 'rgba(255,255,255,.65)'; g.lineWidth = 0.9;
     g.beginPath(); g.ellipse(0, -16, 25, 9, 0, 0, 7); g.stroke();
@@ -654,6 +679,12 @@ function drawChar(e) {
     g.fillStyle = gr; g.fillRect(sx - rr, cy - rr, rr * 2, rr * 2);
     g.fillStyle = 'rgba(255,235,150,' + (0.5 + pl * 0.4) + ')'; g.beginPath(); g.ellipse(sx, sy + 1, (13 + pl * 3) * s, 3.4 * s, 0, 0, 7); g.fill();
     for (let k = 0; k < 3; k++) { const ph = ((tick * 0.8 + k * 23) % 46), px = sx + Math.sin(k * 2.4 + tick * 0.05) * 11 * s; g.fillStyle = 'rgba(255,240,170,' + (1 - ph / 46) + ')'; g.fillRect(Math.round(px), Math.round(sy - 6 - ph), 2, 2); }
+  }
+  if (e.type === 'boss' && !e.dying && e.phase >= 2) {                         // boss en colère : aura pulsante, plus vive en phase 3
+    const pl = 0.5 + 0.5 * Math.sin(tick * 0.15), ac = ['255,70,50', '255,200,60', '190,90,255'][e.phase === 3 ? 0 : 2 - (LV.id % 2) * 1] || '255,70,50';
+    const cy2 = sy - 24 * s, rr2 = (34 + pl * 5 + (e.phase - 2) * 8) * s, gr2 = g.createRadialGradient(sx, cy2, 6 * s, sx, cy2, rr2);
+    gr2.addColorStop(0, 'rgba(' + ac + ',' + (0.14 + 0.1 * (e.phase - 1)) + ')'); gr2.addColorStop(1, 'rgba(' + ac + ',0)');
+    g.fillStyle = gr2; g.fillRect(sx - rr2, cy2 - rr2, rr2 * 2, rr2 * 2);
   }
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.drawImage(sprC, RX * SS, RY * SS, RW * SS, RH * SS, Math.round(sx - 64 * s + RX * s), Math.round(sy - 100 * s + RY * s), Math.round(RW * s), Math.round(RH * s));
