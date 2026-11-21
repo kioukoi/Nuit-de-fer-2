@@ -34,8 +34,8 @@ function updSelect() {
       else if (!online) startGame();
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
-        const seed = (Math.random() * 4294967296) >>> 0;
-        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, act: act.map(a => a ? 1 : 0) };
+        const seed = modeSeed((Math.random() * 4294967296) >>> 0);
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -82,6 +82,7 @@ function simStep() {
   updTraps();
   updHz();
   updItems();
+  updModes();
   for (const f of FX) f.t++;
   if (uT > 0) uT--;
   FX = FX.filter(f => f.t < f.life);
@@ -113,6 +114,7 @@ const MENU_ALL = [
 const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
+  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + 4) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
   { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
   { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },

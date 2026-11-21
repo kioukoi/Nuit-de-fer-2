@@ -134,3 +134,11 @@ Trois modes : facile, normal, difficile. En **difficile** et à plusieurs joueur
 ## Armes à feu des ennemis
 
 Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois une grenade. Tout ennemi qui ramasse un pistolet, une mitraillette (rafale de 3) ou une grenade s'en sert contre les joueurs, tant qu'il lui reste des munitions. Les grenades ennemies blessent les joueurs seulement.
+
+## Modes de jeu (Options > MODE, choisi par l'hôte en ligne)
+
+- **HISTOIRE** : les 10 niveaux, comme avant.
+- **BOSS RUSH** : seulement le boss de chaque niveau, à la suite, depuis le niveau de départ choisi.
+- **DÉFI DU JOUR** : la même partie pour tous le même jour (graine = date) avec une règle du jour (ennemis turbo, fragiles mais brutaux, pas de spécial, tous armés d'un pistolet, une seule vie).
+- **CHAOS** : un événement toutes les 25 s pendant 12 s (gravité lunaire, ennemis turbo, pluie de bombes, tous armés, commandes gauche/droite inversées).
+- **Mutations de boss** (tous les modes sauf Histoire) : ENRAGÉ (plus rapide et plus fort), BLINDÉ (+50 % de vie), ESSAIM (appelle des voyous), FISSION (à mi-vie, se dédouble ; le double ne donne pas de vie en plus).

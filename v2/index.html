@@ -741,7 +741,7 @@ function mkEnemy(type, x, y) {
     mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
-  levelIdx = i; LV = LEVELS[i];
+  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
   HZ = []; ultT = 0; uT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
@@ -771,7 +771,8 @@ function startGame() {
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
   simF = 0; gameStats = null; newAch = []; tutoStep = -1;
-  seedRng(online ? netSeed : (Date.now() >>> 0));
+  const sd = online ? netSeed : modeSeed(Date.now() >>> 0);
+  seedRng(sd); modeStart(sd);
   state = 'play';
 }
 function nextLevel() {
@@ -784,7 +785,7 @@ function nextLevel() {
     p.x = 70 + p.slot * 26; p.y = 198 + p.slot * 26; p.sp = Math.min(100, p.sp + 25);
     if (p.hero === 'papy') { p.cane = true; p.ping = 0; if (p.weapon) p.weapon = null; }
   }
-  if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
+  if (GMODE === 0 && levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
   loadLevel(levelIdx + 1);
 }
 /* succès : sauvegardés en local, évalués à la fin de chaque partie pour le joueur de cet écran */
@@ -809,6 +810,7 @@ function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
   e.face = side > 0 ? -1 : 1;
+  modEnemy(e);
   E.push(e);
   return e;
 }
@@ -953,7 +955,7 @@ function hurt(t, att, a, dir) {
     t.hp = 0; t.dying = true; knock(t, dir);
     if (t.kind === 'e' && att.kind === 'p') att.kills = (att.kills | 0) + 1;
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
-    if (t.kind === 'e' && t.type === 'boss' && att.kind === 'p') for (const q of PS) if (!q.out) giveLife(q, 'BOSS VAINCU : +1 VIE');
+    if (t.kind === 'e' && t.type === 'boss' && !t.split && att.kind === 'p') for (const q of PS) if (!q.out) giveLife(q, 'BOSS VAINCU : +1 VIE');
     SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
   }
@@ -1064,7 +1066,7 @@ function updPlayer(p) {
       break;
     }
     case 'air': {
-      p.x += p.vx; p.y += p.vy; p.vz -= 0.22; p.z += p.vz;
+      p.x += p.vx; p.y += p.vy; p.vz -= CHK === 0 ? 0.1 : 0.22; p.z += p.vz;
       if (Pp.punch && !p.kick) { p.kick = true; p.kt = 0; p.hit = new Set(); SFX.whoosh(); }
       if (p.kick) { p.kt++; if (p.kt >= 1 && p.kt <= 24) strike(p, hr.kick); }
       if (p.z <= 0) { p.z = 0; p.st = 'free'; p.kick = false; p.vx = 0; p.vy = 0; }
@@ -1448,7 +1450,7 @@ function updEnemy(e) {
       }
       e.face = p.x >= e.x ? 1 : -1;
       e.walk += 0.18;
-      const sp = d.sp * (e.spm || 1) * (e.type === 'boss' ? 1 + 0.15 * (e.phase - 1) : 1);
+      const sp = d.sp * (e.spm || 1) * (CHK === 1 ? 1.5 : 1) * (e.type === 'boss' ? 1 + 0.15 * (e.phase - 1) : 1);
       const maxAtt = nPlayers >= 3 ? 4 : nPlayers === 2 ? 3 : 2;
       const busy = attackers >= maxAtt || e.cool > 0;
       const rr = d.atk.reach + (e.weapon ? WEAPONS[e.weapon].reach * 0.8 : 0);
@@ -2056,7 +2058,7 @@ function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; star
 /* salle d'attente : tant que l'hôte est sur l'écran de choix, les amis arrivent sur ce même écran et choisissent ensemble */
 let lobbyU = {};
 function lobbyWelcome(u, slot) {
-  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0, df: DIFF });
+  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0, df: dfWire() });
 }
 function lobbyHello(m) {
   if (lobbyU[m.u] !== undefined && act[lobbyU[m.u]]) { lobbyWelcome(m.u, lobbyU[m.u]); return; }     // bonjour répété : même place
@@ -2086,14 +2088,14 @@ function hostHello(m) {
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!pend || pend.u !== m.u) pend = { u: m.u, slot: rs > 0 ? rs : nPlayers, n: rs > 0 ? NAMES[rs] : nm, t: tick, rj: rs > 0 };
   pend.t = tick;
-  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: DIFF, rj: pend.rj ? 1 : 0 });
+  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: dfWire(), rj: pend.rj ? 1 : 0 });
 }
 function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
   if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
   if (m.wait) { gotWait = true; waitMsg = 'La partie est occupée (un ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
   if (m.lobby) {                                        // l'hôte est encore sur l'écran de choix : on choisit tous ensemble
-    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; setDf(m.df);
     initSelect(); act = [false, false, false, false]; hostCode = ROOM_CODE;
     for (let i = 0; i < localSlot; i++) { act[i] = !!(m.acts && m.acts[i]); NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); if (m.sel && m.sel[i]) { SEL[i].c = m.sel[i][0] | 0; SEL[i].lock = !!m.sel[i][1]; } }
     act[localSlot] = true; NAMES[localSlot] = myName;
@@ -2102,7 +2104,7 @@ function guestWelcome(m) {
     lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = ''; sendSel();
     return;
   }
-  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; setDf(m.df);
   initSelect();
   for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
   NAMES[localSlot] = myName; for (let i = 0; i < localSlot; i++) act[i] = true;
@@ -2149,7 +2151,7 @@ function buildCatch(j) {
   for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
-  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, h0: PS[0].hero, n0: NAMES[0], K,
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), h0: PS[0].hero, n0: NAMES[0], K,
     joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n, q.r ? 1 : 0]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined), dh: dropHist.slice() };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
@@ -2187,7 +2189,7 @@ function frameEvents(f) {
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
-  FRIENDLY = !!meta.ff; DIFF = Math.max(0, Math.min(2, meta.df === undefined ? 1 : meta.df | 0)); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  FRIENDLY = !!meta.ff; setDf(meta.df); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
   SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
@@ -2243,7 +2245,7 @@ function netIn(m) {
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df);
     for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
   } else if (t === 'jsel') {
@@ -2492,8 +2494,8 @@ function updSelect() {
       else if (!online) startGame();
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
-        const seed = (Math.random() * 4294967296) >>> 0;
-        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, act: act.map(a => a ? 1 : 0) };
+        const seed = modeSeed((Math.random() * 4294967296) >>> 0);
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -2540,6 +2542,7 @@ function simStep() {
   updTraps();
   updHz();
   updItems();
+  updModes();
   for (const f of FX) f.t++;
   if (uT > 0) uT--;
   FX = FX.filter(f => f.t < f.life);
@@ -2571,6 +2574,7 @@ const MENU_ALL = [
 const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
+  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + 4) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
   { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
   { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
@@ -2664,6 +2668,62 @@ function step() {
   if (online) netAfterFrame();
 }
 
+/* ---------- MODES DE JEU : histoire, boss rush, défi du jour, chaos + mutations de boss ---------- */
+/* GMODE est envoyé avec la difficulté (df = DIFF + 4 * GMODE) : tout le monde joue le même mode. Tout ce qui est aléatoire passe par rng(). */
+let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0;
+try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 3); } catch (e) { GMODE = 0; }
+const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS'];
+const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.'];
+const DAYMN = ['ENNEMIS TURBO', 'ENNEMIS FRAGILES MAIS BRUTAUX', 'PAS DE SPÉCIAL', 'TOUS LES ENNEMIS ONT UN PISTOLET', 'UNE SEULE VIE'];
+const CHAN = ['GRAVITÉ LUNAIRE', 'ENNEMIS TURBO', 'PLUIE DE BOMBES', 'TOUS ARMÉS', 'COMMANDES INVERSÉES'];
+const MUTN = ['ENRAGÉ', 'BLINDÉ', 'ESSAIM', 'FISSION'];
+function setDf(v) { v = v === undefined ? 1 : v | 0; DIFF = clamp(v & 3, 0, 2); GMODE = (v >> 2) & 7; if (GMODE > 3) GMODE = 0; }
+const dfWire = () => DIFF + 4 * GMODE;
+function dailySeed() { const d = new Date(); return (((d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) * 2654435761) >>> 0) || 1; }
+function modeSeed(s) { return GMODE === 2 ? dailySeed() : s; }
+function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
+/* niveau en boss rush : seulement la vague du boss, déclenchée tout de suite */
+function rushLevel(L) { const bw = L.waves[L.waves.length - 1]; return Object.assign({}, L, { waves: [Object.assign({}, bw, { cam: 0 })], events: [], story: null }); }
+function modEnemy(e) {                                  /* appelé à chaque apparition d'ennemi */
+  if (e.type === 'boss') {
+    if (GMODE === 0) return;
+    const k = Math.floor(rng() * 4); e.mut = k;
+    if (k === 0) { e.spm = (e.spm || 1) * 1.28; e.dm *= 1.2; } else if (k === 1) { e.hp = e.maxhp = Math.round(e.hp * 1.5); }
+    return;
+  }
+  if (DAYM === 0) e.spm = (e.spm || 1) * 1.35;
+  if (DAYM === 1) { e.hp = e.maxhp = Math.max(1, Math.round(e.hp * 0.55)); e.dm *= 1.8; }
+  if (DAYM === 3 && !e.weapon) { e.weapon = 'pistolet'; e.wd = 6; }
+}
+function updModes() {
+  if (GMODE === 0 || !LV) return;
+  if (DAYM === 2) for (const p of PS) p.sp = 0;
+  for (const e of E) {                                  /* mutations de boss */
+    if (e.type !== 'boss' || e.gone || e.dying || e.mut === undefined) continue;
+    if (e.mut === 2) { e.swT = (e.swT | 0) + 1; if (e.swT % 540 === 300 && E.length < 9) { spawn('thug', rng() < 0.5 ? 1 : -1); FX.push({ x: e.x, y: e.y, z: 50, t: 0, life: 40, txt: 'ESSAIM !', col: '#ff8a5a' }); } }
+    if (e.mut === 3 && !e.fis && e.hp <= e.maxhp * 0.5) {
+      e.fis = true; const c = mkEnemy('boss', clamp(e.x - e.face * 60, cam + 20, cam + W - 20), e.y);
+      c.hp = Math.max(1, Math.round(c.maxhp * 0.35)); c.split = true; c.mut = -1; c.face = e.face; E.push(c); ring(e.x, e.y, 60, '#ff6a4a', 26); ultBanner('FISSION !', '#ff6a4a'); SFX.roar();
+    }
+  }
+  if (GMODE !== 3) return;
+  CHT++;
+  if (CHT % 1500 === 500) {                              /* nouvel événement chaos */
+    CHK = Math.floor(rng() * CHAN.length); CHU = CHT + 720; ultBanner(CHAN[CHK], '#ff5fd0'); SFX.roar();
+    if (CHK === 3) for (const e of E) if (!e.gone && e.type !== 'boss' && !e.weapon) { e.weapon = rng() < 0.3 ? 'grenade' : 'pistolet'; e.wd = e.weapon === 'grenade' ? 1 : 4; }
+  }
+  if (CHK >= 0 && CHT > CHU) { CHK = -1; }
+  if (CHK === 2 && CHT % 36 === 0) {
+    const L = livePlayers(), q = L.length ? L[Math.floor(rng() * L.length)] : null, dm = Math.min(1.6, LV.dmgM) * DIFFM[DIFF];
+    HZ.push({ k: 'lift', x: clamp((q ? q.x : cam + W / 2) + (rng() - 0.5) * 120, cam + 20, cam + W - 20), y: clamp((q ? q.y : 200) + (rng() - 0.5) * 50, Y0 + 6, Y1 - 6), t: 0, warn: 40, r: 26, dmg: 16, dm, rock: true, bomb: true });
+  }
+  if (CHK === 4) for (const p of PS) { let t = HLD[p.slot].left; HLD[p.slot].left = HLD[p.slot].right; HLD[p.slot].right = t; t = PRS[p.slot].left; PRS[p.slot].left = PRS[p.slot].right; PRS[p.slot].right = t; }
+}
+function drawModeHud() {
+  if (GMODE === 0) return;
+  let s = MODEN[GMODE]; if (GMODE === 2 && DAYM >= 0) s += ' · ' + DAYMN[DAYM]; if (GMODE === 3 && CHK >= 0) s += ' · ' + CHAN[CHK] + ' ' + Math.max(0, Math.ceil((CHU - CHT) / 60)) + 's';
+  txt(s, W / 2, 252, 7, GMODE === 3 && CHK >= 0 ? '#ff7ad8' : '#ffcf6a', 'center');
+}
 /* ====================================================================
    RENDU
    ==================================================================== */
@@ -4294,7 +4354,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 18h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 19h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -4302,7 +4362,7 @@ function drawOptions() {
   const L = optList('title').concat([{ label: () => 'RETOUR' }]);
   L.forEach((it, i) => {
     const on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 74 + i * 20, 11, on ? '#fff' : '#9a9ac0', 'center');
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 72 + i * 17, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
   const cur = L[optIdx];
   if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
@@ -4784,6 +4844,7 @@ function render() {
     blindFx();
     drawUlt();
     hud();
+    drawModeHud();
     if (specOn) drawSpec();
     if (menuOpen) drawMenu();
     if (paused) {

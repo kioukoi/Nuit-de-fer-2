@@ -290,7 +290,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 18h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 19h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -298,7 +298,7 @@ function drawOptions() {
   const L = optList('title').concat([{ label: () => 'RETOUR' }]);
   L.forEach((it, i) => {
     const on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 74 + i * 20, 11, on ? '#fff' : '#9a9ac0', 'center');
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 72 + i * 17, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
   const cur = L[optIdx];
   if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
@@ -780,6 +780,7 @@ function render() {
     blindFx();
     drawUlt();
     hud();
+    drawModeHud();
     if (specOn) drawSpec();
     if (menuOpen) drawMenu();
     if (paused) {

@@ -89,7 +89,7 @@ function mkEnemy(type, x, y) {
     mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
-  levelIdx = i; LV = LEVELS[i];
+  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
   HZ = []; ultT = 0; uT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
@@ -119,7 +119,8 @@ function startGame() {
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
   simF = 0; gameStats = null; newAch = []; tutoStep = -1;
-  seedRng(online ? netSeed : (Date.now() >>> 0));
+  const sd = online ? netSeed : modeSeed(Date.now() >>> 0);
+  seedRng(sd); modeStart(sd);
   state = 'play';
 }
 function nextLevel() {
@@ -132,7 +133,7 @@ function nextLevel() {
     p.x = 70 + p.slot * 26; p.y = 198 + p.slot * 26; p.sp = Math.min(100, p.sp + 25);
     if (p.hero === 'papy') { p.cane = true; p.ping = 0; if (p.weapon) p.weapon = null; }
   }
-  if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
+  if (GMODE === 0 && levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
   loadLevel(levelIdx + 1);
 }
 /* succès : sauvegardés en local, évalués à la fin de chaque partie pour le joueur de cet écran */
@@ -157,6 +158,7 @@ function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
   e.face = side > 0 ? -1 : 1;
+  modEnemy(e);
   E.push(e);
   return e;
 }
@@ -301,7 +303,7 @@ function hurt(t, att, a, dir) {
     t.hp = 0; t.dying = true; knock(t, dir);
     if (t.kind === 'e' && att.kind === 'p') att.kills = (att.kills | 0) + 1;
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
-    if (t.kind === 'e' && t.type === 'boss' && att.kind === 'p') for (const q of PS) if (!q.out) giveLife(q, 'BOSS VAINCU : +1 VIE');
+    if (t.kind === 'e' && t.type === 'boss' && !t.split && att.kind === 'p') for (const q of PS) if (!q.out) giveLife(q, 'BOSS VAINCU : +1 VIE');
     SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
   }

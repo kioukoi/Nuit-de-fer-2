@@ -87,7 +87,7 @@ function updPlayer(p) {
       break;
     }
     case 'air': {
-      p.x += p.vx; p.y += p.vy; p.vz -= 0.22; p.z += p.vz;
+      p.x += p.vx; p.y += p.vy; p.vz -= CHK === 0 ? 0.1 : 0.22; p.z += p.vz;
       if (Pp.punch && !p.kick) { p.kick = true; p.kt = 0; p.hit = new Set(); SFX.whoosh(); }
       if (p.kick) { p.kt++; if (p.kt >= 1 && p.kt <= 24) strike(p, hr.kick); }
       if (p.z <= 0) { p.z = 0; p.st = 'free'; p.kick = false; p.vx = 0; p.vy = 0; }
@@ -471,7 +471,7 @@ function updEnemy(e) {
       }
       e.face = p.x >= e.x ? 1 : -1;
       e.walk += 0.18;
-      const sp = d.sp * (e.spm || 1) * (e.type === 'boss' ? 1 + 0.15 * (e.phase - 1) : 1);
+      const sp = d.sp * (e.spm || 1) * (CHK === 1 ? 1.5 : 1) * (e.type === 'boss' ? 1 + 0.15 * (e.phase - 1) : 1);
       const maxAtt = nPlayers >= 3 ? 4 : nPlayers === 2 ? 3 : 2;
       const busy = attackers >= maxAtt || e.cool > 0;
       const rr = d.atk.reach + (e.weapon ? WEAPONS[e.weapon].reach * 0.8 : 0);

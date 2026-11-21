@@ -190,7 +190,7 @@ function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; star
 /* salle d'attente : tant que l'hôte est sur l'écran de choix, les amis arrivent sur ce même écran et choisissent ensemble */
 let lobbyU = {};
 function lobbyWelcome(u, slot) {
-  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0, df: DIFF });
+  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0, df: dfWire() });
 }
 function lobbyHello(m) {
   if (lobbyU[m.u] !== undefined && act[lobbyU[m.u]]) { lobbyWelcome(m.u, lobbyU[m.u]); return; }     // bonjour répété : même place
@@ -220,14 +220,14 @@ function hostHello(m) {
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!pend || pend.u !== m.u) pend = { u: m.u, slot: rs > 0 ? rs : nPlayers, n: rs > 0 ? NAMES[rs] : nm, t: tick, rj: rs > 0 };
   pend.t = tick;
-  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: DIFF, rj: pend.rj ? 1 : 0 });
+  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: dfWire(), rj: pend.rj ? 1 : 0 });
 }
 function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
   if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
   if (m.wait) { gotWait = true; waitMsg = 'La partie est occupée (un ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
   if (m.lobby) {                                        // l'hôte est encore sur l'écran de choix : on choisit tous ensemble
-    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; setDf(m.df);
     initSelect(); act = [false, false, false, false]; hostCode = ROOM_CODE;
     for (let i = 0; i < localSlot; i++) { act[i] = !!(m.acts && m.acts[i]); NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); if (m.sel && m.sel[i]) { SEL[i].c = m.sel[i][0] | 0; SEL[i].lock = !!m.sel[i][1]; } }
     act[localSlot] = true; NAMES[localSlot] = myName;
@@ -236,7 +236,7 @@ function guestWelcome(m) {
     lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = ''; sendSel();
     return;
   }
-  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; setDf(m.df);
   initSelect();
   for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
   NAMES[localSlot] = myName; for (let i = 0; i < localSlot; i++) act[i] = true;
@@ -283,7 +283,7 @@ function buildCatch(j) {
   for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
-  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, h0: PS[0].hero, n0: NAMES[0], K,
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), h0: PS[0].hero, n0: NAMES[0], K,
     joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n, q.r ? 1 : 0]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined), dh: dropHist.slice() };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
@@ -321,7 +321,7 @@ function frameEvents(f) {
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
-  FRIENDLY = !!meta.ff; DIFF = Math.max(0, Math.min(2, meta.df === undefined ? 1 : meta.df | 0)); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  FRIENDLY = !!meta.ff; setDf(meta.df); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
   SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
@@ -377,7 +377,7 @@ function netIn(m) {
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df);
     for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
   } else if (t === 'jsel') {
