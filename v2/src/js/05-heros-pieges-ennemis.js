@@ -211,6 +211,8 @@ function updPlayer(p) {
         if (p.hero === 'papy' && it.weapon) continue;                      // le papy ne ramasse pas d'armes (mais bien pommes, viande, potions)
         if (it.weapon) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
+        } else if (it.type === 'energy') { p.sp = Math.min(HEROES[p.hero].cost, p.sp + 40); it.got = true; SFX.pick(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'ÉNERGIE', col: '#5ae0ff' });
+        } else if (it.type === 'shield') { p.inv = Math.max(p.inv, 200); it.got = true; SFX.lvl(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 36, txt: 'BOUCLIER', col: '#ffd34d' });
         } else { const hh = it.heal * (p.hero === 'medic' ? 2 : 1); p.hp = Math.min(p.maxhp, p.hp + hh); it.got = true; SFX.pick(); if (p.hero === 'medic') FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: '+' + hh, col: '#6f6' }); }
       }
     }

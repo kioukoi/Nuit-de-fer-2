@@ -235,6 +235,11 @@ function drawChar(e) {
     ffx = 2 + sw * 8; ffy = -Math.max(0, cw) * 4; bfx = -2 - sw * 8; bfy = -Math.max(0, -cw) * 4;
   } else if (!isP && st === 'recover') {
     lean = 2; fhx = 5; fhy = -20; bhx = 0; bhy = -19; ffx = 3; bfx = -5;
+  } else if (isP && state === 'win' && !e.out) {                 // victoire : les bras en l'air, on saute de joie
+    const vt = tick * 0.22 + (e.slot | 0) * 1.7;
+    hipY = -14 - Math.abs(Math.sin(vt)) * 4; lean = Math.sin(vt * 0.5) * 1.4;
+    fhx = 7 + Math.sin(vt) * 3; fhy = -42 + Math.sin(vt * 2) * 2; bhx = -1 - Math.sin(vt) * 3; bhy = -42 + Math.cos(vt * 2) * 2;
+    ffx = 4; bfx = -4; ffy = -Math.abs(Math.sin(vt)) * 3; bfy = ffy;
   } else if (moving) {
     const lo = Math.abs(sw) > 0.6 ? 0 : 1;
     ffx = 2 + sw * 6; ffy = -Math.max(0, cw) * 3; bfx = -2 - sw * 6; bfy = -Math.max(0, -cw) * 3;
@@ -245,7 +250,14 @@ function drawChar(e) {
   } else {
     hipY = -14 - bob; fhy -= bob; bhy -= bob;
     if (!isP) { fhx = 6; fhy = -24 - bob; bhx = 3; bhy = -22 - bob; }
+    else if (state === 'play' && st === 'free') {                    // à l'arrêt depuis un moment : le héros s'étire, puis regarde autour de lui
+      e._it = (e._it | 0) + 1;
+      const cy = e._it % 540;
+      if (cy > 300 && cy < 380) { const u = Math.sin((cy - 300) / 80 * Math.PI); fhx = 4; fhy = -27 - u * 16; bhx = 1; bhy = -24 - u * 16; lean = -u * 1.6; hipY -= u * 0.8; }
+      else if (cy > 430 && cy < 520) { hdx = Math.sin((cy - 430) / 90 * Math.PI * 2) * -1.6; }
+    }
   }
+  if (!(isP && !moving && !air && !down && st === 'free')) e._it = 0;
   if (kind === 'livreur' && !down && st !== 'rush') { ffx = 5; ffy = -5; bfx = -3; bfy = -9 - Math.abs(Math.sin(e.walk * 1.2)) * 2; hipY = -15; }
   if (kind === 'livreur' && st === 'rush') hipY = -15;
   if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }

@@ -5,16 +5,29 @@ function drawBarrel(b) {
   g.fillStyle = '#4a4a52'; g.fillRect(sx - 7, sy - 16, 14, 2); g.fillRect(sx - 7, sy - 6, 14, 2);
   g.fillStyle = '#8f5a2a'; g.fillRect(sx - 5, sy - 20, 3, 20);
 }
-function drawItem(it) {
-  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
-  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 6, 2, 0, 0, 7); g.fill();
+function drawFood(it, sx, sy) {
+  const pl = 0.5 + 0.5 * Math.sin(tick * 0.15);
   if (it.type === 'apple') {
     g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
     g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
+  } else if (it.type === 'energy') {
+    g.fillStyle = '#1a2a3a'; g.fillRect(sx - 3, sy - 13, 7, 12); g.fillStyle = '#3ad8ff'; g.fillRect(sx - 3, sy - 12, 7, 10); g.fillStyle = '#fff'; g.fillRect(sx - 1, sy - 9, 3, 1); g.fillRect(sx, sy - 7, 1, 3);
+    g.fillStyle = '#9ab'; g.fillRect(sx - 3, sy - 14, 7, 2);
+    g.globalAlpha = 0.25 + pl * 0.2; g.fillStyle = '#3ad8ff'; g.beginPath(); g.arc(sx, sy - 7, 10, 0, 7); g.fill(); g.globalAlpha = 1;
+  } else if (it.type === 'shield') {
+    g.globalAlpha = 0.25 + pl * 0.2; g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(sx, sy - 8, 11, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.fillStyle = OL; g.beginPath(); g.moveTo(sx - 7, sy - 15); g.lineTo(sx + 7, sy - 15); g.lineTo(sx + 7, sy - 8); g.lineTo(sx, sy - 1); g.lineTo(sx - 7, sy - 8); g.closePath(); g.fill();
+    g.fillStyle = '#4a8ae0'; g.beginPath(); g.moveTo(sx - 5.5, sy - 13.5); g.lineTo(sx + 5.5, sy - 13.5); g.lineTo(sx + 5.5, sy - 8.5); g.lineTo(sx, sy - 3); g.lineTo(sx - 5.5, sy - 8.5); g.closePath(); g.fill();
+    g.fillStyle = '#ffd34d'; g.fillRect(sx - 1, sy - 12, 2, 7); g.fillRect(sx - 3, sy - 9, 6, 2);
   } else {
     g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
     g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
   }
+}
+function drawItem(it) {
+  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 6, 2, 0, 0, 7); g.fill();
+  drawFood(it, sx, sy);
 }
 function drawFX(f) {
   const sx = Math.round(f.x - cam), sy = Math.round(f.y - f.z), k = f.t / f.life;
@@ -109,13 +122,7 @@ function drawItem(it) {
     txt(WEAPONS[it.type].name, sx, by - 12 - Math.round(pulse * 2), 7, '#ffd34d', 'center');
     return;
   }
-  if (it.type === 'apple') {
-    g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
-    g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
-  } else {
-    g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
-    g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
-  }
+  drawFood(it, sx, sy);
 }
 function drawWeaponGround(name) {
   g.lineJoin = 'round';
@@ -258,7 +265,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 03h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 04h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

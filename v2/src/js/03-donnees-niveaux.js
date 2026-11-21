@@ -127,10 +127,10 @@ const LEVELS = [
     barrels: [[300, 190], [520, 220], [760, 175], [1000, 205], [1300, 222], [1500, 182], [1650, 185], [1880, 212]],
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1]] },
-      { cam: 560, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
+      { cam: 560, spawn: [['thug', 1], ['thug', -1], ['rodeur', 1]] },
       { cam: 980, spawn: [['brute', 1], ['thug', -1]] },
       { cam: 1380, spawn: [['thrower', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
-      { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['thug', 1]] },
+      { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['rodeur', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 1, bpm: 84, tr: -2, name: 'LE PORT', place: 'Docks au crépuscule', bg: 'port', hpM: 1.12, dmgM: 1.1, spdM: 1.05, coolM: 0.92, bossName: 'LE CAPITAINE', bossHp: 250, summon: ['marin', 'thrower'],
@@ -142,9 +142,9 @@ const LEVELS = [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
       { cam: 480, spawn: [['thug', 1], ['thrower', -1], ['thug', -1], ['thug', 1]] },
       { cam: 820, spawn: [['brute', 1], ['thug', -1], ['thug', 1]] },
-      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['pisteur', 1], ['thug', -1]] },
       { cam: 1480, spawn: [['brute', 1], ['brute', -1], ['thrower', 1]] },
-      { cam: 1760, spawn: [['brute', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
+      { cam: 1760, spawn: [['brute', 1], ['pisteur', -1], ['thug', 1], ['thrower', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.25, dmgM: 1.2, spdM: 1.1, coolM: 0.85, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
@@ -155,11 +155,11 @@ const LEVELS = [
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['thug', -1]] },
       { cam: 450, spawn: [['brute', 1], ['thrower', -1], ['thug', -1], ['thug', 1]] },
-      { cam: 780, spawn: [['thrower', 1], ['thrower', -1], ['thrower', 1], ['thug', -1]] },
-      { cam: 1100, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 780, spawn: [['thrower', 1], ['torche', -1], ['thrower', 1], ['thug', -1]] },
+      { cam: 1100, spawn: [['brute', 1], ['mecano', -1], ['thug', 1], ['thug', -1]] },
       { cam: 1400, spawn: [['thrower', 1], ['thrower', -1], ['brute', 1], ['thug', -1], ['thug', 1]] },
       { cam: 1650, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1]] },
-      { cam: 1800, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['thrower', 1]] },
+      { cam: 1800, spawn: [['mecano', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['torche', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 3, bpm: 120, tr: -5, name: 'LE TOIT', place: 'Tour du Patron, sous l\'orage', bg: 'roof', hpM: 1.4, dmgM: 1.3, spdM: 1.15, coolM: 0.78, bossName: 'LE PATRON', bossHp: 330, summon: ['garde', 'garde'],
@@ -170,11 +170,11 @@ const LEVELS = [
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['brute', -1]] },
       { cam: 440, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1]] },
-      { cam: 760, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['thug', -1], ['thrower', 1], ['thrower', -1]] },
+      { cam: 760, spawn: [['agent', 1], ['thug', -1], ['thug', 1], ['agent', -1], ['thrower', 1], ['thrower', -1]] },
       { cam: 1060, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['thug', 1]] },
       { cam: 1330, spawn: [['thrower', 1], ['thrower', -1], ['thrower', 1], ['brute', -1], ['brute', 1]] },
       { cam: 1580, spawn: [['brute', 1], ['brute', -1], ['brute', 1], ['thug', -1], ['thug', 1]] },
-      { cam: 1780, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 1780, spawn: [['brute', 1], ['mecano', -1], ['torche', 1], ['thrower', -1], ['agent', 1], ['thug', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 4, bpm: 132, tr: 4, name: 'PARIS', place: 'Boulevard parisien, jour de manifestation', bg: 'paris', hpM: 1.55, dmgM: 1.4, spdM: 1.2, coolM: 0.72, bossName: 'LE PRÉSIDENT', bossHp: 380, summon: ['crs', 'crsc'],

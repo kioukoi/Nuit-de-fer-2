@@ -301,7 +301,9 @@ function breakBarrel(b) {
   for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
   const r = rng();
   if (r < 0.14) { const wt = rng() < 0.12 ? GKEYS[Math.floor(rng() * 4) % 4] : WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
-  else if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else if (r < 0.48) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else if (r < 0.54) IT.push({ x: b.x, y: b.y, type: 'energy', heal: 0 });
+  else if (r < 0.59) IT.push({ x: b.x, y: b.y, type: 'shield', heal: 0 });
   else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
 }
 

@@ -260,16 +260,39 @@ function mVoice(dl, f, d, type, v, att, lp) {
     o.start(t); o.stop(t + d + 0.05);
   } catch (e) { /* ignoré */ }
 }
+/* un style musical par niveau : accords, basse, motif de la mélodie (indices dans l'accord, -1 = silence), timbres et batterie ; plus intense et plus rapide pendant un boss */
+const MSTY = {
+  0: { ch: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], bass: [45, 41, 36, 43], lead: [0, 1, 2, 1, 2, 1, 0, 2], dr: 'rock' },
+  1: { ch: [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55]], bass: [38, 34, 41, 36], lead: [0, 2, 1, 2, 0, 2, 1, -1], dr: 'half', lt: 'triangle' },
+  2: { ch: [[52, 55, 59], [52, 55, 59], [48, 52, 55], [50, 54, 57]], bass: [40, 40, 36, 38], lead: [0, -1, 0, -1, 2, -1, 1, -1], dr: 'indus', lt: 'square', lv: 0.02, llp: 1400, pad: 'sawtooth' },
+  3: { ch: [[48, 51, 55], [44, 48, 51], [51, 55, 58], [46, 50, 53]], bass: [36, 32, 39, 34], lead: [0, 1, 2, 1, 0, 1, 2, 1], dr: 'rock', lt: 'triangle' },
+  4: { ch: [[55, 58, 62], [51, 55, 58], [46, 50, 53], [53, 57, 60]], bass: [43, 39, 34, 41], lead: [2, -1, 2, 2, -1, 1, -1, 0], dr: 'march', lt: 'square', lv: 0.022, llp: 1800 },
+  5: { ch: [[57, 60, 64], [46, 50, 53], [57, 60, 64], [52, 56, 59]], bass: [33, 34, 33, 40], lead: [0, -1, -1, 1, -1, -1, 2, -1], dr: 'half', lv: 0.04 },
+  6: { ch: [[50, 53, 57], [55, 59, 62], [48, 52, 55], [57, 61, 64]], bass: [38, 43, 36, 45], lead: [0, 2, 1, 2, 0, 1, 2, 1], dr: 'swing', lt: 'triangle' },
+  7: { ch: [[57, 60, 64], [57, 60, 64], [55, 59, 62], [53, 57, 60]], bass: [33, 33, 31, 29], lead: [0, 0, 1, 0, 2, 0, 1, 0], dr: 'train', lt: 'square', lv: 0.02, llp: 1600 },
+  8: { ch: [[48, 52, 55], [55, 59, 62], [57, 60, 64], [53, 57, 60]], bass: [36, 43, 45, 41], lead: [0, 2, 1, 2, 2, 1, 0, 1], dr: 'rock', lt: 'square', lv: 0.022, llp: 2200 },
+  9: { ch: [[50, 53, 57], [46, 50, 53], [43, 46, 50], [57, 61, 64]], bass: [38, 34, 31, 33], lead: [2, 1, 0, 1, 2, 1, 0, 2], dr: 'epic', lt: 'sawtooth', lv: 0.022, llp: 1800, pad: 'sawtooth' }
+};
+let MBOSS = false;
 function musicStep(dl, bar, s) {
-  const sd = 60 / BPM / 4, ch = CHORDS[bar], fight = waveActive || (state === 'play' && E.length > 0);
-  if (s === 0) for (const n of ch) mVoice(dl, mf(n), sd * 15, 'triangle', 0.02, 0.35, 900);
-  if (s === 0 || s === 6 || s === 8 || s === 14) mVoice(dl, mf(BASSN[bar] + (s === 6 || s === 14 ? 12 : 0)), sd * 3.2, 'sawtooth', 0.07, 0.01, 420);
-  if (s % 2 === 0) { const k = [0, 1, 2, 1, 2, 1, 0, 2][s >> 1]; mVoice(dl, mf(ch[k] + 12), sd * 3, 'sine', 0.035, 0.008, 0); }
+  const st = (state === 'play' && LV && MSTY[LV.id]) || MSTY[0], sd = 60 / BPM / 4 / (MBOSS ? 1.12 : 1), ch = st.ch[bar], fight = waveActive || (state === 'play' && E.length > 0);
+  if (s === 0) for (const n of ch) mVoice(dl, mf(n), sd * 15, st.pad || 'triangle', st.pad ? 0.014 : 0.02, 0.35, 900);
+  const bn = st.bass[bar];
+  if (s === 0 || s === 6 || s === 8 || s === 14) mVoice(dl, mf(bn + (s === 6 || s === 14 ? 12 : 0)), sd * 3.2, 'sawtooth', 0.07, 0.01, 420);
+  else if (MBOSS && s % 2 === 0) mVoice(dl, mf(bn), sd * 1.6, 'sawtooth', 0.055, 0.005, 380);
+  if (s % 2 === 0) { const k = st.lead[s >> 1]; if (k >= 0) mVoice(dl, mf(ch[k] + (MBOSS ? 12 : 12)), sd * 3, MBOSS ? 'sawtooth' : (st.lt || 'sine'), MBOSS ? 0.026 : (st.lv || 0.035), 0.008, MBOSS ? 2400 : (st.llp || 0)); }
   if (s % 4 === 3) mVoice(dl, mf(ch[(s >> 2) % 3] + 24), sd * 2, 'sine', 0.012, 0.005, 0);
-  if (fight) {
-    if (s === 0 || s === 8 || s === 10) tone(125, 0.15, 'sine', 0.3, -85, dl);
-    if (s === 4 || s === 12) { nz(0.13, 0.16, 'bandpass', 1900, 1100, 0.9, dl); tone(190, 0.08, 'triangle', 0.08, -60, dl); }
-    if (s % 2 === 0 && s !== 4 && s !== 12) nz(0.03, 0.05, 'highpass', 7000, 7000, 0.7, dl);
+  if (MBOSS && s % 2 === 1) mVoice(dl, mf(ch[(s >> 1) % 3] + 24), sd * 1.4, 'square', 0.01, 0.004, 3000);
+  if (fight || MBOSS) {
+    const dr = MBOSS ? 'train' : st.dr;
+    const kick = (v) => tone(125, 0.15, 'sine', v || 0.3, -85, dl), snare = (v) => { nz(0.13, v || 0.16, 'bandpass', 1900, 1100, 0.9, dl); tone(190, 0.08, 'triangle', 0.08, -60, dl); }, hat = (v) => nz(0.03, v || 0.05, 'highpass', 7000, 7000, 0.7, dl);
+    if (dr === 'rock') { if (s === 0 || s === 8 || s === 10) kick(); if (s === 4 || s === 12) snare(); if (s % 2 === 0 && s !== 4 && s !== 12) hat(); }
+    else if (dr === 'half') { if (s === 0 || s === 10) kick(); if (s === 8) snare(0.2); if (s % 4 === 2) hat(0.04); }
+    else if (dr === 'indus') { if (s % 4 === 0) kick(0.34); if (s === 6 || s === 14) nz(0.09, 0.18, 'bandpass', 900, 500, 2.2, dl); if (s % 4 === 2) hat(0.04); }
+    else if (dr === 'march') { if (s === 0 || s === 8) kick(); if (s === 4 || s === 12) snare(0.18); if (s === 6 || s === 14) snare(0.07); }
+    else if (dr === 'swing') { if (s === 0 || s === 8) kick(0.22); if (s === 4 || s === 12) nz(0.1, 0.09, 'bandpass', 2600, 1800, 0.8, dl); if (s % 4 === 0) hat(0.06); if (s % 4 === 3) hat(0.04); }
+    else if (dr === 'train') { if (s % 4 === 0) kick(0.32); if (s === 4 || s === 12) snare(0.17); hat(0.032); }
+    else if (dr === 'epic') { if (s === 0 || s === 8 || s === 10) kick(0.34); if (s === 4 || s === 12) snare(0.2); if (s === 14 || s === 15) tone(90, 0.12, 'sine', 0.22, -40, dl); if (s % 2 === 0 && s !== 4 && s !== 12) hat(); }
   } else if (s === 0 || s === 8) tone(110, 0.12, 'sine', 0.1, -60, dl);
 }
 function musicTick() {
@@ -280,11 +303,12 @@ function musicTick() {
   try {
     if (!MUS) { MUS = AC.createGain(); MUS.gain.value = 0.5; MUS.connect(out()); }
     const now = AC.currentTime;
+    MBOSS = state === 'play' && !storyOn && E.some(e => e.type === 'boss' && !e.gone && !e.dying);
     if (mNext < now - 0.3) mNext = now + 0.05;
     BUSOVR = MUS;
     while (mNext < now + 0.3) {
       musicStep(mNext - now, (mStep >> 4) & 3, mStep & 15);
-      mNext += 60 / BPM / 4; mStep++;
+      mNext += 60 / (BPM * (MBOSS ? 1.12 : 1)) / 4; mStep++;
     }
   } catch (e) { /* ignoré */ } finally { BUSOVR = null; }
 }
@@ -447,10 +471,10 @@ const LEVELS = [
     barrels: [[300, 190], [520, 220], [760, 175], [1000, 205], [1300, 222], [1500, 182], [1650, 185], [1880, 212]],
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1]] },
-      { cam: 560, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
+      { cam: 560, spawn: [['thug', 1], ['thug', -1], ['rodeur', 1]] },
       { cam: 980, spawn: [['brute', 1], ['thug', -1]] },
       { cam: 1380, spawn: [['thrower', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
-      { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['thug', 1]] },
+      { cam: 1700, spawn: [['brute', 1], ['thrower', -1], ['rodeur', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 1, bpm: 84, tr: -2, name: 'LE PORT', place: 'Docks au crépuscule', bg: 'port', hpM: 1.12, dmgM: 1.1, spdM: 1.05, coolM: 0.92, bossName: 'LE CAPITAINE', bossHp: 250, summon: ['marin', 'thrower'],
@@ -462,9 +486,9 @@ const LEVELS = [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
       { cam: 480, spawn: [['thug', 1], ['thrower', -1], ['thug', -1], ['thug', 1]] },
       { cam: 820, spawn: [['brute', 1], ['thug', -1], ['thug', 1]] },
-      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['pisteur', 1], ['thug', -1]] },
       { cam: 1480, spawn: [['brute', 1], ['brute', -1], ['thrower', 1]] },
-      { cam: 1760, spawn: [['brute', 1], ['thug', -1], ['thug', 1], ['thrower', -1]] },
+      { cam: 1760, spawn: [['brute', 1], ['pisteur', -1], ['thug', 1], ['thrower', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.25, dmgM: 1.2, spdM: 1.1, coolM: 0.85, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
@@ -475,11 +499,11 @@ const LEVELS = [
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['thug', -1]] },
       { cam: 450, spawn: [['brute', 1], ['thrower', -1], ['thug', -1], ['thug', 1]] },
-      { cam: 780, spawn: [['thrower', 1], ['thrower', -1], ['thrower', 1], ['thug', -1]] },
-      { cam: 1100, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 780, spawn: [['thrower', 1], ['torche', -1], ['thrower', 1], ['thug', -1]] },
+      { cam: 1100, spawn: [['brute', 1], ['mecano', -1], ['thug', 1], ['thug', -1]] },
       { cam: 1400, spawn: [['thrower', 1], ['thrower', -1], ['brute', 1], ['thug', -1], ['thug', 1]] },
       { cam: 1650, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1]] },
-      { cam: 1800, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['thrower', 1]] },
+      { cam: 1800, spawn: [['mecano', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['torche', 1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 3, bpm: 120, tr: -5, name: 'LE TOIT', place: 'Tour du Patron, sous l\'orage', bg: 'roof', hpM: 1.4, dmgM: 1.3, spdM: 1.15, coolM: 0.78, bossName: 'LE PATRON', bossHp: 330, summon: ['garde', 'garde'],
@@ -490,11 +514,11 @@ const LEVELS = [
     waves: [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['brute', -1]] },
       { cam: 440, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1]] },
-      { cam: 760, spawn: [['thug', 1], ['thug', -1], ['thug', 1], ['thug', -1], ['thrower', 1], ['thrower', -1]] },
+      { cam: 760, spawn: [['agent', 1], ['thug', -1], ['thug', 1], ['agent', -1], ['thrower', 1], ['thrower', -1]] },
       { cam: 1060, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thug', -1], ['thug', 1]] },
       { cam: 1330, spawn: [['thrower', 1], ['thrower', -1], ['thrower', 1], ['brute', -1], ['brute', 1]] },
       { cam: 1580, spawn: [['brute', 1], ['brute', -1], ['brute', 1], ['thug', -1], ['thug', 1]] },
-      { cam: 1780, spawn: [['brute', 1], ['brute', -1], ['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
+      { cam: 1780, spawn: [['brute', 1], ['mecano', -1], ['torche', 1], ['thrower', -1], ['agent', 1], ['thug', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 4, bpm: 132, tr: 4, name: 'PARIS', place: 'Boulevard parisien, jour de manifestation', bg: 'paris', hpM: 1.55, dmgM: 1.4, spdM: 1.2, coolM: 0.72, bossName: 'LE PRÉSIDENT', bossHp: 380, summon: ['crs', 'crsc'],
@@ -624,8 +648,9 @@ let LV = LEVELS[0], levelIdx = 0, startLevel = 0, introT = 0;
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignoré */ } };
 let myName = (lsGet('nfer_name', 'JOUEUR') || 'JOUEUR').slice(0, 10);
-let FRIENDLY = true;
-try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; } catch (e) { /* ignoré */ }
+let FRIENDLY = true, DIFF = 1, SHAKEON = true;
+const DIFFN = ['FACILE', 'NORMAL', 'DIFFICILE'], DIFFM = [0.78, 1, 1.28];
+try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; DIFF = Math.max(0, Math.min(2, parseInt(lsGet('nfer_df', '1'), 10))); if (isNaN(DIFF)) DIFF = 1; SHAKEON = lsGet('nfer_shake', '1') !== '0'; } catch (e) { /* ignoré */ }
 let NAMES = [myName, 'JOUEUR 2', 'JOUEUR 3', 'JOUEUR 4'], nameBuf = '', lastRank = -1, recorded = false;
 let unlocked = Math.min(LEVELS.length - 1, parseInt(lsGet('nfer_unlocked', '0'), 10) || 0);
 try { if (/[?&]debug/.test(location.search)) unlocked = LEVELS.length - 1; } catch (e) { /* ignoré */ }
@@ -696,16 +721,16 @@ function mkPlayer(hero, slot) {
     dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', nochair: false, chx: 0, chy: 0, xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
 }
 function mkEnemy(type, x, y) {
-  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM));
+  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM) * DIFFM[DIFF]);
   return { kind: 'e', type, x, y, z: 0, vx: 0, vy: 0, vz: 0, face: -1, hp, maxhp: hp, st: 'move', t: 0,
     cool: rnd(20, 70), side: rng() < 0.5 ? -1 : 1, slot: rnd(0, 30), hit: new Set(), inv: 0, flash: 0, walk: 0,
-    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM, spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
+    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
   levelIdx = i; LV = LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
-  HZ = []; ultT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = LV.tr || 0; BPM = LV.bpm || 96; mNext = 0;
+  HZ = []; ultT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
   cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
@@ -724,7 +749,7 @@ function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
-  simF = 0;
+  simF = 0; gameStats = null; newAch = []; tutoStep = -1;
   seedRng(online ? netSeed : (Date.now() >>> 0));
   state = 'play';
 }
@@ -741,7 +766,24 @@ function nextLevel() {
   if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
   loadLevel(levelIdx + 1);
 }
-function endGame(kind) { state = kind; endT = 0; recordScores(); }
+/* succès : sauvegardés en local, évalués à la fin de chaque partie pour le joueur de cet écran */
+const ACHS = [['lv6', 'Sous la ville', 'Atteindre le niveau 6'], ['lv10', 'Chez l\'Architecte', 'Atteindre le niveau 10'], ['fin', 'Aller au bout', 'Finir les 10 niveaux'],
+  ['flaw', 'Intouchable', 'Finir sans perdre une seule vie'], ['hard', 'Dur à cuire', 'Finir en difficile'], ['slay', 'Boucher', 'Mettre 150 ennemis K.O. dans une partie'], ['duo', 'Entre amis', 'Finir à plusieurs']];
+let newAch = [], gameStats = null;
+function doneAch() { let a = []; try { a = lsGet('nfer_ach', '').split(',').filter(Boolean); } catch (e) { /* ignoré */ } return a; }
+function checkAch(kind) {
+  const p = PS[online ? localSlot : 0]; newAch = [];
+  if (!p) return;
+  const win = kind === 'win', have = doneAch(), got = [];
+  gameStats = { kills: p.kills | 0, lost: Math.max(0, 3 - p.lives) + (p.out ? 0 : 0), time: simF, level: levelIdx + 1, diff: DIFF, win };
+  if (levelIdx >= 5) got.push('lv6');
+  if (levelIdx >= 9) got.push('lv10');
+  if (win) { got.push('fin'); if (p.lives >= 3 && !p.out) got.push('flaw'); if (DIFF === 2) got.push('hard'); if (nPlayers >= 2) got.push('duo'); }
+  if ((p.kills | 0) >= 150) got.push('slay');
+  for (const k of got) if (have.indexOf(k) < 0) { have.push(k); newAch.push(k); }
+  if (newAch.length) lsSet('nfer_ach', have.join(','));
+}
+function endGame(kind) { state = kind; endT = 0; recordScores(); try { checkAch(kind); } catch (e) { /* ignoré */ } }
 function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
@@ -888,6 +930,7 @@ function hurt(t, att, a, dir) {
   if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5 * (a.ally ? 0.35 : 1));  /* kopins : 35 % des points */ tgt = t; tgtT = 150; }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
+    if (t.kind === 'e' && att.kind === 'p') att.kills = (att.kills | 0) + 1;
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
     SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
@@ -904,7 +947,9 @@ function breakBarrel(b) {
   for (let i = 0; i < 5; i++) FX.push({ x: b.x + rnd(-6, 6), y: b.y, z: rnd(6, 18), t: 0, life: 14, big: false });
   const r = rng();
   if (r < 0.14) { const wt = rng() < 0.12 ? GKEYS[Math.floor(rng() * 4) % 4] : WKEYS[Math.floor(rng() * 3) % 3]; IT.push({ x: b.x, y: b.y, type: wt, weapon: true, wd: WEAPONS[wt].uses, got: false }); }
-  else if (r < 0.58) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else if (r < 0.48) IT.push({ x: b.x, y: b.y, type: 'apple', heal: 20 });
+  else if (r < 0.54) IT.push({ x: b.x, y: b.y, type: 'energy', heal: 0 });
+  else if (r < 0.59) IT.push({ x: b.x, y: b.y, type: 'shield', heal: 0 });
   else IT.push({ x: b.x, y: b.y, type: 'meat', heal: 45 });
 }
 
@@ -1121,6 +1166,8 @@ function updPlayer(p) {
         if (p.hero === 'papy' && it.weapon) continue;                      // le papy ne ramasse pas d'armes (mais bien pommes, viande, potions)
         if (it.weapon) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
+        } else if (it.type === 'energy') { p.sp = Math.min(HEROES[p.hero].cost, p.sp + 40); it.got = true; SFX.pick(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'ÉNERGIE', col: '#5ae0ff' });
+        } else if (it.type === 'shield') { p.inv = Math.max(p.inv, 200); it.got = true; SFX.lvl(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 36, txt: 'BOUCLIER', col: '#ffd34d' });
         } else { const hh = it.heal * (p.hero === 'medic' ? 2 : 1); p.hp = Math.min(p.maxhp, p.hp + hh); it.got = true; SFX.pick(); if (p.hero === 'medic') FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: '+' + hh, col: '#6f6' }); }
       }
     }
@@ -1801,7 +1848,7 @@ function joinGame(code) { netReset(); olStage = 'connecting'; waitMsg = ''; star
 /* salle d'attente : tant que l'hôte est sur l'écran de choix, les amis arrivent sur ce même écran et choisissent ensemble */
 let lobbyU = {};
 function lobbyWelcome(u, slot) {
-  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0 });
+  netSend({ t: 'welcome', to: u, lobby: 1, slot, names: NAMES.slice(0, nPlayers), acts: act.map(a => a ? 1 : 0), sel: SEL.slice(0, nPlayers).map(o => [o.c, o.lock ? 1 : 0]), ff: FRIENDLY ? 1 : 0, df: DIFF });
 }
 function lobbyHello(m) {
   if (lobbyU[m.u] !== undefined && act[lobbyU[m.u]]) { lobbyWelcome(m.u, lobbyU[m.u]); return; }     // bonjour répété : même place
@@ -1824,14 +1871,14 @@ function hostHello(m) {
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
   if (!pend || pend.u !== m.u) pend = { u: m.u, slot: nPlayers, n: nm, t: tick };
   pend.t = tick;
-  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0 });
+  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: DIFF });
 }
 function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
   if (m.full) { netFail('La partie est complète (4 joueurs maximum).'); return; }
   if (m.wait) { gotWait = true; waitMsg = 'La partie est occupée (un ami arrive ou manche en cours)… patientez'; if (rel) rel.t0 = Math.max(rel.t0, tick - 600); return; }
   if (m.lobby) {                                        // l'hôte est encore sur l'écran de choix : on choisit tous ensemble
-    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
+    online = true; room = true; roomJoin = false; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
     initSelect(); act = [false, false, false, false]; hostCode = ROOM_CODE;
     for (let i = 0; i < localSlot; i++) { act[i] = !!(m.acts && m.acts[i]); NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); if (m.sel && m.sel[i]) { SEL[i].c = m.sel[i][0] | 0; SEL[i].lock = !!m.sel[i][1]; } }
     act[localSlot] = true; NAMES[localSlot] = myName;
@@ -1840,7 +1887,7 @@ function guestWelcome(m) {
     lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = ''; sendSel();
     return;
   }
-  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff;
+  online = true; room = true; roomJoin = true; jselSent = false; localSlot = m.slot | 0; nPlayers = localSlot + 1; rxT = tick; FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
   initSelect();
   for (let i = 0; i < localSlot; i++) { NAMES[i] = cleanName(m.names && m.names[i]) || 'JOUEUR ' + (i + 1); SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes && m.heroes[i])); SEL[i].lock = true; }
   NAMES[localSlot] = myName; for (let i = 0; i < localSlot; i++) act[i] = true;
@@ -1878,7 +1925,7 @@ function buildCatch(j) {
   for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
-  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, h0: PS[0].hero, n0: NAMES[0], K,
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, h0: PS[0].hero, n0: NAMES[0], K,
     joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined) };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
@@ -1907,7 +1954,7 @@ function frameEvents(f) {
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
-  FRIENDLY = !!meta.ff; startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  FRIENDLY = !!meta.ff; DIFF = Math.max(0, Math.min(2, meta.df === undefined ? 1 : meta.df | 0)); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
   SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
@@ -1961,7 +2008,7 @@ function netIn(m) {
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff;
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; DIFF = Math.max(0, Math.min(2, m.df === undefined ? 1 : m.df | 0));
     for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
   } else if (t === 'jsel') {
@@ -2211,7 +2258,7 @@ function updSelect() {
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
         const seed = (Math.random() * 4294967296) >>> 0;
-        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, act: act.map(a => a ? 1 : 0) };
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -2287,6 +2334,8 @@ const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' :
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
+  { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
+  { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
   { id: 'ff', label: () => 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON'), act: toggleFF, adj: toggleFF, hint: () => 'Coups entre joueurs : oui = les alliés se blessent (moitié des dégâts)' },
   { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; }, adj: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
   { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; }, adj: () => { sfxOn = !sfxOn; } },
@@ -3205,6 +3254,11 @@ function drawChar(e) {
     ffx = 2 + sw * 8; ffy = -Math.max(0, cw) * 4; bfx = -2 - sw * 8; bfy = -Math.max(0, -cw) * 4;
   } else if (!isP && st === 'recover') {
     lean = 2; fhx = 5; fhy = -20; bhx = 0; bhy = -19; ffx = 3; bfx = -5;
+  } else if (isP && state === 'win' && !e.out) {                 // victoire : les bras en l'air, on saute de joie
+    const vt = tick * 0.22 + (e.slot | 0) * 1.7;
+    hipY = -14 - Math.abs(Math.sin(vt)) * 4; lean = Math.sin(vt * 0.5) * 1.4;
+    fhx = 7 + Math.sin(vt) * 3; fhy = -42 + Math.sin(vt * 2) * 2; bhx = -1 - Math.sin(vt) * 3; bhy = -42 + Math.cos(vt * 2) * 2;
+    ffx = 4; bfx = -4; ffy = -Math.abs(Math.sin(vt)) * 3; bfy = ffy;
   } else if (moving) {
     const lo = Math.abs(sw) > 0.6 ? 0 : 1;
     ffx = 2 + sw * 6; ffy = -Math.max(0, cw) * 3; bfx = -2 - sw * 6; bfy = -Math.max(0, -cw) * 3;
@@ -3215,7 +3269,14 @@ function drawChar(e) {
   } else {
     hipY = -14 - bob; fhy -= bob; bhy -= bob;
     if (!isP) { fhx = 6; fhy = -24 - bob; bhx = 3; bhy = -22 - bob; }
+    else if (state === 'play' && st === 'free') {                    // à l'arrêt depuis un moment : le héros s'étire, puis regarde autour de lui
+      e._it = (e._it | 0) + 1;
+      const cy = e._it % 540;
+      if (cy > 300 && cy < 380) { const u = Math.sin((cy - 300) / 80 * Math.PI); fhx = 4; fhy = -27 - u * 16; bhx = 1; bhy = -24 - u * 16; lean = -u * 1.6; hipY -= u * 0.8; }
+      else if (cy > 430 && cy < 520) { hdx = Math.sin((cy - 430) / 90 * Math.PI * 2) * -1.6; }
+    }
   }
+  if (!(isP && !moving && !air && !down && st === 'free')) e._it = 0;
   if (kind === 'livreur' && !down && st !== 'rush') { ffx = 5; ffy = -5; bfx = -3; bfy = -9 - Math.abs(Math.sin(e.walk * 1.2)) * 2; hipY = -15; }
   if (kind === 'livreur' && st === 'rush') hipY = -15;
   if (kind === 'fauteuil' && !down) { ffx = 10; ffy = -6; bfx = 8; bfy = -5; hipY = -14; }
@@ -3698,16 +3759,29 @@ function drawBarrel(b) {
   g.fillStyle = '#4a4a52'; g.fillRect(sx - 7, sy - 16, 14, 2); g.fillRect(sx - 7, sy - 6, 14, 2);
   g.fillStyle = '#8f5a2a'; g.fillRect(sx - 5, sy - 20, 3, 20);
 }
-function drawItem(it) {
-  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
-  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 6, 2, 0, 0, 7); g.fill();
+function drawFood(it, sx, sy) {
+  const pl = 0.5 + 0.5 * Math.sin(tick * 0.15);
   if (it.type === 'apple') {
     g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
     g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
+  } else if (it.type === 'energy') {
+    g.fillStyle = '#1a2a3a'; g.fillRect(sx - 3, sy - 13, 7, 12); g.fillStyle = '#3ad8ff'; g.fillRect(sx - 3, sy - 12, 7, 10); g.fillStyle = '#fff'; g.fillRect(sx - 1, sy - 9, 3, 1); g.fillRect(sx, sy - 7, 1, 3);
+    g.fillStyle = '#9ab'; g.fillRect(sx - 3, sy - 14, 7, 2);
+    g.globalAlpha = 0.25 + pl * 0.2; g.fillStyle = '#3ad8ff'; g.beginPath(); g.arc(sx, sy - 7, 10, 0, 7); g.fill(); g.globalAlpha = 1;
+  } else if (it.type === 'shield') {
+    g.globalAlpha = 0.25 + pl * 0.2; g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(sx, sy - 8, 11, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.fillStyle = OL; g.beginPath(); g.moveTo(sx - 7, sy - 15); g.lineTo(sx + 7, sy - 15); g.lineTo(sx + 7, sy - 8); g.lineTo(sx, sy - 1); g.lineTo(sx - 7, sy - 8); g.closePath(); g.fill();
+    g.fillStyle = '#4a8ae0'; g.beginPath(); g.moveTo(sx - 5.5, sy - 13.5); g.lineTo(sx + 5.5, sy - 13.5); g.lineTo(sx + 5.5, sy - 8.5); g.lineTo(sx, sy - 3); g.lineTo(sx - 5.5, sy - 8.5); g.closePath(); g.fill();
+    g.fillStyle = '#ffd34d'; g.fillRect(sx - 1, sy - 12, 2, 7); g.fillRect(sx - 3, sy - 9, 6, 2);
   } else {
     g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
     g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
   }
+}
+function drawItem(it) {
+  const sx = Math.round(it.x - cam), sy = Math.round(it.y);
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(sx, sy + 1, 6, 2, 0, 0, 7); g.fill();
+  drawFood(it, sx, sy);
 }
 function drawFX(f) {
   const sx = Math.round(f.x - cam), sy = Math.round(f.y - f.z), k = f.t / f.life;
@@ -3802,13 +3876,7 @@ function drawItem(it) {
     txt(WEAPONS[it.type].name, sx, by - 12 - Math.round(pulse * 2), 7, '#ffd34d', 'center');
     return;
   }
-  if (it.type === 'apple') {
-    g.fillStyle = '#d83030'; g.beginPath(); g.arc(sx, sy - 6, 5, 0, 7); g.fill();
-    g.fillStyle = '#3a9a3a'; g.fillRect(sx, sy - 12, 3, 3);
-  } else {
-    g.fillStyle = '#b86a3a'; g.fillRect(sx - 7, sy - 10, 14, 8);
-    g.fillStyle = '#f0e8d0'; g.fillRect(sx + 5, sy - 11, 5, 4);
-  }
+  drawFood(it, sx, sy);
 }
 function drawWeaponGround(name) {
   g.lineJoin = 'round';
@@ -3911,6 +3979,7 @@ function hud() {
     txt(LV.bossName, W / 2, H - 20, 10, '#f88', 'center');
     bar(W / 2 - 100, H - 14, 200, 8, boss.hp / boss.maxhp, '#d03030');
   }
+  if (!storyOn && introT <= 0 && state === 'play') drawTuto();
   if (storyOn) drawStory();
   else if (introT > 0 && state === 'play') {
     const a = Math.min(1, introT / 30, (170 - introT) / 20);
@@ -3949,7 +4018,8 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 03h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
+  txt('version 04h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -4281,6 +4351,42 @@ function drawStory() {
   if (storyC >= storyTot && ((tick >> 5) & 1)) txt('J ou ESPACE : continuer', W / 2, H - 16, 8, '#99a', 'center');
   g.globalAlpha = 1;
 }
+/* tutoriel du niveau 1 : quelques astuces qui apparaissent au fil de l'action, une seule fois (affichage seulement, la simulation n'est pas touchée) */
+let tutoStep = -1, tutoT = 0, tutoSeen = 0, tutoSp = false;
+function drawTuto() {
+  if (levelIdx !== 0) { if (tutoStep >= 0 && tutoStep < 5) tutoStep = 9; return; }
+  if (tutoStep < 0) { let d = false; try { d = lsGet('nfer_tuto', '0') === '1'; } catch (e) { /* ignoré */ } tutoStep = d ? 9 : 0; tutoT = 0; tutoSeen = 0; tutoSp = false; }
+  if (tutoStep > 4) return;
+  const p = PS[online ? localSlot : 0];
+  if (!p || p.out) return;
+  const tc = window.IS_TOUCH;
+  const tips = [tc ? 'Joystick : se déplacer' : 'Flèches ou ZQSD : se déplacer', tc ? 'Bouton A : frapper (3 fois de suite = combo)' : 'J : frapper (3 fois de suite = combo)', tc ? 'Bouton B : sauter, puis A en l\'air = coup de pied' : 'Espace : sauter, puis J en l\'air = coup de pied',
+    tc ? 'Jauge SP pleine : bouton spécial' : 'Jauge SP pleine : K = attaque spéciale', 'Marchez sur une arme ou une potion pour la ramasser · L : lancer'];
+  tutoT++;
+  let ok = false;
+  if (tutoStep === 0) ok = p.mv;
+  else if (tutoStep === 1) ok = p.st === 'attack';
+  else if (tutoStep === 2) ok = p.z > 2;
+  else if (tutoStep === 3) { const need = HEROES[p.hero].cost; if (p.sp >= need) tutoSp = true; ok = tutoSp && p.sp < need; if (!tutoSp && tutoT > 1500) ok = true; }
+  else if (tutoStep === 4) ok = tutoT > 360;
+  if (tutoStep === 3 && !tutoSp && p.sp < HEROES[p.hero].cost) { if (waveI < 1) return; }       // l'astuce du spécial n'apparaît qu'une fois la jauge pleine
+  if (tutoStep === 4 && waveI < 1 && tutoT < 60) return;
+  const pulse = 0.75 + 0.25 * Math.sin(tick * 0.12);
+  g.font = 'bold 8px monospace'; const tw = Math.ceil(g.measureText(tips[tutoStep]).width) + 16;
+  g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(W / 2 - tw / 2, 21, tw, 15);
+  g.fillStyle = 'rgba(255,211,77,' + pulse + ')'; g.fillRect(W / 2 - tw / 2, 21, 2, 15);
+  txt(tips[tutoStep], W / 2, 32, 8, '#fff', 'center');
+  txt((tutoStep + 1) + '/5', W / 2 + tw / 2 - 4, 19, 6, '#ffd34d', 'right');
+  if (ok && tutoT > 60) { tutoStep++; tutoT = 0; tutoSp = tutoSp && tutoStep === 3; if (tutoStep > 4) { try { lsSet('nfer_tuto', '1'); } catch (e) { /* ignoré */ } } }
+}
+function endStats() {
+  if (!gameStats) return;
+  const s = gameStats, m = Math.floor(s.time / 3600), sec = Math.floor((s.time % 3600) / 60);
+  const y = 148 + PS.length * 14 + 6;
+  txt('K.O. : ' + s.kills + '  ·  vies perdues : ' + s.lost + '  ·  temps : ' + m + ' min ' + String(sec).padStart(2, '0') + ' s  ·  ' + DIFFN[s.diff].toLowerCase(), W / 2, y, 8, '#9ab', 'center');
+  if (newAch.length > 3) txt('+ ' + (newAch.length - 3) + ' autres succès (voir le titre)', W / 2, y + 13 + 33, 8, '#ffd34d', 'center');
+  newAch.slice(0, 3).forEach((k, i) => { const a = ACHS.find(z => z[0] === k); if (a) txt('SUCCÈS : ' + a[1] + ' — ' + a[2], W / 2, y + 13 + i * 11, 8, '#ffd34d', 'center'); });
+}
 function endScores() {
   if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
   PS.forEach((p, i) => p.absent || txt(String(p.name || 'J' + (i + 1)) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0'), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
@@ -4318,7 +4424,7 @@ function render() {
   applyFx();
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
-  if (shake > 0) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
+  if (shake > 0 && SHAKEON) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
   const menu = state === 'title' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
   drawBG(menu ? tick * 0.5 : cam);
   if (!menu) {
@@ -4357,15 +4463,15 @@ function render() {
       g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(0, 0, W, H);
       txt('GAME OVER', W / 2, 96, 30, '#e04040', 'center');
       txt('Niveau ' + (levelIdx + 1) + ' · ' + LV.name, W / 2, 114, 10, '#cbd', 'center');
-      endScores();
-      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 200, 11, '#cbd', 'center');
+      endScores(); endStats();
+      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
     if (state === 'win') {
       g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
       txt('VICTOIRE !', W / 2, 96, 28, '#ffd34d', 'center');
       txt('Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
-      endScores();
-      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 200, 11, '#cbd', 'center');
+      endScores(); endStats();
+      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
   }
 }
