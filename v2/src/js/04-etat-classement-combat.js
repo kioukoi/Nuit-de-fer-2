@@ -92,7 +92,7 @@ function loadLevel(i) {
 function startStory(chap, lines, last) { storyD = { chap, lines }; storyTot = lines.join('').length; storyC = 0; storyA = 0; storyH = 0; storyOn = true; storyEnd = !!last; }
 function updStory() {
   storyA++;
-  if (storyC < storyTot) storyC = Math.min(storyTot, storyC + 1.1); else storyH++;
+  if (storyC < storyTot) { storyC = Math.min(storyTot, storyC + 1.1); if (storyA % 3 === 0) SFX.tick(); } else storyH++;
   let press = false;
   for (const p of PS) if (!p.out && (PRS[p.slot].punch || PRS[p.slot].jump)) press = true;
   if (storyA > 45 && press) { if (storyC < storyTot) storyC = storyTot; else storyH = 9999; }     /* 1er appui : tout le texte ; 2e : on continue */
@@ -185,7 +185,7 @@ function gainXp(p, n) {
     p.xp -= xpNeed(p.xl); p.xl++;
     p.maxhp += 4; p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.25));
     FX.push({ x: p.x, y: p.y, z: p.z + 58, t: 0, life: 46, txt: 'NIVEAU ' + (p.xl + 1) + ' !', col: '#7dff9a' });
-    SFX.pick();
+    SFX.lvl();
   }
 }
 /* trois spécialisations par héros, proposées à la fin de chaque niveau ; effets : dgt = dégâts, vit = vitesse, spe = jauge spéciale, vol = vie volée, def = dégâts reçus en moins, pv = vie max */

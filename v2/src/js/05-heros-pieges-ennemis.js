@@ -20,7 +20,7 @@ function updPlayer(p) {
     } else if ((gw.gun === 'smg' ? I.throw : Pp.throw) && !(p.gcd > 0)) {   // pistolet : un coup par appui ; mitraillette : tir continu
       const smg = gw.gun === 'smg';
       PJ.push({ x: p.x + p.face * 14, y: p.y + (smg ? Math.round((rng() - 0.5) * 4) : 0), z: p.z + 24, vx: p.face * (smg ? 8 : 9), vy: 0, life: 44, rot: 0, bullet: true, magic: true, dmg: smg ? 4 : 10, own: p, hit: new Set() });
-      p.gcd = smg ? 5 : 14; p.wd--; p.recoil = 5; SFX.hit(); shake = Math.max(shake, smg ? 1 : 2);
+      p.gcd = smg ? 5 : 14; p.wd--; p.recoil = 5; if (smg) SFX.smg(); else SFX.shot(); shake = Math.max(shake, smg ? 1 : 2);
       FX.push({ x: p.x + p.face * 18, y: p.y, z: p.z + 24, t: 0, life: 5, big: false });
       if (p.wd <= 0) { p.weapon = null; p.wd = 0; FX.push({ x: p.x, y: p.y, z: p.z + 40, t: 0, life: 36, txt: 'PLUS DE BALLES', col: '#ffd34d' }); }
     }
@@ -67,7 +67,7 @@ function updPlayer(p) {
           if (p.hero === 'ombre') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 12; SFX.whoosh(); }
           else if (p.hero === 'vive') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 24; p.vx = p.face * 3.4; p.cd = 50; SFX.whoosh(); }
           else if (p.hero === 'gitan' || p.hero === 'magicien' || p.hero === 'electricien') { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
-          else if (p.hero === 'livreur') { p.st = 'rush'; p.t = 0; p.hit = new Set(); p.inv = 9999; p.rd = p.face; p.rx = p.x; p.ph = 0; p.vx = 0; SFX.special(); }
+          else if (p.hero === 'livreur') { p.st = 'rush'; SFX.bell(); p.t = 0; p.hit = new Set(); p.inv = 9999; p.rd = p.face; p.rx = p.x; p.ph = 0; p.vx = 0; SFX.special(); }
           else if (p.hero === 'fauteuil') { p.st = 'roll'; p.t = 0; p.hit = new Set(); p.inv = 20; p.vx = p.face * 3.1; p.cd = 40; SFX.whoosh(); }
           else { p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 26; SFX.special(); }
         }
@@ -280,7 +280,7 @@ function updTraps() {
           }
         }
         if (c === t.per - 1 && t.tx !== undefined) {
-          shake = Math.max(shake, 10); SFX.zap();
+          shake = Math.max(shake, 10); SFX.zap(); SFX.thunder();
           for (const q of ents) if (Math.abs(q.x - t.tx) < 14 && Math.abs(q.y - t.ty) < 10) trapHit(q, 30, 'shock');
           t.hitT = 14;
         }
@@ -399,7 +399,7 @@ function updHz() {
     } else if (h.k === 'strike') {
       h.t++;
       if (h.t === h.warn) {
-        shake = Math.max(shake, 7); SFX.zap();
+        shake = Math.max(shake, 7); SFX.zap(); if (h.fx === 'bolt') SFX.thunder();
         for (const q of livePlayers()) if (!(q.inv > 0) && q.st !== 'down' && Math.abs(q.x - h.x) < h.r && Math.abs(q.y - h.y) < h.r * 0.7 && q.z < 40) hurt(q, { kind: 'e' }, { dmg: Math.round(h.dmg * h.dm), kd: true }, q.x >= h.x ? 1 : -1);
       }
       if (h.t >= h.warn + 16) h.dead = true;
@@ -488,7 +488,7 @@ function updEnemy(e) {
       if (e.t >= e.tele) {
         e.t = 0; e.hit = new Set();
         if (e.mode === 'throw') {
-          if (d.gun && !e.weapon) { PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.hit(); e.st = 'recover'; e.t = 0; break; }
+          if (d.gun && !e.weapon) { PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.shot(); e.st = 'recover'; e.t = 0; break; }
           PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, col: d.pj, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
           e.weapon = null; e.wd = 0;
           e.st = 'recover'; SFX.whoosh();
@@ -637,7 +637,7 @@ function updAllies() {
 }
 function explode(b) {
   for (let k = 0; k < 9; k++) FX.push({ x: b.x + rnd(-20, 20), y: b.y + rnd(-6, 6), z: rnd(4, 30), t: 0, life: 20, big: true });
-  shake = Math.max(shake, 10); hitstop = Math.max(hitstop, 5); SFX.big();
+  shake = Math.max(shake, 10); hitstop = Math.max(hitstop, 5); SFX.boom();
   for (const t of E.concat(B)) {
     if (t.gone || t.dying) continue;
     if (Math.abs(t.x - b.x) > 48 || Math.abs(t.y - b.y) > 28) continue;
