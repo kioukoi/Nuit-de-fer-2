@@ -475,8 +475,10 @@ function updEnemy(e) {
       const maxAtt = nPlayers >= 3 ? 4 : nPlayers === 2 ? 3 : 2;
       const busy = attackers >= maxAtt || e.cool > 0;
       const rr = d.atk.reach + (e.weapon ? WEAPONS[e.weapon].reach * 0.8 : 0);
+      if (e.gcd > 0) e.gcd--;
+      const gw = e.weapon && WEAPONS[e.weapon], shooter = (d.gun && !e.weapon) || (gw && (gw.gun || gw.nade));     // tireur, ou ennemi qui a ramassé une arme à feu / une grenade
       let tx, ty = p.y, goW = null;
-      if (!e.weapon && e.likesW && e.type !== 'boss') {
+      if (!e.weapon && e.likesW && e.type !== 'boss' && !d.gun) {
         let bd = 110;
         for (const it of IT) {
           if (!it.weapon || it.got || it.x < cam + 12 || it.x > cam + W - 12) continue;
@@ -485,6 +487,7 @@ function updEnemy(e) {
         }
       }
       if (goW) { tx = goW.x; ty = goW.y; }
+      else if (shooter && e.type !== 'boss') tx = clamp(p.x + e.side * (gw && gw.nade ? 110 : 140), cam + 24, cam + W - 24);
       else if (d.ranged && !e.weapon && E.filter(z => !z.gone && !z.dying && z.type !== 'boss').length > 2) tx = clamp(p.x + e.side * 150, cam + 24, cam + W - 24);
       else tx = p.x + e.side * (busy ? 60 + e.slot : rr - 8);
       const dx = tx - e.x, dy = ty - e.y, dist = Math.sqrt(dx * dx + dy * dy);
@@ -492,7 +495,8 @@ function updEnemy(e) {
       e.mv = dist > 2;
       if (dist > 2) { e.x += dx / dist * sp; e.y += dy / dist * sp * 0.75; }
       e.y = clamp(e.y, Y0, Y1);
-      if (!busy && p.st !== 'down' && !p.dying && !p.out) {
+      if (shooter && e.type !== 'boss' && !(e.gcd > 0) && e.cool <= 0 && p.st !== 'down' && !p.dying && !p.out && Math.abs(p.y - e.y) < 11 && Math.abs(p.x - e.x) > 55 && Math.abs(p.x - e.x) < 250 && e.x > cam + 8 && e.x < cam + W - 8) startTele(e, 'throw');
+      else if (!busy && p.st !== 'down' && !p.dying && !p.out) {
         if (d.ranged && !e.weapon) {
           if (Math.abs(p.x - e.x) < rr + 6 && Math.abs(p.y - e.y) < 9) startTele(e, 'punch');
           else if (Math.abs(p.y - e.y) < 8 && Math.abs(p.x - e.x) > 80 && e.x > cam + 10 && e.x < cam + W - 10) startTele(e, 'throw');
@@ -508,7 +512,11 @@ function updEnemy(e) {
       if (e.t >= e.tele) {
         e.t = 0; e.hit = new Set();
         if (e.mode === 'throw') {
-          if (d.gun && !e.weapon) { PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.shot(); e.st = 'recover'; e.t = 0; break; }
+          const ew = e.weapon && WEAPONS[e.weapon];
+          if (ew && ew.nade) { PJ.push({ nade: true, en: true, x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * Math.min(3.6, Math.abs(p.x - e.x) / 38 + 0.8), vy: 0, vz: 2.4, life: 200, fuse: 52, rot: 0, dm: e.dm }); e.wd--; if (e.wd <= 0) { e.weapon = null; e.wd = 0; } e.gcd = 110; e.st = 'recover'; e.t = 0; SFX.whoosh(); break; }
+          if (ew && ew.gun) { const n = ew.gun === 'smg' ? 3 : 1; for (let k = 0; k < n; k++) PJ.push({ x: e.x + e.face * (14 + k * 9), y: e.y, z: 24, vx: e.face * 5.2, vy: 0, life: 80, rot: 0, bullet: true, dmg: ew.gun === 'smg' ? 5 : 9, dm: e.dm }); e.wd -= n; if (e.wd <= 0) { e.weapon = null; e.wd = 0; } e.gcd = ew.gun === 'smg' ? 60 : 75; ew.gun === 'smg' ? SFX.smg() : SFX.shot(); e.st = 'recover'; e.t = 0; break; }
+          if (d.gun && !e.weapon && rng() < 0.22 && Math.abs(p.x - e.x) > 90) { PJ.push({ nade: true, en: true, x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * Math.min(3.6, Math.abs(p.x - e.x) / 38 + 0.8), vy: 0, vz: 2.4, life: 200, fuse: 52, rot: 0, dm: e.dm }); e.gcd = 110; e.st = 'recover'; e.t = 0; SFX.whoosh(); break; }
+          if (d.gun && !e.weapon) { e.gcd = 70; PJ.push({ x: e.x + e.face * 14, y: e.y, z: 24, vx: e.face * 4.6, vy: 0, life: 90, rot: 0, bullet: true, dmg: 9, dm: e.dm }); SFX.shot(); e.st = 'recover'; e.t = 0; break; }
           PJ.push({ x: e.x + e.face * 10, y: e.y, z: 22, vx: e.face * (e.weapon ? 3.6 : 2.8), life: (d.gas && !e.weapon) ? 62 : 140, col: d.pj, rot: 0, wtype: e.weapon || undefined, wd: e.wd, dm: e.dm, can: (d.gas && !e.weapon) || undefined });
           e.weapon = null; e.wd = 0;
           e.st = 'recover'; SFX.whoosh();
@@ -778,6 +786,7 @@ function updAllies() {
 function explode(b) {
   for (let k = 0; k < 9; k++) FX.push({ x: b.x + rnd(-20, 20), y: b.y + rnd(-6, 6), z: rnd(4, 30), t: 0, life: 20, big: true });
   shake = Math.max(shake, 10); hitstop = Math.max(hitstop, 5); SFX.boom();
+  if (b.en) { for (const q of livePlayers()) if (Math.abs(q.x - b.x) < 40 && Math.abs(q.y - b.y) < 24) hurt(q, { kind: 'e' }, { dmg: Math.round(18 * (b.dm || 1)), kd: true, nosp: true }, q.x >= b.x ? 1 : -1); return; }
   for (const t of E.concat(B)) {
     if (t.gone || t.dying) continue;
     if (Math.abs(t.x - b.x) > 48 || Math.abs(t.y - b.y) > 28) continue;
@@ -832,7 +841,7 @@ function updEvents() {
     for (let i = 0; i < evs.length; i++) {
       const e = evs[i], w = LV.waves[e.w];
       if (evDone[i] || !w || waveI !== e.w || cam < w.cam - (e.lead || 330)) continue;
-      evDone[i] = 1; EV = { ev: e, t: 0, x: cam - 90, hit: {}, n: 0, end: w.cam + 70, lim: w.cam };
+      evDone[i] = 1; EV = { ev: e, t: 0, x: cam - 90, hit: {}, n: 0, end: w.cam + W + 90, lim: w.cam };
       ultBanner(e.k === 'chase' ? 'POURSUITE !' : (e.k === 'lift' ? 'L ASCENSEUR LACHE !' : 'EBOULEMENT !'), '#ff6a4a'); SFX.roar();
       break;
     }
@@ -845,6 +854,7 @@ function updEvents() {
     const t = EV.t, spd = 1.12 + Math.min(0.3, t * 0.0007);
     if (t > 40) EV.x = Math.max(EV.x + spd, cam - 60 + Math.min(t - 40, 140) * 0.55);
     if (t === 90 || t === 190 || t === 280) spawn('thug', 1);
+    if (EV.x > cam + 60) EV.x += 1.4;                                   // une fois devant tout le monde, il file et quitte l'écran par la droite
     if (t > 40 && t % 24 === 0) { SFX.whoosh(); shake = Math.max(shake, EV.x > cam - 30 ? 3 : 1); }
     if (t > 40 && t % 4 === 0) FX.push({ x: EV.x - 40, y: clamp(EV.y0 || 205, Y0, Y1) + (t % 12) - 6, z: 4, t: 0, life: 14, big: false });
     for (const q of livePlayers()) if (q.st !== 'down' && Math.abs(q.x - EV.x) < 32 && Math.abs(q.y - 214) < 22 && q.z < 14 && !(q.inv > 0) && (EV.hit[q.slot] | 0) < simF - 100) { EV.hit[q.slot] = simF; hurt(q, { kind: 'e' }, { dmg: Math.round(22 * dm), kd: true }, 1); q.x += 14; }

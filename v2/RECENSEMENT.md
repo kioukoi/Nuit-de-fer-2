@@ -130,3 +130,7 @@ On démarre avec 3 vies (5 au maximum). Vie bonus à **20 000 points**, à **50 
 ## Difficulté
 
 Trois modes : facile, normal, difficile. En **difficile** et à plusieurs joueurs, deux ennemis sur trois s'acharnent sur le joueur le plus faible (le moins de vies, puis le moins de santé) ; le troisième attaque le plus proche.
+
+## Armes à feu des ennemis
+
+Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois une grenade. Tout ennemi qui ramasse un pistolet, une mitraillette (rafale de 3) ou une grenade s'en sert contre les joueurs, tant qu'il lui reste des munitions. Les grenades ennemies blessent les joueurs seulement.
