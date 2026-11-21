@@ -256,7 +256,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 01h30 · XP rééquilibrée', W / 2, 264, 7, '#667', 'center');
+  txt('version 01h45 · indices sur l Architecte', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
