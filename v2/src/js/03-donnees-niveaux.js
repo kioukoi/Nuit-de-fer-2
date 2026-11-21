@@ -296,6 +296,12 @@ const ENDING = ['Le Syndicat est tombé. Les caisses, les fours, la tour, le pou
 const ULT_TXT = { rush: 'ESQUIVEZ SES CHARGES !', rain: 'FUYEZ LES MARQUES AU SOL !', furnace: 'SAUTEZ PAR-DESSUS LES ONDES !', storm: 'FUYEZ LES MARQUES : FOUDRE !', jets: 'SORTEZ DES JETS DES CANONS À EAU !' };
 /* carton d'histoire (gèle la simulation pendant son affichage) */
 let storyOn = false, storyC = 0, storyA = 0, storyH = 0, storyTot = 0, storyD = null, storyEnd = false;
+LEVELS[1].events = [{ w: 4, k: 'chase', v: 'camion' }];
+LEVELS[2].events = [{ w: 4, k: 'lift' }];
+LEVELS[3].events = [{ w: 3, k: 'lift' }, { w: 6, k: 'lift' }];
+LEVELS[5].events = [{ w: 3, k: 'rocks' }, { w: 5, k: 'rocks' }];
+LEVELS[8].events = [{ w: 3, k: 'chase', v: 'jeep' }];
+LEVELS[9].events = [{ w: 4, k: 'rocks' }];
 let TR = [], simF = 0, HZ = [], ultT = 0, ultK = '';
 let LV = LEVELS[0], levelIdx = 0, startLevel = 0, introT = 0;
 

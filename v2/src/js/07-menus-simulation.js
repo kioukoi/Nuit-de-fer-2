@@ -83,9 +83,11 @@ function simStep() {
   updHz();
   updItems();
   for (const f of FX) f.t++;
+  if (uT > 0) uT--;
   FX = FX.filter(f => f.t < f.life);
   E = E.filter(e => !e.gone);
   B = B.filter(b => !b.gone);
+  updEvents();
   updWaves();
 
   const act = PS.filter(p => !p.out);

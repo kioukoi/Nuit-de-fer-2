@@ -79,7 +79,7 @@ function relClose() {
 }
 function netReset() {
   online = false; startMsg = null; room = false; roomJoin = false; joinBusy = false; jselSent = false; catchParts = null; catchReady = null;
-  lobbyU = {}; pend = null; joins = []; dropAt = []; allLog = []; act = [true, false, false, false]; netPaused = 0; waitMsg = ''; joinBuilt = false;
+  lobbyU = {}; pend = null; joins = []; dropAt = []; backAt = []; dropHist = []; allLog = []; act = [true, false, false, false]; netPaused = 0; waitMsg = ''; joinBuilt = false;
 }
 function netClose() {
   if (rel && online) netSend({ t: 'bye', p: localSlot });
@@ -209,11 +209,18 @@ function hostHello(m) {
   if ((roomPending && !online) || (online && room && localSlot === 0 && state === 'select')) { lobbyHello(m); return; }
   if (!(online && room && localSlot === 0)) return;
   const nm = cleanName(m.n) || 'JOUEUR';
-  if (nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
+  /* reconnexion : un joueur qui a perdu la connexion revient sous le même pseudo et retrouve sa place (même héros, même score) */
+  let rs = -1;
+  if (state === 'play') for (let s = 1; s < PS.length; s++) if (PS[s] && !PS[s].absent && String(NAMES[s] || '').toLowerCase() === nm.toLowerCase()) rs = s;
+  if (rs > 0 && act[rs]) {                              // même pseudo qu'un joueur encore connecté : arrivée normale, sauf si sa connexion est muette (alors on la libère d'abord)
+    if (tick - lastRx[rs] > 90) { if (!(pend && pend.u === m.u)) hostDrop(rs); netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
+    rs = -1;
+  }
+  if (rs < 0 && nPlayers >= MAXP) { netSend({ t: 'welcome', to: m.u, full: 1 }); return; }
   if (state !== 'play' || (pend && pend.u !== m.u && tick - pend.t < 600) || (joinBusy && (!pend || pend.u !== m.u))) { netSend({ t: 'welcome', to: m.u, wait: 1 }); return; }
-  if (!pend || pend.u !== m.u) pend = { u: m.u, slot: nPlayers, n: nm, t: tick };
+  if (!pend || pend.u !== m.u) pend = { u: m.u, slot: rs > 0 ? rs : nPlayers, n: rs > 0 ? NAMES[rs] : nm, t: tick, rj: rs > 0 };
   pend.t = tick;
-  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: DIFF });
+  netSend({ t: 'welcome', to: m.u, slot: pend.slot, names: NAMES.slice(0, nPlayers), heroes: PS.map(p => p.hero), ff: FRIENDLY ? 1 : 0, df: DIFF, rj: pend.rj ? 1 : 0 });
 }
 function guestWelcome(m) {
   if (m.to !== myUid || online || olStage !== 'connecting') return;
@@ -235,19 +242,26 @@ function guestWelcome(m) {
   NAMES[localSlot] = myName; for (let i = 0; i < localSlot; i++) act[i] = true;
   let c = 0; while (SEL.slice(0, localSlot).some(o => o.c === c)) c = (c + 1) % HERO_KEYS.length;
   SEL[localSlot].c = c; SEL[localSlot].lock = false;
+  if (m.rj && m.heroes && HERO_KEYS.indexOf(m.heroes[localSlot]) >= 0) { SEL[localSlot].c = HERO_KEYS.indexOf(m.heroes[localSlot]); SEL[localSlot].lock = true; }     // retour après une coupure : même héros, validé d'office
   lastRx = [tick, tick, tick, tick]; state = 'select'; selT = 0; SFX.pick(); waitMsg = '';
 }
-const joinsPayload = () => joins.filter(j => !j.done || j.F > frameNo - 400).map(j => [j.slot, j.F, j.c, j.n, j.x ? 1 : 0]);
+const joinsPayload = () => joins.filter(j => !j.done || j.F > frameNo - 400).map(j => [j.slot, j.F, j.c, j.n, j.x ? 1 : 0, j.r ? 1 : 0]);
+let backAt = [], dropHist = [];
+const addHist = (s, L) => { if (!dropHist.some(q => q[0] === s && q[1] === L)) dropHist.push([s, L]); };
+const rjPending = (s, f) => joins.some(j => j.slot === s && j.r && !j.x && !j.done && j.F <= f);
 function mergeJoins(list) {
   if (state !== 'play' || roomJoin) return;
-  for (const [slot, F, c, n, x] of list) {
+  for (const [slot, F, c, n, x, r] of list) {
     const j = joins.find(q => q.slot === slot && q.F === F);
     if (j) { if (x) j.x = true; continue; }
-    joins.push({ slot, F, c, n, x: !!x, done: F < frameNo });
+    joins.push({ slot, F, c, n, x: !!x, r: !!r, done: F < frameNo });
+    if (r) backAt[slot] = Math.max(backAt[slot] | 0, F);
   }
 }
 function mergeDrops(list) {
   for (const [s, L] of list) {
+    if (backAt[s] !== undefined && L < backAt[s]) continue;      // vieille coupure déjà réglée par un retour
+    addHist(s, L);
     if (dropAt[s] === undefined) dropAt[s] = L;
     if (s === localSlot) netLost('Vous avez été retiré de la partie (connexion trop lente).');
   }
@@ -256,8 +270,10 @@ function startJoin(c1) {
   const n = HERO_KEYS.length;
   c1 = ((c1 | 0) % n + n) % n;
   const used = PS.filter(p => act[p.slot]).map(p => p.hero);
-  while (used.indexOf(HERO_KEYS[c1]) >= 0) c1 = (c1 + 1) % n;
-  const j = { slot: pend.slot, F: sentF + 60, c: c1, n: pend.n, x: false, done: false };
+  if (pend.rj && PS[pend.slot]) c1 = Math.max(0, HERO_KEYS.indexOf(PS[pend.slot].hero));
+  else while (used.indexOf(HERO_KEYS[c1]) >= 0) c1 = (c1 + 1) % n;
+  const j = { slot: pend.slot, F: sentF + 60, c: c1, n: pend.n, x: false, r: !!pend.rj, done: false };
+  if (j.r) backAt[j.slot] = j.F;
   joins.push(j); joinBusy = true; joinT = tick; joinBuilt = false; pend.t = tick;
   netSend({ t: 'join', j: joinsPayload() });
 }
@@ -268,12 +284,21 @@ function buildCatch(j) {
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
   const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, h0: PS[0].hero, n0: NAMES[0], K,
-    joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined) };
+    joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n, q.r ? 1 : 0]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined), dh: dropHist.slice() };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
   joinMsgs.forEach(netSend); joinBuilt = true;
 }
 function addPlayerAt(j) {
+  if (j.r && PS[j.slot]) {                              // retour d'un joueur coupé : il reprend sa place (héros, score, niveau d'expérience conservés)
+    const q = PS[j.slot], ref0 = PS.find(o => !o.out && o !== q) || PS[0];
+    q.out = false; q.absent = false; q.dying = false; q.st = 'free'; q.t = 0; q.lives = Math.max(2, q.lives | 0); q.hp = Math.max(1, Math.round(q.maxhp * 0.7));
+    q.x = clamp(ref0.x - 22 - 8 * j.slot, cam + 16, cam + W - 16); q.y = clamp(ref0.y + 10 * (j.slot - 1), Y0, Y1); q.z = 0; q.vx = 0; q.vy = 0; q.vz = 0; q.inv = 150; q.name = j.n;
+    act[j.slot] = true; prevM[j.slot] = 0; rttBy[j.slot] = []; lastRx[j.slot] = tick; peerR[j.slot] = j.F; nPlayers = Math.max(nPlayers, PS.length);
+    if (dropAt[j.slot] !== undefined && dropAt[j.slot] < j.F) delete dropAt[j.slot];
+    backAt[j.slot] = j.F;
+    return;
+  }
   while (PS.length < j.slot) { const q = mkPlayer(HERO_KEYS[0], PS.length); q.out = true; q.absent = true; q.lives = 0; PS.push(q); }
   const ref = PS.find(q => !q.out) || PS[0], p = mkPlayer(HERO_KEYS[j.c], j.slot);
   p.name = j.n; p.x = clamp(ref.x - 22 - 8 * j.slot, cam + 16, cam + W - 16); p.y = clamp(ref.y + 10 * (j.slot - 1), Y0, Y1); p.inv = 90;
@@ -290,9 +315,9 @@ function dropPlayer(s) {
 function frameEvents(f) {
   for (const j of joins) if (!j.done && !j.x && j.F === f) {
     j.done = true; addPlayerAt(j);
-    if (localSlot === 0 && !REPLAY) { joinBusy = false; pend = null; toast(j.n + ' a rejoint la partie !'); }
+    if (localSlot === 0 && !REPLAY) { joinBusy = false; pend = null; toast(j.n + (j.r ? ' est de retour !' : ' a rejoint la partie !')); }
   }
-  for (let s = 1; s < MAXP; s++) if (dropAt[s] !== undefined && f === dropAt[s] + 1 && act[s]) dropPlayer(s);
+  for (const [s, L] of dropHist) if (f === L + 1 && act[s]) dropPlayer(s);
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
@@ -301,8 +326,10 @@ function runCatchUp() {
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
   beginOnline(meta.seed);
-  joins = meta.joins.map(([s, F, cc, n]) => ({ slot: s, F, c: cc, n, x: false, done: false }));
+  joins = meta.joins.map(([s, F, cc, n, r]) => ({ slot: s, F, c: cc, n, x: false, r: !!r, done: false }));
+  backAt = []; for (const q of joins) if (q.r) backAt[q.slot] = Math.max(backAt[q.slot] | 0, q.F);
   dropAt = []; for (const [s, L] of meta.drops) dropAt[s] = L;
+  dropHist = (meta.dh || meta.drops).map(q => [q[0], q[1]]);
   const log = []; for (let i = 0; i < c.rle.length; i += 2) for (let k = 0; k < c.rle[i + 1]; k++) log.push(c.rle[i]);
   REPLAY = true;
   try {
@@ -387,7 +414,7 @@ function hostDrop(s) {
   if (state === 'play') {
     if (dropAt[s] !== undefined) return;
     let L = frameNo - 1; while (rbuf[s][L + 1] !== undefined) L++;
-    dropAt[s] = L; netSend({ t: 'in', p: 0, g: netSeed, s: sentF, a: [localBuf[sentF] | 0], r: frameNo, dr: dropAt.map((q, i) => [i, q]).filter(q => q[1] !== undefined) });
+    dropAt[s] = L; addHist(s, L); netSend({ t: 'in', p: 0, g: netSeed, s: sentF, a: [localBuf[sentF] | 0], r: frameNo, dr: dropAt.map((q, i) => [i, q]).filter(q => q[1] !== undefined) });
   } else { act[s] = false; netSend({ t: 'gone', s }); }
 }
 
@@ -424,7 +451,7 @@ function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock
 function beginOnline(seed) {
   netSeed = seed; frameNo = 0; sentF = DELAY - 1; curDelay = DELAY; stallEv = 0; localBuf = {}; rbuf = [{}, {}, {}, {}]; prevM = [0, 0, 0, 0];
   for (let f = 0; f < DELAY; f++) { localBuf[f] = 0; for (let s = 0; s < MAXP; s++) rbuf[s][f] = 0; }
-  myHash = {}; theirHash = [{}, {}, {}, {}]; desync = false; stallT = 0; joins = []; dropAt = []; allLog = []; netPaused = 0; lastSentM = -1;
+  myHash = {}; theirHash = [{}, {}, {}, {}]; desync = false; stallT = 0; joins = []; dropAt = []; backAt = []; dropHist = []; allLog = []; netPaused = 0; lastSentM = -1;
   joinBusy = false; pend = null; joinBuilt = false; peerR = [0, 0, 0, 0]; lastRx = [tick, tick, tick, tick]; rxT = tick;
   for (let s = 0; s < MAXP; s++) rttBy[s] = [];
   startGame();
@@ -444,7 +471,7 @@ function sendIn() {
   }
   netSend(msg);
 }
-const slotAvail = (s, f) => (dropAt[s] !== undefined && f > dropAt[s]) || rbuf[s][f] !== undefined;
+const slotAvail = (s, f) => (dropAt[s] !== undefined && f > dropAt[s] && !rjPending(s, f)) || rbuf[s][f] !== undefined;
 function netFrameReady() {
   if (roomJoin) return false;
   const target = frameNo + curDelay;
@@ -473,7 +500,7 @@ function netFrameReady() {
 }
 function slotIn(s, f) {
   if (s === localSlot) return localBuf[f] | 0;
-  if (!act[s] || (dropAt[s] !== undefined && f > dropAt[s])) return 0;
+  if (!act[s] || (dropAt[s] !== undefined && f > dropAt[s] && !(backAt[s] !== undefined && f >= backAt[s]))) return 0;
   return rbuf[s][f] | 0;
 }
 function applyMasks(ms) {

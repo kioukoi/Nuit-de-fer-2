@@ -84,10 +84,10 @@ function loadLevel(i) {
   levelIdx = i; LV = LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
-  HZ = []; ultT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
+  HZ = []; ultT = 0; uT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
-  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170;
+  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
   if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
 }
 function startStory(chap, lines, last) { storyD = { chap, lines }; storyTot = lines.join('').length; storyC = 0; storyA = 0; storyH = 0; storyOn = true; storyEnd = !!last; }

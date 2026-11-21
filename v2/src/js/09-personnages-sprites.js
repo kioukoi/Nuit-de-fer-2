@@ -36,6 +36,10 @@ function palV(e, d) {
   });
   return (gradCache.pv[key] = pal({ col }));
 }
+/* les trois kopins du Gitan ont chacun leur tenue (casquette rouge, chapeau de paille, bandana vert), différente de celle du Gitan */
+const KSK = [{ shirt: '#c43d2f', pants: '#2a2f4a', hair: '#1a1410', skin: '#d2a07a', acc: '#f2f2f2' }, { shirt: '#e8e0c8', pants: '#6a4a2a', hair: '#3a2a1a', skin: '#c48c68', acc: '#f0c030' }, { shirt: '#2f8a5a', pants: '#1c1e26', hair: '#5a3a20', skin: '#dcae88', acc: '#ff8a2a' }];
+const kopCache = [];
+function kopPal(i) { if (!kopCache[i]) kopCache[i] = pal({ col: Object.assign({}, HEROES.gitan.col, KSK[i % 3]) }); return kopCache[i]; }
 function pal(d) {
   if (d._p) return d._p;
   const c = d.col;
@@ -164,13 +168,13 @@ function drawWeapon(name, hx, hy, ang) {
 }
 
 function drawChar(e) {
-  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = isP ? pal(d) : palV(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
+  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = e.kind === 'a' ? kopPal(e.skin | 0) : isP ? pal(d) : palV(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
   const sx = Math.round(e.x - cam), sy = Math.round(e.y - e.z);
   g.fillStyle = 'rgba(0,0,0,.35)';
   g.beginPath(); g.ellipse(sx, Math.round(e.y) + 1, 12 * s * (1 - Math.min(0.5, e.z / 80)), 3 * s, 0, 0, 7); g.fill();
   if (sx < -60 || sx > W + 60) return;                       // hors écran : rien à dessiner
   if (e.dying && e.st === 'down' && e.lie > 20 && (e.lie & 4)) return;
-  if (isP && e.inv > 0 && (tick & 4)) return;
+  if (isP && e.inv > 0 && (tick & 4) && e.st !== 'special' && e.st !== 'roll' && e.st !== 'rush') return;
   if (e.hide) return;
   const fl = (e.flash > 0 && (e.flash & 2)) || (e.shock > 0 && ((tick >> 1) & 1));
   const mainG = g;
@@ -197,7 +201,7 @@ function drawChar(e) {
     if (isP && e.kick) { ffx = 19; ffy = -17; bfx = -4; bfy = -7; lean = -2; kickLeg = true; fhx = -4; fhy = -22; bhx = -8; bhy = -24; }
   } else if (isP && st === 'special' && e.hero === 'costaud') {
     if (e.t < 12) { lean = -2; fhx = 4; fhy = -44; bhx = -1; bhy = -43; ffx = 4; bfx = -5; }
-    else { lean = 6; hipY = -12; fhx = 14; fhy = -8; bhx = 10; bhy = -8; ffx = 7; bfx = -5; ring = (e.t - 12) * 3.2; }
+    else { lean = 6; hipY = -12; fhx = 14; fhy = -8; bhx = 10; bhy = -8; ffx = 7; bfx = -5; ring = Math.min(34, (e.t - 12) * 3.2); }
   } else if (isP && st === 'special' && (e.hero === 'ombre' || e.hero === 'magicien')) {
     lean = 3; ffx = 7; bfx = -5; bhx = 6; bhy = -24; fhx = e.t < 7 ? 4 : 18; fhy = e.t < 7 ? -31 : -27;
   } else if (isP && st === 'special' && e.hero === 'boxeur') {
@@ -207,7 +211,7 @@ function drawChar(e) {
     if (e.t < 14) { lean = -3; fhx = 5; fhy = -46; bhx = -1; bhy = -42; ffx = 3; bfx = -5; }
     else { lean = 5; fhx = 20; fhy = -16; bhx = 6; bhy = -22; ffx = 7; bfx = -4; }
   } else if (isP && st === 'special' && (e.hero === 'medic' || e.hero === 'aveugle' || e.hero === 'gitan' || e.hero === 'electricien')) {
-    fhx = 6; fhy = -44; bhx = -3; bhy = -43; ffx = 4; bfx = -4; ring = e.t > 6 ? (e.t - 6) * 2.4 : 0;
+    fhx = 6; fhy = -44; bhx = -3; bhy = -43; ffx = 4; bfx = -4; ring = e.t > 6 ? Math.min(34, (e.t - 6) * 2.4) : 0;
   } else if (isP && st === 'special') { spin = true; ffx = 8; bfx = -8; fhx = 17; fhy = -26; bhx = -17; bhy = -26; }
   else if (isP && st === 'rush') { lean = 8; ffx = 7; ffy = -5; bfx = -2; bfy = -4; fhx = 13; fhy = -22; bhx = 9; bhy = -20; }
   else if (isP && st === 'roll') { lean = 9; hipY = -9; ffx = 7; ffy = -4; bfx = -2; bfy = -3; fhx = 12; fhy = -20; bhx = 8; bhy = -18; }
@@ -277,7 +281,7 @@ function drawChar(e) {
   const sleeveN = bare ? S.skin : S.shirt, sleeveF = bare ? S.skinD : S.shirtD;
   const armColN = type === 'vive' ? S.skin : S.skin;
 
-  HAND_RING = kind === 'gitan' ? '#ffd84a' : null;
+  HAND_RING = kind === 'gitan' && e.kind !== 'a' ? '#ffd84a' : null;
   /* --- bras et jambes arrière --- */
   const glvB = kind === 'boxeur' ? shade(S.shirt, -0.28) : undefined, glvF = kind === 'boxeur' ? S.shirt : undefined;
   drawArm(lean * 0.9 - 2, shY + 3, bhx, bhy, sleeveF, S.skinD, armW, glvB);
@@ -502,6 +506,14 @@ function drawChar(e) {
       g.fillStyle = (tick >> 3) & 1 ? '#5affb0' : '#38d890'; g.fillRect(HX + 1, HY - 2.5, 4.6, 1);
       break;
     case 'gitan':
+      if (e.kind === 'a') {
+        const ks = e.skin | 0;
+        if (ks === 0) { rrect(HX - 5.8, HY - 9.8, 11.4, 5.2, 2, '#c43d2f', OL); rrect(HX + 3.2, HY - 5.8, 6.4, 1.9, 0.8, '#8a2a20', OL); }
+        else if (ks === 1) { ell(HX, HY - 6.2, 10.4, 2.5, '#e0cf8a', OL); rrect(HX - 4.8, HY - 11, 9.6, 5.4, 2.2, '#e8d890', OL); g.fillStyle = '#8a5a2a'; g.fillRect(HX - 4.8, HY - 7.6, 9.6, 1.4); }
+        else { rrect(HX - 6.6, HY - 6.6, 13.2, 3, 1.1, '#2f8a5a', OL); g.fillStyle = '#2f8a5a'; g.beginPath(); g.moveTo(HX - 6.4, HY - 6); g.lineTo(HX - 10.4, HY - 4.2); g.lineTo(HX - 7, HY - 3); g.closePath(); g.fill(); g.strokeStyle = OL; g.lineWidth = 0.5; g.stroke(); }
+        g.strokeStyle = '#2a1a10'; g.lineWidth = 1; g.beginPath(); g.moveTo(HX + 1.2, HY + 3); g.quadraticCurveTo(HX + 3.8, HY + 4.4, HX + 6.2, HY + 2.8); g.stroke();
+        break;
+      }
       rrect(HX + 0.2, HY - 2.2, 7.2, 3.6, 1.6, '#0a0a12'); g.fillStyle = 'rgba(120,170,255,.45)'; g.fillRect(HX + 1.2, HY - 1.7, 3, 0.8);
       g.strokeStyle = '#0a0a12'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(HX + 0.2, HY - 0.6); g.lineTo(HX - 5, HY - 0.9); g.stroke();
       g.fillStyle = '#2a2018'; g.beginPath(); g.moveTo(HX + 0.8, HY + 3.6); g.quadraticCurveTo(HX + 3.6, HY + 7.8, HX + 6.4, HY + 3.8); g.quadraticCurveTo(HX + 3.6, HY + 4.6, HX + 0.8, HY + 3.6); g.fill();
@@ -616,7 +628,7 @@ function drawChar(e) {
     rrect(bx, by, 10, 11.5, 1.4, '#1fb5a3', OL); g.fillStyle = '#0f6f64'; g.fillRect(bx, by + 3.4, 10, 1.4);
     g.fillStyle = '#fff'; g.fillRect(bx + 3, by + 6.4, 4, 3); g.fillStyle = '#1fb5a3'; g.fillRect(bx + 4.1, by + 7.4, 1.8, 1.1);
   }
-  if (kind === 'gitan' && !down) {
+  if (kind === 'gitan' && !down && e.kind !== 'a') {
     g.strokeStyle = '#a07810'; g.lineWidth = 2; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
     g.strokeStyle = '#ffd84a'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(lean - 3.6, shY + 0.5); g.quadraticCurveTo(lean + 1, shY + 9, lean + 5, shY + 0.8); g.stroke();
     ell(lean + 0.6, shY + 7.4, 1.5, 1.5, '#ffd84a', OL);
