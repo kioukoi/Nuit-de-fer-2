@@ -148,3 +148,9 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - **Replays** (solo) : la partie est enregistrée (graine + touches). Options > « REVOIR MA MEILLEURE PARTIE » / « REVOIR MA DERNIÈRE PARTIE » (Échap pour quitter). Stockage dans le navigateur uniquement ; pas de fantôme à l'écran, pas de partage.
 - **Fusion d'ultimes** : deux ultimes lancés à moins de 110 images (≈ 2 s) l'un de l'autre et à moins de 200 px déclenchent une explosion qui frappe tous les ennemis de l'écran (60 de dégâts, 40 sur un boss) et soigne 20 PV aux deux.
 - **Mode TRAÎTRE** (Options > MODE, 3 joueurs ou plus en ligne) : l'un des joueurs est tiré au sort et voit seul un message. Ses coups sur les alliés comptent (80 % des dégâts, mortels). Après 3 coups sur des alliés il est démasqué devant tous ; à la fin, l'écran dit qui c'était et s'il a gagné.
+
+## Modes ROGUE, VERSUS, NIVEAU PERSO
+
+- **ROGUE** : une seule vie par joueur, un bonus tiré au sort à chaque niveau terminé (PV, dégâts, vitesse, spécial, vol de vie, réduction de dégâts, vie en plus, soin). Les vies gagnées sur un boss restent possibles. Pas de routes qui bifurquent, ni de choix parmi plusieurs bonus : le bonus est imposé.
+- **VERSUS** (2 à 4 joueurs en ligne) : arène sans ennemis, caméra fixe, coups entre joueurs à pleins dégâts, une vie, dernier debout gagne. Pas de classement mondial. Les ultimes ne touchent que les ennemis : on se bat surtout aux coups, coups de pied, objets et armes.
+- **NIVEAU PERSO** : décor 1 à 10, jusqu'à 8 vagues, boss final optionnel. Options > « ÉDITEUR DE NIVEAU » (menu au clavier, pas de pose à la souris) construit un code, par exemple `3B:thug*2;brute*1,tireur*1` (décor 3, boss, deux vagues). Options > « CODE DE NIVEAU » permet de coller le code d'un ami. En ligne, le code de l'hôte est envoyé aux autres. Pas de classement mondial.

@@ -53,7 +53,7 @@ function recordScores() {
   if (recorded) return;
   recorded = true; lastRank = -1;
   const p = PS[online ? localSlot : 0];
-  if (!p || p.score <= 0) return;
+  if (!p || p.score <= 0 || GMODE === 6 || GMODE === 7) return;
   sbPost({ n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero });
 }
 
@@ -89,13 +89,13 @@ function mkEnemy(type, x, y) {
     mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
-  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : LEVELS[i];
+  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : GMODE === 6 ? arenaLevel(LEVELS[i]) : GMODE === 7 ? customLevel() : LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
   HZ = []; ultT = 0; uT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
-  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
+  cam = 0; camLimit = GMODE === 6 ? 0 : LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
   if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
 }
 const MAXLIVES = 5;
@@ -127,6 +127,7 @@ function startGame() {
 function nextLevel() {
   for (const p of PS) {
     p.score += 1000 * (levelIdx + 1);
+    if (GMODE === 5 && !p.out) rogueBonus(p);
     gainXp(p, 60 + 25 * levelIdx);
     if (p.out) { p.out = false; p.lives = 1; p.hp = Math.round(p.maxhp * 0.5); }
     else p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.45));

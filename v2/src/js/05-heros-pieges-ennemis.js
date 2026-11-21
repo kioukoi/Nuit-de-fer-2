@@ -893,7 +893,7 @@ function updWaves() {
   if (waveActive) {
     if (E.every(e => e.gone || e.dying)) {
       waveActive = false; camLimit = LEN - W; goT = 240; if (!(w && w.boss)) SFX.go();
-      if (w && w.boss) endT = 150;
+      if (w && (w.boss || (GMODE === 7 && waveI === LV.waves.length - 1))) endT = 150;
       waveI++;
     }
   } else if (w && !EV && cam >= w.cam - 0.01) {

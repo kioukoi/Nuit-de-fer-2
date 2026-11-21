@@ -290,16 +290,19 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 19h40 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 20h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
-  txt('OPTIONS', W / 2, 38, 22, '#ffcf4a', 'center');
+  txt('OPTIONS', W / 2, 30, 18, '#ffcf4a', 'center');
   const L = optList('title').concat([{ label: () => 'RETOUR' }]);
-  L.forEach((it, i) => {
-    const on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 72 + i * 17, 11, on ? '#fff' : '#9a9ac0', 'center');
+  const vis = 11, st0 = clamp(optIdx - 5, 0, Math.max(0, L.length - vis));
+  L.slice(st0, st0 + vis).forEach((it, k) => {
+    const i = st0 + k, on = i === optIdx;
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 62 + k * 16, 10, on ? '#fff' : '#9a9ac0', 'center');
   });
+  if (st0 > 0) txt('▲', W - 14, 62, 9, '#8a8ab0', 'center');
+  if (st0 + vis < L.length) txt('▼', W - 14, 62 + (vis - 1) * 16, 9, '#8a8ab0', 'center');
   const cur = L[optIdx];
   if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
   txt('Haut / Bas · Gauche / Droite : modifier · Entrée · Échap : retour', W / 2, 258, 8, '#8a8ab0', 'center');
@@ -751,7 +754,7 @@ function render() {
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
   if (shake > 0 && SHAKEON) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
-  const menu = state === 'title' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
+  const menu = state === 'title' || state === 'edit' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
   drawBG(menu ? tick * 0.5 : cam);
   if (!menu) {
     const list = [];
@@ -773,6 +776,7 @@ function render() {
   if (state === 'title') drawTitle();
   else if (state === 'select') drawSelect();
   else if (state === 'online') drawOnline();
+  else if (state === 'edit') drawEdit();
   else if (state === 'name') drawNameEntry();
   else if (state === 'options') drawOptions();
   else if (state === 'scores') drawScores();
@@ -796,8 +800,8 @@ function render() {
     }
     if (state === 'win') {
       g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
-      txt('VICTOIRE !', W / 2, 96, 28, '#ffd34d', 'center');
-      txt('Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
+      txt(GMODE === 6 ? (VSW >= 0 && PS[VSW] ? (PS[VSW].name || '?') + ' GAGNE !' : 'MATCH NUL') : 'VICTOIRE !', W / 2, 96, GMODE === 6 ? 22 : 28, '#ffd34d', 'center');
+      txt(GMODE === 6 ? 'Versus : dernier debout' : GMODE === 7 ? 'Niveau personnalisé terminé' : 'Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
       endScores(); endStats();
       if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }

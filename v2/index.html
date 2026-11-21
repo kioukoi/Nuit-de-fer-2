@@ -705,7 +705,7 @@ function recordScores() {
   if (recorded) return;
   recorded = true; lastRank = -1;
   const p = PS[online ? localSlot : 0];
-  if (!p || p.score <= 0) return;
+  if (!p || p.score <= 0 || GMODE === 6 || GMODE === 7) return;
   sbPost({ n: p.name || myName, s: p.score, lv: levelIdx + 1, win: state === 'win', h: p.hero });
 }
 
@@ -741,13 +741,13 @@ function mkEnemy(type, x, y) {
     mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
-  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : LEVELS[i];
+  levelIdx = i; LV = GMODE === 1 ? rushLevel(LEVELS[i]) : GMODE === 6 ? arenaLevel(LEVELS[i]) : GMODE === 7 ? customLevel() : LEVELS[i];
   E = []; PJ = []; FX = []; AL = [];
   for (const p of PS) p.nochair = false;
   HZ = []; ultT = 0; uT = 0; TR = LV.traps.map(t => Object.assign({}, t)); MTR = 0; BPM = LV.bpm || 96; mNext = 0;
   IT = LV.weapons.map(([x, y, type]) => ({ x, y, type, weapon: true, wd: WEAPONS[type].uses, got: false }));
   B = LV.barrels.map(([x, y]) => ({ kind: 'b', x, y, z: 0, hp: 1, gone: false, flash: 0 }));
-  cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
+  cam = 0; camLimit = GMODE === 6 ? 0 : LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
   if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
 }
 const MAXLIVES = 5;
@@ -779,6 +779,7 @@ function startGame() {
 function nextLevel() {
   for (const p of PS) {
     p.score += 1000 * (levelIdx + 1);
+    if (GMODE === 5 && !p.out) rogueBonus(p);
     gainXp(p, 60 + 25 * levelIdx);
     if (p.out) { p.out = false; p.lives = 1; p.hp = Math.round(p.maxhp * 0.5); }
     else p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.45));
@@ -1874,7 +1875,7 @@ function updWaves() {
   if (waveActive) {
     if (E.every(e => e.gone || e.dying)) {
       waveActive = false; camLimit = LEN - W; goT = 240; if (!(w && w.boss)) SFX.go();
-      if (w && w.boss) endT = 150;
+      if (w && (w.boss || (GMODE === 7 && waveI === LV.waves.length - 1))) endT = 150;
       waveI++;
     }
   } else if (w && !EV && cam >= w.cam - 0.01) {
@@ -2169,7 +2170,7 @@ function buildCatch(j) {
   for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
-  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), h0: PS[0].hero, n0: NAMES[0], K,
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), cl: GMODE === 7 ? CUSTOM : '', h0: PS[0].hero, n0: NAMES[0], K,
     joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n, q.r ? 1 : 0]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined), dh: dropHist.slice() };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
@@ -2207,7 +2208,7 @@ function frameEvents(f) {
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
-  FRIENDLY = !!meta.ff; setDf(meta.df); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  FRIENDLY = !!meta.ff; setDf(meta.df); if (meta.cl) CUSTOM = String(meta.cl).slice(0, 400); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
   SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
@@ -2263,7 +2264,7 @@ function netIn(m) {
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df);
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df); if (m.cl) CUSTOM = String(m.cl).slice(0, 400);
     for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
   } else if (t === 'jsel') {
@@ -2513,7 +2514,7 @@ function updSelect() {
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
         const seed = modeSeed((Math.random() * 4294967296) >>> 0);
-        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), act: act.map(a => a ? 1 : 0) };
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), cl: GMODE === 7 ? CUSTOM : '', act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -2577,7 +2578,7 @@ function simStep() {
   cam = Math.min(camLimit, Math.max(cam, lead - W * 0.42));
   if (waveI >= LV.waves.length && !waveActive && endT > 0) {
     endT--;
-    if (endT === 0) { if (levelIdx < LEVELS.length - 1) startSpec(); else startStory('Épilogue', ENDING, true); }
+    if (endT === 0) { if (GMODE === 7) endGame('win'); else if (levelIdx < LEVELS.length - 1) startSpec(); else startStory('Épilogue', ENDING, true); }
   }
 }
 
@@ -2593,6 +2594,8 @@ const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' :
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
   { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + MODEN.length) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
+  { title: true, label: () => 'ÉDITEUR DE NIVEAU', act: () => { SFX.pick(); edOpen(); }, hint: () => 'Compose tes vagues, puis joue-les en mode NIVEAU PERSO' },
+  { title: true, label: () => 'CODE DE NIVEAU : ' + CUSTOM.slice(0, 16) + (CUSTOM.length > 16 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
   { title: true, label: () => 'REVOIR MA MEILLEURE PARTIE' + repInfo('nfer_rep_best'), act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
   { title: true, label: () => 'REVOIR MA DERNIÈRE PARTIE' + repInfo('nfer_rep_last'), act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
@@ -2653,6 +2656,7 @@ function step() {
     optIdx = navList(L, optIdx, true);
     return;
   }
+  if (state === 'edit') { updEdit(); return; }
   if (state === 'name') {
     if (MENUK) { state = 'options'; return; }
     if (START && nameBuf.trim()) { setMyName(nameBuf); state = 'options'; SFX.pick(); }
@@ -2693,9 +2697,9 @@ function step() {
 /* ---------- MODES DE JEU : histoire, boss rush, défi du jour, chaos + mutations de boss ---------- */
 /* GMODE est envoyé avec la difficulté (df = DIFF + 4 * GMODE) : tout le monde joue le même mode. Tout ce qui est aléatoire passe par rng(). */
 let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0, TRS = -1, TRP = false;
-try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 4); } catch (e) { GMODE = 0; }
-const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS', 'TRAÎTRE'];
-const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.', 'À 3 joueurs ou plus : l\'un de vous, tiré au sort en secret, doit faire perdre l\'équipe sans se faire repérer.'];
+try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 7); } catch (e) { GMODE = 0; }
+const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS', 'TRAÎTRE', 'ROGUE', 'VERSUS', 'NIVEAU PERSO'];
+const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.', 'À 3 joueurs ou plus : l\'un de vous, tiré au sort en secret, doit faire perdre l\'équipe sans se faire repérer.', 'Une seule vie ; à chaque niveau terminé, un bonus tiré au sort. Boss mutants.', 'À 2-4 joueurs en ligne : arène, coups entre joueurs, dernier debout gagne.', 'Ton niveau (éditeur dans Options) ou le code d\'un ami.'];
 const DAYMN = ['ENNEMIS TURBO', 'ENNEMIS FRAGILES MAIS BRUTAUX', 'PAS DE SPÉCIAL', 'TOUS LES ENNEMIS ONT UN PISTOLET', 'UNE SEULE VIE'];
 const CHAN = ['GRAVITÉ LUNAIRE', 'ENNEMIS TURBO', 'PLUIE DE BOMBES', 'TOUS ARMÉS', 'COMMANDES INVERSÉES'];
 const MUTN = ['ENRAGÉ', 'BLINDÉ', 'ESSAIM', 'FISSION'];
@@ -2705,12 +2709,13 @@ function dailySeed() { const d = new Date(); return (((d.getFullYear() * 372 + d
 function modeSeed(s) { return GMODE === 2 ? dailySeed() : s; }
 function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; TRS = -1; TRP = false;
   if (GMODE === 4) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }
-  DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
+  DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1;
+  modeStart2(); }
 /* niveau en boss rush : seulement la vague du boss, déclenchée tout de suite */
 function rushLevel(L) { const bw = L.waves[L.waves.length - 1]; return Object.assign({}, L, { waves: [Object.assign({}, bw, { cam: 0 })], events: [], story: null }); }
 function modEnemy(e) {                                  /* appelé à chaque apparition d'ennemi */
   if (e.type === 'boss') {
-    if (GMODE === 0) return;
+    if (GMODE === 0 || GMODE === 7) return;
     const k = Math.floor(rng() * 4); e.mut = k;
     if (k === 0) { e.spm = (e.spm || 1) * 1.28; e.dm *= 1.2; } else if (k === 1) { e.hp = e.maxhp = Math.round(e.hp * 1.5); }
     return;
@@ -2721,6 +2726,7 @@ function modEnemy(e) {                                  /* appelé à chaque app
 }
 function updModes() {
   if (GMODE === 0 || !LV) return;
+  vsCheck();
   if (GMODE === 4 && TRS < 0) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }      // le traître est tiré dès que 3 joueurs sont là (même image chez tout le monde)
   if (DAYM === 2) for (const p of PS) p.sp = 0;
   for (const e of E) {                                  /* mutations de boss */
@@ -2746,6 +2752,8 @@ function updModes() {
 }
 function drawModeHud() {
   if (GMODE === 0) return;
+  if (GMODE === 5) { const me = online ? localSlot : 0; if (PS[me] && PS[me].rb && simF - ROGAT < 420) txt('BONUS : ' + PS[me].rb, W / 2, 226, 9, '#7aff8a', 'center'); }
+  if (GMODE === 6 && PS.length < 2) txt('VERSUS : il faut au moins 2 joueurs en ligne', W / 2, 226, 8, '#ff9a9a', 'center');
   if (GMODE === 4) {
     const me = online ? localSlot : 0;
     if (TRP && TRS >= 0 && PS[TRS]) txt('LE TRAÎTRE : ' + (PS[TRS].name || '?'), W / 2, 240, 8, '#ff5a5a', 'center');
@@ -2754,6 +2762,46 @@ function drawModeHud() {
   }
   let s = MODEN[GMODE]; if (GMODE === 2 && DAYM >= 0) s += ' · ' + DAYMN[DAYM]; if (GMODE === 3 && CHK >= 0) s += ' · ' + CHAN[CHK] + ' ' + Math.max(0, Math.ceil((CHU - CHT) / 60)) + 's';
   txt(s, W / 2, 252, 7, GMODE === 3 && CHK >= 0 ? '#ff7ad8' : '#ffcf6a', 'center');
+}
+
+/* ---------- ROGUE : une vie, un bonus tiré au sort à chaque niveau terminé ---------- */
+const ROGB = [['+25 PV MAX', p => { p.maxhp += 25; p.hp += 25; }], ['+12% DÉGÂTS', p => { p.mods.dmg += 0.12; }], ['+10% VITESSE', p => { p.mods.spd += 0.10; }], ['SPÉCIAL RAPIDE', p => { p.mods.sp += 0.25; }],
+  ['VOL DE VIE', p => { p.mods.ls += 0.08; }], ['-8% DÉGÂTS REÇUS', p => { p.mods.dr += 0.08; }], ['+1 VIE', p => { giveLife(p, '+1 VIE'); }], ['SOIN COMPLET', p => { p.hp = p.maxhp; }]];
+let ROGAT = -9999;
+function rogueBonus(p) { const b = ROGB[Math.floor(rng() * ROGB.length)]; b[1](p); p.rb = b[0]; ROGAT = simF; }
+/* ---------- VERSUS : arène sans ennemis, dernier debout ---------- */
+let VSW = -9, VSD = 0;
+function arenaLevel(L) { return Object.assign({}, L, { waves: [], events: [], story: null, traps: [] }); }
+/* ---------- NIVEAU PERSO : niveau décrit par un code, partagé avec les amis ---------- */
+let CUSTOM = '1:thug*3;thug*2,brute*1;thrower*2,brute*1';
+try { const c = lsGet('nfer_cl', ''); if (c) CUSTOM = String(c).slice(0, 400); } catch (e) { /* ignoré */ }
+function parseCustom(code) {
+  const m = /^(\d+)(B?):(.*)$/.exec(String(code || '')), ws = [];
+  const lv = clamp(m ? +m[1] || 1 : 1, 1, LEVELS.length), boss = !!(m && m[2]);
+  if (m) for (const w of m[3].split(';').slice(0, 10)) {
+    const sp = []; let side = 1;
+    for (const tk of w.split(',').slice(0, 8)) { const q = tk.split('*'), k = q[0]; if (!T[k] || k === 'boss') continue; for (let i = 0; i < clamp(+q[1] || 1, 1, 12) && sp.length < 14; i++) { sp.push([k, side]); side = -side; } }
+    if (sp.length) ws.push(sp);
+  }
+  if (!ws.length && !boss) ws.push([['thug', 1], ['thug', -1]]);
+  return { lv, boss, ws };
+}
+function customLevel() {
+  const c = parseCustom(CUSTOM), L = LEVELS[c.lv - 1], n = c.ws.length + (c.boss ? 1 : 0), step = Math.min(220, 1700 / Math.max(1, n));
+  const waves = c.ws.map((sp, i) => ({ cam: Math.round(100 + i * step), spawn: sp }));
+  if (c.boss) waves.push({ cam: Math.round(100 + c.ws.length * step), boss: true, spawn: [['boss', 1]] });
+  return Object.assign({}, L, { waves, events: [], story: null });
+}
+function modeStart2() {                                  /* appelé par modeStart : réglages propres à chaque mode */
+  if (GMODE === 5) for (const p of PS) p.lives = 1;
+  if (GMODE === 6) { VSW = -9; VSD = 0; PS.forEach((p, i) => { p.lives = 1; p.x = [60, 400, 230, 230][i & 3]; p.y = [200, 226, 170, 250][i & 3]; p.face = p.x < 240 ? 1 : -1; }); }
+}
+function vsCheck() {
+  if (GMODE !== 6 || PS.length < 2) return;
+  if (VSW === -9) {
+    const al = PS.filter(p => !p.out && !p.dying);
+    if (al.length <= 1 && simF > 120) { VSW = al.length ? al[0].slot : -2; VSD = simF; ultBanner(al.length ? 'VAINQUEUR : ' + (al[0].name || '?') : 'MATCH NUL', '#ffd34d'); }
+  } else if (simF - VSD > 200) { endGame('win'); }
 }
 /* ---------- REPLAYS : la partie ne dépend que de la graine et des touches, on enregistre donc les touches (solo) et on rejoue ---------- */
 let REP = null, RECL = [], REPI = 0, REPSD = 0, REPBAK = null, REPCFG = null;
@@ -2788,6 +2836,47 @@ function repFrame() {
   if (REP) { if (REPI >= RECL.length) { toTitle(); return true; } applyMasks([RECL[REPI++], 0, 0, 0]); return false; }
   if (state === 'play') RECL.push(maskOf(HLD[0]));
   return false;
+}
+/* ---------- ÉDITEUR DE NIVEAU : on compose des vagues, le jeu en tire un code à partager (mode NIVEAU PERSO) ---------- */
+let EDT = null;
+const edTypes = () => Object.keys(T).filter(k => k !== 'boss');
+function edOpen() {
+  const c = parseCustom(CUSTOM);
+  EDT = { lv: c.lv, boss: c.boss, ws: c.ws.map(sp => { const m = {}; for (const s of sp) m[s[0]] = (m[s[0]] || 0) + 1; return m; }), row: 0, ty: 0, msg: '' };
+  state = 'edit';
+}
+function edCode() { const e = EDT; return e.lv + (e.boss ? 'B' : '') + ':' + e.ws.map(w => Object.keys(w).filter(k => w[k] > 0).map(k => k + '*' + w[k]).join(',')).filter(Boolean).join(';'); }
+const edTot = w => Object.keys(w).reduce((a, k) => a + w[k], 0);
+function updEdit() {
+  const e = EDT, nW = e.ws.length, last = nW + 3, tys = edTypes();
+  if (MENUK) { state = 'options'; return; }
+  if (PRS[0].up) { e.row = (e.row + last) % (last + 1); SFX.move(); }
+  if (PRS[0].down) { e.row = (e.row + 1) % (last + 1); SFX.move(); }
+  const d = (PRS[0].right ? 1 : 0) - (PRS[0].left ? 1 : 0), ok = START || PRS[0].punch;
+  if (e.row === 0 && d) { e.lv = (e.lv - 1 + d + LEVELS.length) % LEVELS.length + 1; SFX.move(); }
+  else if (e.row === 1 && (d || ok)) { e.boss = !e.boss; SFX.move(); }
+  else if (e.row >= 2 && e.row < 2 + nW) {
+    const w = e.ws[e.row - 2];
+    if (d) { e.ty = (e.ty + d + tys.length) % tys.length; SFX.move(); }
+    if (PRS[0].punch && edTot(w) < 12) { w[tys[e.ty]] = (w[tys[e.ty]] || 0) + 1; SFX.pick(); }
+    if (PRS[0].special) { if (w[tys[e.ty]] > 0) w[tys[e.ty]]--; else { const k = Object.keys(w).filter(z => w[z] > 0).pop(); if (k) w[k]--; else { e.ws.splice(e.row - 2, 1); e.row = Math.min(e.row, e.ws.length + 1); } } SFX.move(); }
+  } else if (e.row === 2 + nW && ok && nW < 8) { e.ws.push({}); e.row = 2 + nW; SFX.pick(); }
+  else if (e.row === 3 + nW && ok) {
+    const code = edCode(); CUSTOM = code; lsSet('nfer_cl', code); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); SFX.pick(); state = 'options';
+  }
+}
+function drawEdit() {
+  const e = EDT, nW = e.ws.length, tys = edTypes();
+  g.fillStyle = 'rgba(5,3,15,.88)'; g.fillRect(0, 0, W, H);
+  txt('ÉDITEUR DE NIVEAU', W / 2, 20, 16, '#ffcf4a', 'center');
+  const rows = [['DÉCOR : ' + e.lv + ' · ' + LEVELS[e.lv - 1].name + '   (← →)', 0], ['BOSS FINAL : ' + (e.boss ? 'OUI' : 'NON') + '   (← → ou J)', 1]];
+  e.ws.forEach((w, i) => rows.push(['VAGUE ' + (i + 1) + ' : ' + (Object.keys(w).filter(k => w[k] > 0).map(k => T[k].name + ' x' + w[k]).join(', ') || '(vide)'), 2 + i]));
+  rows.push([nW < 8 ? '+ NOUVELLE VAGUE (J)' : '(8 vagues maximum)', 2 + nW]); rows.push(['TERMINER ET JOUER CE NIVEAU (J)', 3 + nW]);
+  const vis = 10, st = clamp(e.row - 4, 0, Math.max(0, rows.length - vis));
+  rows.slice(st, st + vis).forEach((r, i) => { const on = r[1] === e.row; txt((on ? '> ' : '  ') + r[0], W / 2, 42 + i * 16, 9, on ? '#fff' : '#9a9ac0', 'center'); });
+  txt('Ennemi : ◄ ' + T[tys[e.ty]].name + ' ►   (sur une vague : ← → choisir, J ajouter, K retirer)', W / 2, 218, 8, '#8fe0a8', 'center');
+  txt('Code : ' + edCode().slice(0, 70), W / 2, 232, 7, '#cbd', 'center');
+  txt('Haut / Bas · Échap : retour sans valider', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 /* ====================================================================
    RENDU
@@ -4419,16 +4508,19 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 19h40 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 20h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
-  txt('OPTIONS', W / 2, 38, 22, '#ffcf4a', 'center');
+  txt('OPTIONS', W / 2, 30, 18, '#ffcf4a', 'center');
   const L = optList('title').concat([{ label: () => 'RETOUR' }]);
-  L.forEach((it, i) => {
-    const on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 72 + i * 17, 11, on ? '#fff' : '#9a9ac0', 'center');
+  const vis = 11, st0 = clamp(optIdx - 5, 0, Math.max(0, L.length - vis));
+  L.slice(st0, st0 + vis).forEach((it, k) => {
+    const i = st0 + k, on = i === optIdx;
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 62 + k * 16, 10, on ? '#fff' : '#9a9ac0', 'center');
   });
+  if (st0 > 0) txt('▲', W - 14, 62, 9, '#8a8ab0', 'center');
+  if (st0 + vis < L.length) txt('▼', W - 14, 62 + (vis - 1) * 16, 9, '#8a8ab0', 'center');
   const cur = L[optIdx];
   if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
   txt('Haut / Bas · Gauche / Droite : modifier · Entrée · Échap : retour', W / 2, 258, 8, '#8a8ab0', 'center');
@@ -4880,7 +4972,7 @@ function render() {
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
   if (shake > 0 && SHAKEON) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
-  const menu = state === 'title' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
+  const menu = state === 'title' || state === 'edit' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
   drawBG(menu ? tick * 0.5 : cam);
   if (!menu) {
     const list = [];
@@ -4902,6 +4994,7 @@ function render() {
   if (state === 'title') drawTitle();
   else if (state === 'select') drawSelect();
   else if (state === 'online') drawOnline();
+  else if (state === 'edit') drawEdit();
   else if (state === 'name') drawNameEntry();
   else if (state === 'options') drawOptions();
   else if (state === 'scores') drawScores();
@@ -4925,8 +5018,8 @@ function render() {
     }
     if (state === 'win') {
       g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
-      txt('VICTOIRE !', W / 2, 96, 28, '#ffd34d', 'center');
-      txt('Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
+      txt(GMODE === 6 ? (VSW >= 0 && PS[VSW] ? (PS[VSW].name || '?') + ' GAGNE !' : 'MATCH NUL') : 'VICTOIRE !', W / 2, 96, GMODE === 6 ? 22 : 28, '#ffd34d', 'center');
+      txt(GMODE === 6 ? 'Versus : dernier debout' : GMODE === 7 ? 'Niveau personnalisé terminé' : 'Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
       endScores(); endStats();
       if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }

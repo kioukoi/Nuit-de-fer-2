@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm');
+const html=fs.readFileSync('/home/claude/game/index.html','utf8');
+const code=html.split('<script>').pop().split('</script>')[0];
+const mkCtx=()=>new Proxy({}, {get(t,k){if(k==='createLinearGradient'||k==='createRadialGradient')return()=>({addColorStop(){}});if(k==='measureText')return()=>({width:30});if(k in t)return t[k];return()=>{};},set(t,k,v){t[k]=v;return true;}});
+const ctx=mkCtx();
+const sb={document:{createElement:()=>({getContext:()=>mkCtx(),width:0,height:0}),getElementById:()=>({getContext:()=>ctx,addEventListener(){},focus(){}})},navigator:{getGamepads:()=>[]},performance:{now:()=>0},requestAnimationFrame:()=>{},addEventListener:()=>{},setTimeout:()=>{},Math,console,Set,Object,Array,Number,String};
+sb.window=sb;vm.createContext(sb);vm.runInContext(code,sb);const D=sb.__dbg;
+D.start(1,['costaud']);D.ev('introT=0;storyOn=false');for(let i=0;i<10;i++)D.step();
+const L=()=>D.ev('PS[0].lives+"/"+PS[0].nextUp');
+console.log('départ',L());
+D.ev('PS[0].score=21000');D.step();console.log('21000',L());
+D.ev('PS[0].score=120000');D.step();console.log('120000',L());
+D.ev('PS[0].score=999999');D.step();for(let i=0;i<3;i++)D.step();console.log('plafond',L());
+D.ev('PS[0].lives=2');
+D.ev('waveI=LV.waves.length-1;cam=LV.waves[waveI].cam;PS[0].x=cam+200;E=[]');for(let i=0;i<5;i++)D.step();
+D.ev('(function(){var b=E.find(function(x){return x.type==="boss"});b.hp=1;hurt(b,PS[0],{dmg:50,kd:true},1)})()');
+console.log('après boss',L());

@@ -283,7 +283,7 @@ function buildCatch(j) {
   for (let f = 0; f < K; f++) { const m = allLog[f] || 0; if (m === pm) c++; else { if (c) rle.push(pm, c); pm = m; c = 1; } }
   if (c) rle.push(pm, c);
   const CH = 400, n = Math.max(1, Math.ceil(rle.length / CH)), id = (Math.random() * 65535) | 0;
-  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), h0: PS[0].hero, n0: NAMES[0], K,
+  const meta = { seed: netSeed, lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: dfWire(), cl: GMODE === 7 ? CUSTOM : '', h0: PS[0].hero, n0: NAMES[0], K,
     joins: joins.filter(q => !q.x && q.F <= K).map(q => [q.slot, q.F, q.c, q.n, q.r ? 1 : 0]), drops: dropAt.map((L, s) => [s, L]).filter(q => q[1] !== undefined), dh: dropHist.slice() };
   joinMsgs = [];
   for (let i = 0; i < n; i++) joinMsgs.push({ t: 'cu', to: pend.u, id, i, n, d: rle.slice(i * CH, (i + 1) * CH), meta: i === 0 ? meta : undefined });
@@ -321,7 +321,7 @@ function frameEvents(f) {
 }
 function runCatchUp() {
   const c = catchReady, meta = c.meta; catchReady = null;
-  FRIENDLY = !!meta.ff; setDf(meta.df); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
+  FRIENDLY = !!meta.ff; setDf(meta.df); if (meta.cl) CUSTOM = String(meta.cl).slice(0, 400); startLevel = Math.max(0, Math.min(LEVELS.length - 1, meta.lvl | 0));
   SEL[0].c = Math.max(0, HERO_KEYS.indexOf(meta.h0)); NAMES[0] = cleanName(meta.n0) || 'JOUEUR 1';
   const keep = rbuf, K = meta.K, slot = localSlot;
   nPlayers = 1; online = true; room = true; act = [true, false, false, false];
@@ -377,7 +377,7 @@ function netIn(m) {
   } else if (t === 'start') {
     if (state !== 'select' || roomJoin) return;
     for (let i = 0; i < nPlayers; i++) SEL[i].c = Math.max(0, HERO_KEYS.indexOf(m.heroes[i]));
-    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df);
+    startLevel = Math.max(0, Math.min(LEVELS.length - 1, m.lvl | 0)); FRIENDLY = !!m.ff; setDf(m.df); if (m.cl) CUSTOM = String(m.cl).slice(0, 400);
     for (let i = 0; i < MAXP; i++) act[i] = !!(m.act && m.act[i]);
     beginOnline(m.seed);
   } else if (t === 'jsel') {
