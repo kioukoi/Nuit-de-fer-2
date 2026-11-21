@@ -80,6 +80,9 @@ const SFX = {
   thunder() { nz(0.9, 0.5, 'lowpass', 700, 90, 0.5, 0.12); thump(60, 28, 0.7, 0.6, 0.12); nz(0.18, 0.35, 'highpass', 3000, 7000, 0.7); },
   lvl() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.28, 'triangle', 0.1, 0, i * 0.07)); tone(1568, 0.5, 'sine', 0.05, 0, 0.3); },
   tick() { tone(1200 + Math.random() * 200, 0.025, 'square', 0.015, 0); },
+  vox(sc, ko) { const f = Math.max(70, 190 / (sc || 1)) * jit(1, 0.12); tone(f, ko ? 0.3 : 0.13, 'sawtooth', ko ? 0.05 : 0.04, -f * 0.4); nz(ko ? 0.2 : 0.09, 0.07, 'bandpass', f * 4, f * 2, 1.2); },
+  go() { tone(660, 0.12, 'square', 0.04, 0); tone(880, 0.16, 'square', 0.04, 0, 0.1); tone(1320, 0.22, 'triangle', 0.05, 0, 0.2); },
+  roar() { thump(70, 30, 0.9, 0.7); tone(90, 0.8, 'sawtooth', 0.09, -40); tone(135, 0.8, 'sawtooth', 0.05, -60, 0.03); nz(0.8, 0.28, 'bandpass', 500, 160, 1.0); },
   bell() { tone(1760, 0.5, 'sine', 0.08, 0); tone(2349, 0.45, 'sine', 0.05, 0, 0.01); tone(1760, 0.4, 'sine', 0.06, 0, 0.16); }
 };
 
@@ -131,3 +134,32 @@ function musicTick() {
   } catch (e) { /* ignoré */ } finally { BUSOVR = null; }
 }
 
+
+
+/* ---------- ambiances de fond : un souffle filtré par décor (pluie, vent, foule, roulement du train…), coupé si les bruitages le sont ---------- */
+const AMBS = {
+  street: [[400, 'bandpass', 0.7, 0.012]], port: [[260, 'lowpass', 0.5, 0.05], [3500, 'highpass', 0.6, 0.006]], factory: [[110, 'lowpass', 0.7, 0.07]],
+  roof: [[2600, 'highpass', 0.6, 0.022], [200, 'lowpass', 0.6, 0.03]], paris: [[520, 'bandpass', 0.8, 0.035]], cata: [[90, 'lowpass', 1.2, 0.05]],
+  casino: [[620, 'bandpass', 1.0, 0.03]], train: [[140, 'lowpass', 0.9, 0.075], [3000, 'highpass', 0.5, 0.006]], aero: [[300, 'lowpass', 0.5, 0.045], [2200, 'bandpass', 0.8, 0.01]],
+  chateau: [[2800, 'highpass', 0.6, 0.03], [160, 'lowpass', 0.7, 0.045]]
+};
+let AMB = null, ambKind = null;
+function ambUpdate() {
+  if (!AC || REPLAY) return;
+  const want = (state === 'play' && sfxOn && !paused && LV) ? LV.bg : null;
+  if (want === ambKind) return;
+  ambKind = want;
+  const now = AC.currentTime;
+  if (AMB) { for (const l of AMB) { try { l.gn.gain.cancelScheduledValues(now); l.gn.gain.setTargetAtTime(0, now, 0.15); const s = l.src; setTimeout(() => { try { s.stop(); } catch (e) { /* ignoré */ } }, 900); } catch (e) { /* ignoré */ } } AMB = null; }
+  const cfg = want && AMBS[want];
+  if (!cfg) return;
+  try {
+    AMB = cfg.map(([f, ft, q, v]) => {
+      const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain();
+      src.buffer = nbuf(); src.loop = true; fl.type = ft; fl.frequency.value = f; fl.Q.value = q;
+      gn.gain.value = 0.0001; gn.gain.setTargetAtTime(v, now, 0.8);
+      src.connect(fl); fl.connect(gn); gn.connect(out()); src.start(now, Math.random() * 0.5);
+      return { src, gn };
+    });
+  } catch (e) { AMB = null; }
+}

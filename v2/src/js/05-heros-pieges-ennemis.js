@@ -688,12 +688,12 @@ function updWaves() {
   const w = LV.waves[waveI];
   if (waveActive) {
     if (E.every(e => e.gone || e.dying)) {
-      waveActive = false; camLimit = LEN - W; goT = 240;
+      waveActive = false; camLimit = LEN - W; goT = 240; if (!(w && w.boss)) SFX.go();
       if (w && w.boss) endT = 150;
       waveI++;
     }
   } else if (w && cam >= w.cam - 0.01) {
-    waveActive = true; camLimit = cam; goT = 0;
+    waveActive = true; camLimit = cam; goT = 0; if (w.boss) SFX.roar();
     for (const [k, s] of w.spawn) spawn(k, s);
     if (nPlayers >= 2 && !w.boss) for (let k = 1; k < Math.min(4, nPlayers); k++) spawn('thug', rng() < 0.5 ? 1 : -1);
   }

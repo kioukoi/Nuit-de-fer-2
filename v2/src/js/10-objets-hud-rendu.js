@@ -246,8 +246,8 @@ function hud() {
 let PREV = null;
 function drawTitle() {
   g.fillStyle = 'rgba(5,3,15,.55)'; g.fillRect(0, 0, W, H);
-  txt('NUIT DE FER', W / 2, 70, 38, '#ffcf4a', 'center');
-  txt('prototype · beat\'em up', W / 2, 88, 11, '#cbd', 'center');
+  txt('COMPAS NOIR', W / 2, 70, 36, '#ffcf4a', 'center');
+  txt('beat\'em up · 10 niveaux', W / 2, 88, 11, '#cbd', 'center');
   const items = ['1 JOUEUR', 'EN LIGNE (JUSQU\'À 4 JOUEURS)', 'CLASSEMENT MONDIAL', 'OPTIONS'];
   items.forEach((o, i) => {
     const on = i === menuIdx;
@@ -256,7 +256,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 03h00 · bruitages', W / 2, 264, 7, '#667', 'center');
+  txt('version 03h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

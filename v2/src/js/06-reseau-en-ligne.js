@@ -396,7 +396,7 @@ function inviteLink() { try { return location.href.split(/[?#]/)[0] + '?join=' +
 function copyInvite() {
   const u = inviteLink();
   try {
-    if (navigator.share && window.IS_TOUCH) { navigator.share({ title: 'Nuit de fer', text: 'Rejoins ma partie !', url: u }); toast('Invitation prête'); }
+    if (navigator.share && window.IS_TOUCH) { navigator.share({ title: 'Compas Noir', text: 'Rejoins ma partie !', url: u }); toast('Invitation prête'); }
     else if (navigator.clipboard) { navigator.clipboard.writeText(u); toast('Lien copié ! Envoyez-le à vos amis'); }
     else toast('Code : ' + hostCode);
   } catch (e) { toast('Code : ' + hostCode); }

@@ -262,11 +262,12 @@ function hurt(t, att, a, dir) {
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
   if (a.kd) { shake = Math.max(shake, 6); SFX.big(); } else SFX.hit();
+  if (t.kind === 'e' && (a.kd || (simF + (t.slot | 0)) % 3 === 0)) SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), false);
   if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5 * (a.ally ? 0.35 : 1));  /* kopins : 35 % des points */ tgt = t; tgtT = 150; }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
-    SFX.ko();
+    SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
   }
   const armored = (t.kind === 'e' && T[t.type].armor && !a.kd && (t.st === 'tele' || t.st === 'attack' || t.st === 'charge')) ||

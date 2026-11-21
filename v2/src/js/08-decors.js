@@ -11,43 +11,110 @@ skyG.addColorStop(0, '#0e0b24'); skyG.addColorStop(1, '#43275a');
 function drawBGStreet(c) {
   g.fillStyle = skyG; g.fillRect(0, 0, W, 150);
   g.fillStyle = '#e8e0c0';
-  for (let i = 0; i < 36; i++) g.fillRect(Math.floor(hash(i + 900) * W), Math.floor(hash(i + 1300) * 100), 1, 1);
+  for (let i = 0; i < 40; i++) { const tw = (hash(i + 40) > 0.8) && ((tick >> 4) + i) % 5 === 0; if (!tw) g.fillRect(Math.floor(hash(i + 900) * W), Math.floor(hash(i + 1300) * 100), 1, 1); }
+  // lune avec halo et fins nuages
+  g.globalAlpha = 0.1; g.fillStyle = '#f2e9c8'; g.beginPath(); g.arc(390, 42, 34, 0, 7); g.fill(); g.globalAlpha = 0.08; g.beginPath(); g.arc(390, 42, 52, 0, 7); g.fill(); g.globalAlpha = 1;
   g.fillStyle = '#f2e9c8'; g.beginPath(); g.arc(390, 42, 17, 0, 7); g.fill();
   g.fillStyle = '#d8cfa8'; g.fillRect(384, 38, 5, 4); g.fillRect(395, 48, 4, 3);
-  // fond lointain
+  for (let k = 0; k < 4; k++) { const x = ((hash(k + 61) * (W + 220) - tick * 0.1 - c * 0.03) % (W + 220) + W + 220) % (W + 220) - 110; g.globalAlpha = 0.14; g.fillStyle = '#9a90c0'; g.beginPath(); g.ellipse(x, 30 + hash(k) * 40, 80, 5, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  // skyline lointaine avec antennes
   const cf = c * 0.15;
-  g.fillStyle = '#1d1a3a';
   for (let i = Math.floor(cf / 40) - 1; i <= Math.floor((cf + W) / 40) + 1; i++) {
-    const h = 50 + hash(i) * 60;
-    g.fillRect(Math.round(i * 40 - cf), 150 - h, 38, h);
+    const h = 50 + hash(i) * 60, bx = Math.round(i * 40 - cf);
+    g.fillStyle = '#1d1a3a'; g.fillRect(bx, 150 - h, 38, h);
+    if (hash(i + 70) > 0.7) { g.fillRect(bx + 18, 150 - h - 12, 1, 12); if ((tick >> 5) % 2 === 0) { g.fillStyle = '#ff3a3a'; g.fillRect(bx + 17, 150 - h - 13, 3, 2); } }
+    g.fillStyle = '#2c2756'; for (let y = 150 - h + 6; y < 140; y += 10) for (let k = 0; k < 3; k++) if (hash(i * 31 + y + k) > 0.8) g.fillRect(bx + 6 + k * 11, y, 4, 3);
   }
-  // immeubles
-  const cm = c * 0.4;
+  // immeubles : trois teintes, toits équipés, fenêtres qui s'allument, rez-de-chaussée commerçant
+  const cm = c * 0.4, tints = ['#2a2548', '#33264a', '#232a4a'], awn = ['#c04a5a', '#3a9a8a', '#d4a030', '#6a5ac0'], neon = ['#ff4aa0', '#4ad8ff', '#a0ff4a', '#ffd34d'];
   for (let i = Math.floor(cm / 64) - 1; i <= Math.floor((cm + W) / 64) + 1; i++) {
-    const bh = 70 + hash(i + 500) * 60, bx = Math.round(i * 64 - cm);
-    g.fillStyle = '#2a2548'; g.fillRect(bx, 150 - bh, 62, bh);
-    for (let j = 0, wy = 150 - bh + 8; wy < 140; j++, wy += 12) {
+    const bh = 78 + hash(i + 500) * 56, bx = Math.round(i * 64 - cm), top = 150 - bh;
+    g.fillStyle = tints[Math.floor(hash(i + 520) * 3)]; g.fillRect(bx, top, 62, bh);
+    g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(bx, top, 2, bh); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(bx + 60, top, 2, bh);
+    g.fillStyle = '#1a1634'; g.fillRect(bx - 1, top - 3, 64, 3);
+    const rt = hash(i + 530);
+    if (rt < 0.3) { g.fillStyle = '#1a1634'; g.fillRect(bx + 10, top - 14, 14, 11); g.fillRect(bx + 8, top - 16, 18, 2); g.fillRect(bx + 14, top - 18, 2, 2); g.fillRect(bx + 20, top - 18, 2, 2); }
+    else if (rt < 0.55) { g.fillStyle = '#1a1634'; g.fillRect(bx + 36, top - 8, 10, 5); g.fillStyle = '#3a3660'; g.fillRect(bx + 38, top - 7, 6, 1); }
+    else if (rt < 0.75) { g.fillStyle = '#1a1634'; g.fillRect(bx + 28, top - 16, 1, 13); g.fillRect(bx + 22, top - 12, 13, 1); g.fillRect(bx + 24, top - 8, 9, 1); }
+    for (let j = 0, wy = top + 8; wy < 110; j++, wy += 12) {
       for (let k = 0; k < 4; k++) {
-        g.fillStyle = hash(i * 97 + j * 13 + k) > 0.62 ? '#f4d27a' : '#1d1936';
+        const on = hash(i * 97 + j * 13 + k) > 0.62, fl = on && hash(i * 7 + j * 3 + k + 200) > 0.97 && ((tick >> 3) & 1);
+        g.fillStyle = fl ? '#1d1936' : on ? (hash(i + j + k) > 0.8 ? '#8ad0f0' : '#f4d27a') : '#1d1936';
         g.fillRect(bx + 6 + k * 14, wy, 7, 7);
+        if (on && hash(i * 5 + j + k * 11) > 0.85) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(bx + 6 + k * 14, wy, 7, 3); }
+      }
+    }
+    // rez-de-chaussée : vitrine, store ou rideau métallique (avec le compas du Syndicat)
+    const sh = hash(i + 560);
+    g.fillStyle = '#171330'; g.fillRect(bx, 112, 62, 38);
+    if (sh < 0.62) {
+      const ac = awn[Math.floor(hash(i + 570) * 4)], nc = neon[Math.floor(hash(i + 580) * 4)];
+      g.fillStyle = '#ffd98a'; g.globalAlpha = 0.55; g.fillRect(bx + 6, 124, 30, 24); g.globalAlpha = 1;
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(bx + 6, 124, 30, 3); g.fillRect(bx + 20, 124, 1, 24);
+      g.fillStyle = '#3a2a1a'; g.fillRect(bx + 42, 124, 14, 26); g.fillStyle = '#ffd98a'; g.globalAlpha = 0.5; g.fillRect(bx + 44, 127, 10, 12); g.globalAlpha = 1;
+      for (let k = 0; k < 8; k++) { g.fillStyle = (k & 1) ? '#f2eadc' : ac; g.fillRect(bx + 3 + k * 7, 114, 7, 8); }
+      g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(bx + 3, 122, 56, 2);
+      const on = hash((tick >> 4) + i * 3) > 0.06;
+      g.globalAlpha = on ? 0.3 : 0.1; g.fillStyle = nc; g.fillRect(bx + 8, 104, 22, 7); g.globalAlpha = 1;
+      g.fillStyle = on ? nc : '#444'; g.fillRect(bx + 10, 106, 18, 1); g.fillRect(bx + 10, 108, 11, 1);
+    } else {
+      g.fillStyle = '#4a4a58'; g.fillRect(bx + 4, 120, 54, 30);
+      g.fillStyle = '#3a3a48'; for (let y = 122; y < 150; y += 3) g.fillRect(bx + 4, y, 54, 1);
+      g.fillStyle = '#2a2a36'; g.fillRect(bx + 4, 116, 54, 4);
+      if (hash(i + 590) > 0.55) {                                                      // compas peint à la bombe
+        g.strokeStyle = '#d83a3a'; g.lineWidth = 1.5; const gx = bx + 31, gy = 126;
+        g.beginPath(); g.moveTo(gx, gy); g.lineTo(gx - 7, gy + 18); g.moveTo(gx, gy); g.lineTo(gx + 7, gy + 18); g.moveTo(gx - 4, gy + 11); g.lineTo(gx + 4, gy + 11); g.stroke();
+        g.beginPath(); g.arc(gx, gy, 2, 0, 7); g.stroke();
       }
     }
   }
-  // trottoir et route
+  // câbles et poteaux
+  const cp = c * 0.7;
+  for (let k = Math.floor(cp / 260) - 1; k <= Math.floor((cp + W) / 260) + 1; k++) {
+    const px = Math.round(k * 260 + 90 - cp);
+    g.fillStyle = '#14122a'; g.fillRect(px, 62, 3, 90); g.fillRect(px - 9, 68, 21, 2); g.fillRect(px - 7, 76, 17, 2);
+    g.strokeStyle = 'rgba(20,18,42,.85)'; g.lineWidth = 1; g.beginPath();
+    g.moveTo(px - 8, 69); g.quadraticCurveTo(px + 130, 88, px + 252, 69); g.moveTo(px + 10, 69); g.quadraticCurveTo(px + 140, 84, px + 270, 69); g.stroke();
+  }
+  // trottoir, bordure et route mouillée
   g.fillStyle = '#4a4658'; g.fillRect(0, 150, W, 28);
   g.fillStyle = '#3c394a';
   for (let k = Math.floor(c / 48) - 1; k <= Math.floor((c + W) / 48) + 1; k++) g.fillRect(Math.round(k * 48 - c), 150, 1, 28);
+  g.fillStyle = '#56526a'; g.fillRect(0, 150, W, 2);
   g.fillStyle = '#6a6678'; g.fillRect(0, 177, W, 2);
   g.fillStyle = '#2a2a36'; g.fillRect(0, 179, W, H - 179);
+  g.fillStyle = '#323240';
+  for (let k = Math.floor(c / 130) - 1; k <= Math.floor((c + W) / 130) + 1; k++) { const yy = 190 + hash(k + 11) * 60; g.fillRect(Math.round(k * 130 - c) + 20, yy, 26 + hash(k + 3) * 20, 1); g.fillRect(Math.round(k * 130 - c) + 40, yy + 1, 1, 6); }
   g.fillStyle = '#7d7a58';
   for (let k = Math.floor(c / 48) - 1; k <= Math.floor((c + W) / 48) + 1; k++) g.fillRect(Math.round(k * 48 - c), 222, 24, 2);
-  // lampadaires
-  for (let k = Math.floor(c / 320) - 1; k <= Math.floor((c + W) / 320) + 1; k++) {
-    const lx = Math.round(k * 320 + 200 - c);
-    g.fillStyle = '#555'; g.fillRect(lx, 100, 3, 52);
-    g.fillStyle = '#ffd27a'; g.fillRect(lx - 4, 98, 11, 4);
-    g.globalAlpha = 0.13; g.beginPath(); g.arc(lx + 1, 106, 36, 0, 7); g.fill(); g.globalAlpha = 1;
+  // mobilier urbain sur le trottoir : poubelles, bouche d'incendie, bancs
+  for (let k = Math.floor(c / 150) - 1; k <= Math.floor((c + W) / 150) + 1; k++) {
+    const ox = Math.round(k * 150 + 40 - c), r = hash(k + 640);
+    if (r < 0.3) { g.fillStyle = '#3a4a4a'; g.fillRect(ox, 160, 9, 11); g.fillStyle = '#4a5c5c'; g.fillRect(ox - 1, 158, 11, 3); g.fillStyle = '#2a3636'; g.fillRect(ox + 2, 163, 1, 6); g.fillRect(ox + 6, 163, 1, 6); }
+    else if (r < 0.55) { g.fillStyle = '#b03a3a'; g.fillRect(ox + 1, 162, 6, 9); g.fillRect(ox, 160, 8, 3); g.fillRect(ox - 2, 165, 12, 2); g.fillStyle = '#d86a6a'; g.fillRect(ox + 1, 162, 2, 9); }
+    else if (r < 0.7) { g.fillStyle = '#5a4a3a'; g.fillRect(ox, 162, 24, 2); g.fillRect(ox, 166, 24, 2); g.fillStyle = '#2a2a2a'; g.fillRect(ox + 2, 168, 2, 4); g.fillRect(ox + 20, 168, 2, 4); }
   }
+  // lampadaires, halo et cône de lumière au sol, flaques qui les reflètent
+  for (let k = Math.floor(c / 320) - 1; k <= Math.floor((c + W) / 320) + 1; k++) {
+    const lx = Math.round(k * 320 + 200 - c), fl = (hash(k + 90) > 0.8 && ((tick >> 2) % 23 === 0)) ? 0.4 : 1;
+    g.fillStyle = '#555'; g.fillRect(lx, 100, 3, 52); g.fillRect(lx - 4, 99, 8, 2);
+    g.fillStyle = fl < 1 ? '#8a7a5a' : '#ffd27a'; g.fillRect(lx - 4, 98, 11, 4);
+    g.globalAlpha = 0.13 * fl; g.fillStyle = '#ffd27a'; g.beginPath(); g.arc(lx + 1, 106, 36, 0, 7); g.fill();
+    g.globalAlpha = 0.05 * fl; g.beginPath(); g.moveTo(lx - 3, 102); g.lineTo(lx + 5, 102); g.lineTo(lx + 46, 190); g.lineTo(lx - 44, 190); g.closePath(); g.fill();
+    g.beginPath(); g.ellipse(lx + 1, 200, 52, 11, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.globalAlpha = 0.28; g.fillStyle = '#6a8ac0'; g.beginPath(); g.ellipse(lx + 60, 214, 26, 4, 0, 0, 7); g.fill(); g.globalAlpha = 0.5; g.fillStyle = '#ffd27a'; g.fillRect(lx + 52, 213, 16, 1); g.globalAlpha = 1;
+  }
+  // bouche d'égout qui fume
+  for (let k = Math.floor(c / 410) - 1; k <= Math.floor((c + W) / 410) + 1; k++) {
+    const mx = Math.round(k * 410 + 120 - c);
+    g.fillStyle = '#1c1c26'; g.beginPath(); g.ellipse(mx, 236, 9, 3, 0, 0, 7); g.fill(); g.fillStyle = '#34344a'; g.fillRect(mx - 6, 235, 12, 1);
+    for (let q = 0; q < 4; q++) { const ph = ((tick * 0.5 + q * 17) % 68) / 68; g.globalAlpha = 0.22 * (1 - ph); g.fillStyle = '#b8bcd0'; g.beginPath(); g.ellipse(mx + Math.sin(tick * 0.03 + q) * 6 * ph, 234 - ph * 44, 5 + ph * 9, 3 + ph * 5, 0, 0, 7); g.fill(); }
+    g.globalAlpha = 1;
+  }
+  // brume basse et papiers portés par le vent
+  for (let k = 0; k < 3; k++) { const x = ((hash(k + 20) * (W + 260) - tick * 0.35 - c * 0.2) % (W + 260) + W + 260) % (W + 260) - 130; g.globalAlpha = 0.05; g.fillStyle = '#b8c0e0'; g.beginPath(); g.ellipse(x, 182 + hash(k) * 60, 110, 9, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  g.fillStyle = '#d8d4c0';
+  for (let k = 0; k < 4; k++) { const x = ((hash(k + 300) * (W + 80) - tick * (1.2 + hash(k + 1)) - c * 0.5) % (W + 80) + W + 80) % (W + 80) - 40, y = 190 + hash(k + 310) * 55 + Math.sin(tick * 0.12 + k * 2) * 3; g.fillRect(x, y, 3, 2); }
 }
 
 function txt(s, x, y, size, col, al) {
