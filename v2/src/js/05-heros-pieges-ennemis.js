@@ -426,6 +426,11 @@ function updHz() {
 /* ---------- ennemis ---------- */
 function targetOf(e) {
   let best = null, bd = 1e9;
+  if (DIFF === 2 && nPlayers >= 2 && ((e.slot | 0) % 3) !== 0) {       /* mode difficile : deux ennemis sur trois s'acharnent sur le joueur le plus faible (moins de vies, puis moins de santé) */
+    let wk = null;
+    for (const p of PS) { if (p.out || p.dying) continue; if (!wk || p.lives < wk.lives || (p.lives === wk.lives && p.hp < wk.hp)) wk = p; }
+    if (wk) return wk;
+  }
   for (const p of PS) {
     if (p.out || p.dying) continue;
     const d = Math.abs(p.x - e.x) + Math.abs(p.y - e.y) * 1.5;

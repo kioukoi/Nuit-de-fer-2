@@ -126,3 +126,7 @@ Chaque boss a 3 phases (à 66 % et 33 % de vie) : il devient plus rapide, encha�
 ## Vies
 
 On démarre avec 3 vies (5 au maximum). Vie bonus à **20 000 points**, à **50 000**, puis tous les **50 000**. Chaque **boss vaincu** donne **+1 vie à toute l'équipe**. Au plafond, la vie bonus devient +500 points. Passer au niveau suivant relève un joueur hors jeu (1 vie, 50 % de vie).
+
+## Difficulté
+
+Trois modes : facile, normal, difficile. En **difficile** et à plusieurs joueurs, deux ennemis sur trois s'acharnent sur le joueur le plus faible (le moins de vies, puis le moins de santé) ; le troisième attaque le plus proche.

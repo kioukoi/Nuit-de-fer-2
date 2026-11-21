@@ -1395,6 +1395,11 @@ function updHz() {
 /* ---------- ennemis ---------- */
 function targetOf(e) {
   let best = null, bd = 1e9;
+  if (DIFF === 2 && nPlayers >= 2 && ((e.slot | 0) % 3) !== 0) {       /* mode difficile : deux ennemis sur trois s'acharnent sur le joueur le plus faible (moins de vies, puis moins de santé) */
+    let wk = null;
+    for (const p of PS) { if (p.out || p.dying) continue; if (!wk || p.lives < wk.lives || (p.lives === wk.lives && p.hp < wk.hp)) wk = p; }
+    if (wk) return wk;
+  }
   for (const p of PS) {
     if (p.out || p.dying) continue;
     const d = Math.abs(p.x - e.x) + Math.abs(p.y - e.y) * 1.5;
@@ -4271,7 +4276,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 11h45 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 11h55 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
