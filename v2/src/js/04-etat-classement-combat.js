@@ -109,6 +109,7 @@ function startGame() {
 function nextLevel() {
   for (const p of PS) {
     p.score += 1000 * (levelIdx + 1);
+    gainXp(p, 60 + 25 * levelIdx);
     if (p.out) { p.out = false; p.lives = 1; p.hp = Math.round(p.maxhp * 0.5); }
     else p.hp = Math.min(p.maxhp, p.hp + Math.round(p.maxhp * 0.45));
     p.dying = false; p.st = 'free'; p.t = 0; p.z = 0; p.vx = p.vy = p.vz = 0; p.inv = 90; p.kick = false;
@@ -176,7 +177,7 @@ function heroBonus(att, t, a) {
   return m === 1 ? a : Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * m)) });
 }
 /* ---------- expérience et spécialisations ---------- */
-const xpNeed = l => 80 + 60 * l;
+const xpNeed = l => 80 + 120 * l;
 function gainXp(p, n) {
   if (p.out || n <= 0) return;
   p.xp += n;
@@ -238,7 +239,7 @@ function hurt(t, att, a, dir) {
   if (ff && !FRIENDLY) return;
   if (att.kind === 'p' && !ff) {
     a = heroBonus(att, t, a);
-    const dm = att.mods.dmg + att.xl * 0.02;
+    const dm = att.mods.dmg + Math.min(0.3, att.xl * 0.02);
     if (dm > 0) a = Object.assign({}, a, { dmg: Math.max(1, Math.round(a.dmg * (1 + dm))) });
   }
   if (t.kind === 'p') { t.hurtT = simF; t.cn = 0; }
