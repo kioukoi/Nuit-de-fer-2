@@ -218,6 +218,7 @@ function hud() {
     txt(LV.bossName, W / 2, H - 20, 10, '#f88', 'center');
     bar(W / 2 - 100, H - 14, 200, 8, boss.hp / boss.maxhp, '#d03030');
   }
+  if (!storyOn && introT <= 0 && state === 'play') drawTuto();
   if (storyOn) drawStory();
   else if (introT > 0 && state === 'play') {
     const a = Math.min(1, introT / 30, (170 - introT) / 20);
@@ -588,6 +589,34 @@ function drawStory() {
   }
   if (storyC >= storyTot && ((tick >> 5) & 1)) txt('J ou ESPACE : continuer', W / 2, H - 16, 8, '#99a', 'center');
   g.globalAlpha = 1;
+}
+/* tutoriel du niveau 1 : quelques astuces qui apparaissent au fil de l'action, une seule fois (affichage seulement, la simulation n'est pas touchée) */
+let tutoStep = -1, tutoT = 0, tutoSeen = 0, tutoSp = false;
+function drawTuto() {
+  if (levelIdx !== 0) { if (tutoStep >= 0 && tutoStep < 5) tutoStep = 9; return; }
+  if (tutoStep < 0) { let d = false; try { d = lsGet('nfer_tuto', '0') === '1'; } catch (e) { /* ignoré */ } tutoStep = d ? 9 : 0; tutoT = 0; tutoSeen = 0; tutoSp = false; }
+  if (tutoStep > 4) return;
+  const p = PS[online ? localSlot : 0];
+  if (!p || p.out) return;
+  const tc = window.IS_TOUCH;
+  const tips = [tc ? 'Joystick : se déplacer' : 'Flèches ou ZQSD : se déplacer', tc ? 'Bouton A : frapper (3 fois de suite = combo)' : 'J : frapper (3 fois de suite = combo)', tc ? 'Bouton B : sauter, puis A en l\'air = coup de pied' : 'Espace : sauter, puis J en l\'air = coup de pied',
+    tc ? 'Jauge SP pleine : bouton spécial' : 'Jauge SP pleine : K = attaque spéciale', 'Marchez sur une arme ou une potion pour la ramasser · L : lancer'];
+  tutoT++;
+  let ok = false;
+  if (tutoStep === 0) ok = p.mv;
+  else if (tutoStep === 1) ok = p.st === 'attack';
+  else if (tutoStep === 2) ok = p.z > 2;
+  else if (tutoStep === 3) { const need = HEROES[p.hero].cost; if (p.sp >= need) tutoSp = true; ok = tutoSp && p.sp < need; if (!tutoSp && tutoT > 1500) ok = true; }
+  else if (tutoStep === 4) ok = tutoT > 360;
+  if (tutoStep === 3 && !tutoSp && p.sp < HEROES[p.hero].cost) { if (waveI < 1) return; }       // l'astuce du spécial n'apparaît qu'une fois la jauge pleine
+  if (tutoStep === 4 && waveI < 1 && tutoT < 60) return;
+  const pulse = 0.75 + 0.25 * Math.sin(tick * 0.12);
+  g.font = 'bold 8px monospace'; const tw = Math.ceil(g.measureText(tips[tutoStep]).width) + 16;
+  g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(W / 2 - tw / 2, 21, tw, 15);
+  g.fillStyle = 'rgba(255,211,77,' + pulse + ')'; g.fillRect(W / 2 - tw / 2, 21, 2, 15);
+  txt(tips[tutoStep], W / 2, 32, 8, '#fff', 'center');
+  txt((tutoStep + 1) + '/5', W / 2 + tw / 2 - 4, 19, 6, '#ffd34d', 'right');
+  if (ok && tutoT > 60) { tutoStep++; tutoT = 0; tutoSp = tutoSp && tutoStep === 3; if (tutoStep > 4) { try { lsSet('nfer_tuto', '1'); } catch (e) { /* ignoré */ } } }
 }
 function endStats() {
   if (!gameStats) return;

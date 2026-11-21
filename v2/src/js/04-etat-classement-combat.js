@@ -103,7 +103,7 @@ function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
-  simF = 0; gameStats = null; newAch = [];
+  simF = 0; gameStats = null; newAch = []; tutoStep = -1;
   seedRng(online ? netSeed : (Date.now() >>> 0));
   state = 'play';
 }
