@@ -256,6 +256,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
+  txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
   txt('version 03h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
@@ -588,6 +589,14 @@ function drawStory() {
   if (storyC >= storyTot && ((tick >> 5) & 1)) txt('J ou ESPACE : continuer', W / 2, H - 16, 8, '#99a', 'center');
   g.globalAlpha = 1;
 }
+function endStats() {
+  if (!gameStats) return;
+  const s = gameStats, m = Math.floor(s.time / 3600), sec = Math.floor((s.time % 3600) / 60);
+  const y = 148 + PS.length * 14 + 6;
+  txt('K.O. : ' + s.kills + '  ·  vies perdues : ' + s.lost + '  ·  temps : ' + m + ' min ' + String(sec).padStart(2, '0') + ' s  ·  ' + DIFFN[s.diff].toLowerCase(), W / 2, y, 8, '#9ab', 'center');
+  if (newAch.length > 3) txt('+ ' + (newAch.length - 3) + ' autres succès (voir le titre)', W / 2, y + 13 + 33, 8, '#ffd34d', 'center');
+  newAch.slice(0, 3).forEach((k, i) => { const a = ACHS.find(z => z[0] === k); if (a) txt('SUCCÈS : ' + a[1] + ' — ' + a[2], W / 2, y + 13 + i * 11, 8, '#ffd34d', 'center'); });
+}
 function endScores() {
   if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
   PS.forEach((p, i) => p.absent || txt(String(p.name || 'J' + (i + 1)) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0'), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
@@ -664,15 +673,15 @@ function render() {
       g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(0, 0, W, H);
       txt('GAME OVER', W / 2, 96, 30, '#e04040', 'center');
       txt('Niveau ' + (levelIdx + 1) + ' · ' + LV.name, W / 2, 114, 10, '#cbd', 'center');
-      endScores();
-      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 200, 11, '#cbd', 'center');
+      endScores(); endStats();
+      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
     if (state === 'win') {
       g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
       txt('VICTOIRE !', W / 2, 96, 28, '#ffd34d', 'center');
       txt('Les ' + LEVELS.length + ' niveaux sont terminés', W / 2, 114, 10, '#cbd', 'center');
-      endScores();
-      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 200, 11, '#cbd', 'center');
+      endScores(); endStats();
+      if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
   }
 }

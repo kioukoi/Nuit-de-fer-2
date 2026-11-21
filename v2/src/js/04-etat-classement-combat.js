@@ -103,7 +103,7 @@ function startGame() {
   PS = SEL.slice(0, nPlayers).map((s, i) => { const p = mkPlayer(HERO_KEYS[s.c], i); p.name = NAMES[i] || ('JOUEUR ' + (i + 1)); if (online && !act[i]) { p.out = true; p.absent = true; p.lives = 0; } return p; });
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
-  simF = 0;
+  simF = 0; gameStats = null; newAch = [];
   seedRng(online ? netSeed : (Date.now() >>> 0));
   state = 'play';
 }
@@ -120,7 +120,24 @@ function nextLevel() {
   if (levelIdx + 1 > unlocked) { unlocked = levelIdx + 1; lsSet('nfer_unlocked', String(unlocked)); }
   loadLevel(levelIdx + 1);
 }
-function endGame(kind) { state = kind; endT = 0; recordScores(); }
+/* succès : sauvegardés en local, évalués à la fin de chaque partie pour le joueur de cet écran */
+const ACHS = [['lv6', 'Sous la ville', 'Atteindre le niveau 6'], ['lv10', 'Chez l\'Architecte', 'Atteindre le niveau 10'], ['fin', 'Aller au bout', 'Finir les 10 niveaux'],
+  ['flaw', 'Intouchable', 'Finir sans perdre une seule vie'], ['hard', 'Dur à cuire', 'Finir en difficile'], ['slay', 'Boucher', 'Mettre 150 ennemis K.O. dans une partie'], ['duo', 'Entre amis', 'Finir à plusieurs']];
+let newAch = [], gameStats = null;
+function doneAch() { let a = []; try { a = lsGet('nfer_ach', '').split(',').filter(Boolean); } catch (e) { /* ignoré */ } return a; }
+function checkAch(kind) {
+  const p = PS[online ? localSlot : 0]; newAch = [];
+  if (!p) return;
+  const win = kind === 'win', have = doneAch(), got = [];
+  gameStats = { kills: p.kills | 0, lost: Math.max(0, 3 - p.lives) + (p.out ? 0 : 0), time: simF, level: levelIdx + 1, diff: DIFF, win };
+  if (levelIdx >= 5) got.push('lv6');
+  if (levelIdx >= 9) got.push('lv10');
+  if (win) { got.push('fin'); if (p.lives >= 3 && !p.out) got.push('flaw'); if (DIFF === 2) got.push('hard'); if (nPlayers >= 2) got.push('duo'); }
+  if ((p.kills | 0) >= 150) got.push('slay');
+  for (const k of got) if (have.indexOf(k) < 0) { have.push(k); newAch.push(k); }
+  if (newAch.length) lsSet('nfer_ach', have.join(','));
+}
+function endGame(kind) { state = kind; endT = 0; recordScores(); try { checkAch(kind); } catch (e) { /* ignoré */ } }
 function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
@@ -267,6 +284,7 @@ function hurt(t, att, a, dir) {
   if (att.kind === 'p' && !ff && t.kind === 'e') { att.score += Math.round(Math.min(a.dmg, hp0) * 5 * (a.ally ? 0.35 : 1));  /* kopins : 35 % des points */ tgt = t; tgtT = 150; }
   if (t.hp <= 0) {
     t.hp = 0; t.dying = true; knock(t, dir);
+    if (t.kind === 'e' && att.kind === 'p') att.kills = (att.kills | 0) + 1;
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
     SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
