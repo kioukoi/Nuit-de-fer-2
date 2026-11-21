@@ -625,7 +625,7 @@ function render() {
   applyFx();
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();
-  if (shake > 0) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
+  if (shake > 0 && SHAKEON) g.translate(Math.round((Math.random() * 2 - 1) * shake * 0.5), Math.round((Math.random() * 2 - 1) * shake * 0.5));
   const menu = state === 'title' || state === 'select' || state === 'online' || state === 'options' || state === 'name' || state === 'scores';
   drawBG(menu ? tick * 0.5 : cam);
   if (!menu) {

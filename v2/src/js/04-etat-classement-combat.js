@@ -2,8 +2,9 @@
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignoré */ } };
 let myName = (lsGet('nfer_name', 'JOUEUR') || 'JOUEUR').slice(0, 10);
-let FRIENDLY = true;
-try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; } catch (e) { /* ignoré */ }
+let FRIENDLY = true, DIFF = 1, SHAKEON = true;
+const DIFFN = ['FACILE', 'NORMAL', 'DIFFICILE'], DIFFM = [0.78, 1, 1.28];
+try { FRIENDLY = lsGet('nfer_ff', '1') !== '0'; DIFF = Math.max(0, Math.min(2, parseInt(lsGet('nfer_df', '1'), 10))); if (isNaN(DIFF)) DIFF = 1; SHAKEON = lsGet('nfer_shake', '1') !== '0'; } catch (e) { /* ignoré */ }
 let NAMES = [myName, 'JOUEUR 2', 'JOUEUR 3', 'JOUEUR 4'], nameBuf = '', lastRank = -1, recorded = false;
 let unlocked = Math.min(LEVELS.length - 1, parseInt(lsGet('nfer_unlocked', '0'), 10) || 0);
 try { if (/[?&]debug/.test(location.search)) unlocked = LEVELS.length - 1; } catch (e) { /* ignoré */ }
@@ -74,10 +75,10 @@ function mkPlayer(hero, slot) {
     dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', nochair: false, chx: 0, chy: 0, xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
 }
 function mkEnemy(type, x, y) {
-  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM));
+  const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM) * DIFFM[DIFF]);
   return { kind: 'e', type, x, y, z: 0, vx: 0, vy: 0, vz: 0, face: -1, hp, maxhp: hp, st: 'move', t: 0,
     cool: rnd(20, 70), side: rng() < 0.5 ? -1 : 1, slot: rnd(0, 30), hit: new Set(), inv: 0, flash: 0, walk: 0,
-    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM, spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
+    mode: 'punch', tele: 24, combo: 0, phase: 1, dying: false, gone: false, lie: 0, mv: false, weapon: null, wd: 0, likesW: rng() < 0.7, dm: LV.dmgM * DIFFM[DIFF], spm: LV.spdM, spc: 150, ultQ: false, ultCd: 1100, rush: 0, hide: false, mk: false };
 }
 function loadLevel(i) {
   levelIdx = i; LV = LEVELS[i];

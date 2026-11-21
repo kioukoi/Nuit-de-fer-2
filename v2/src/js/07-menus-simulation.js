@@ -35,7 +35,7 @@ function updSelect() {
       else if (roomJoin) { /* l'invité attend la synchronisation */ }
       else if (localSlot === 0) {
         const seed = (Math.random() * 4294967296) >>> 0;
-        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, act: act.map(a => a ? 1 : 0) };
+        startMsg = { t: 'start', seed, heroes: SEL.slice(0, nPlayers).map(o => HERO_KEYS[o.c]), lvl: startLevel, ff: FRIENDLY ? 1 : 0, df: DIFF, act: act.map(a => a ? 1 : 0) };
         netSend(startMsg);
         beginOnline(seed);
       }
@@ -111,6 +111,8 @@ const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' :
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
+  { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
+  { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
   { id: 'ff', label: () => 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON'), act: toggleFF, adj: toggleFF, hint: () => 'Coups entre joueurs : oui = les alliés se blessent (moitié des dégâts)' },
   { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; }, adj: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
   { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; }, adj: () => { sfxOn = !sfxOn; } },
