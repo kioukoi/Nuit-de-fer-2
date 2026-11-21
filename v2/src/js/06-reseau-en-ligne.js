@@ -1,7 +1,7 @@
 /* ---------- jeu en ligne : relais MQTT + synchronisation par échange des touches ----------
    Les deux navigateurs exécutent exactement la même simulation (graine commune, pas fixe) et
    s'envoient uniquement les touches pressées, avec un petit décalage (DELAY images). */
-const DELAY = 12;            // délai de départ ; ensuite adapté à la qualité de la ligne (curDelay)
+const DELAY = 8;             // délai de départ ; ensuite adapté à la qualité de la ligne (curDelay)
 let curDelay = DELAY, stallEv = 0, lastDelayAdj = 0, rttMax = 0;
 const rttBy = [[], [], [], []];
 const BITS = { left: 1, right: 2, up: 4, down: 8, punch: 16, jump: 32, special: 64, throw: 128, pause: 256 };
@@ -440,12 +440,12 @@ function adaptDelay() {
   for (let s = 0; s < MAXP; s++) if (act[s] && s !== localSlot && rttBy[s].length) { const q = rttBy[s].slice().sort((a, b) => a - b); mx = Math.max(mx, q[q.length >> 1]); }     // médiane : un pic isolé (onglet en arrière-plan, relais lent) ne fait plus exploser le délai
   if (mx < 0) return;
   rttMax = mx;
-  let want = Math.ceil((mx / 2 + 24) / (1000 / 60)) + 1;
+  let want = Math.ceil((mx / 2 + 18) / (1000 / 60)) + 1;
   if (stallEv > 2) { want = Math.max(want, curDelay + 2); }
   stallEv = 0;
-  want = Math.max(5, Math.min(40, want));
+  want = Math.max(4, Math.min(40, want));
   if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
-  else if (want < curDelay && tick - lastDelayAdj > 420) { curDelay--; lastDelayAdj = tick; }
+  else if (want < curDelay && tick - lastDelayAdj > 120) { curDelay--; lastDelayAdj = tick; }
 }
 function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
