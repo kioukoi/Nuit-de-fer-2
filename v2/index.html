@@ -771,8 +771,9 @@ function startGame() {
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
   simF = 0; gameStats = null; newAch = []; tutoStep = -1;
-  const sd = online ? netSeed : modeSeed(Date.now() >>> 0);
+  const sd = online ? netSeed : (REP ? REP.seed : modeSeed(Date.now() >>> 0));
   seedRng(sd); modeStart(sd);
+  if (REP) recorded = true; else { RECL = []; REPSD = sd; REPCFG = online ? null : { seed: sd, hero: HERO_KEYS[SEL[0].c], lvl0: startLevel, df: dfWire(), ff: FRIENDLY ? 1 : 0, name: myName }; }
   state = 'play';
 }
 function nextLevel() {
@@ -805,7 +806,7 @@ function checkAch(kind) {
   for (const k of got) if (have.indexOf(k) < 0) { have.push(k); newAch.push(k); }
   if (newAch.length) lsSet('nfer_ach', have.join(','));
 }
-function endGame(kind) { state = kind; endT = 0; recordScores(); try { checkAch(kind); } catch (e) { /* ignoré */ } }
+function endGame(kind) { state = kind; endT = 0; recordScores(); repSave(kind); if (GMODE === 4) TRP = true; try { if (!REP) checkAch(kind); } catch (e) { /* ignoré */ } }
 function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
@@ -922,8 +923,8 @@ function updSpec() {
 
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
-  const ff = att.kind === 'p' && t.kind === 'p';
-  if (ff && !FRIENDLY) return;
+  const ff = att.kind === 'p' && t.kind === 'p', vsF = ff && GMODE === 6, trF = ff && GMODE === 4 && att.slot === TRS;
+  if (ff && !FRIENDLY && !vsF && !trF) return;
   if (att.kind === 'p' && !ff) {
     a = heroBonus(att, t, a);
     const dm = att.mods.dmg + Math.min(0.3, att.xl * 0.02);
@@ -939,12 +940,13 @@ function hurt(t, att, a, dir) {
     }
   }
   const hp0 = t.hp;
-  let dmgIn = ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg;
+  let dmgIn = ff ? (vsF ? a.dmg : Math.max(1, Math.round(a.dmg * (trF ? 0.8 : 0.5)))) : a.dmg;
   if (t.kind === 'p' && t.mods.dr > 0) dmgIn = Math.max(1, Math.round(dmgIn * (1 - t.mods.dr)));
   t.hp -= dmgIn; t.flash = 8;
   if (!ff && att.kind === 'p' && t.kind === 'e' && att.mods.ls > 0 && att.hp > 0) att.hp = Math.min(att.maxhp, att.hp + Math.max(1, Math.round(Math.min(dmgIn, hp0) * att.mods.ls)));
-  if (ff && t.hp < 1) t.hp = 1;
-  if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
+  if (ff && t.hp < 1 && !vsF && !trF) t.hp = 1;
+  if (trF) { att.tc = (att.tc | 0) + 1; if (att.tc === 3 && !TRP) { TRP = true; ultBanner('LE TRAITRE EST ' + (att.name || '?') + ' !', '#ff4040'); } }
+  if ((!ff || vsF) && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
   if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6 * (1 + t.mods.sp));
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });
@@ -1596,8 +1598,24 @@ function blast(p, cx, cy, rx, ry, dmg, kd, stun) {
   }
   for (const b of B) if (!b.gone && Math.abs(b.x - cx) < rx && Math.abs(b.y - cy) < ry) hurt(b, p, { dmg: dmg }, 1);
 }
+function ultFuse(p) {                                   /* deux ultimes lancés presque ensemble et à portée : fusion */
+  p.ultAt = simF;
+  for (const q of PS) {
+    if (q === p || q.out || q.dying || q.ultAt === undefined || simF - q.ultAt > 110 || Math.abs(q.x - p.x) > 200 || simF - (q.fuseAt === undefined ? -999 : q.fuseAt) < 400) continue;
+    p.fuseAt = q.fuseAt = simF;
+    const hn = k => HEROES[k].name.replace(/^L[EA']\s*/, '').replace(/^'/, '');
+    ultBanner('FUSION : ' + hn(p.hero) + ' + ' + hn(q.hero), '#fff27a'); SFX.big();
+    const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+    for (const [r, c] of [[80, '#fff27a'], [160, '#ffb04a'], [260, '#ff6a4a']]) ring(mx, my, r, c, 30);
+    pillar(mx, my, 40, '#fff6c0', 30); shake = Math.max(shake, 18);
+    for (const e of E) if (!e.gone && !e.dying && e.x > cam - 10 && e.x < cam + W + 10) hurt(e, p, { dmg: e.type === 'boss' ? 40 : 60, kd: true, nosp: true }, e.x >= mx ? 1 : -1);
+    for (const z of [p, q]) z.hp = Math.min(z.maxhp, z.hp + 20);
+    return;
+  }
+}
 function updUlt(p, hr) {
   const t = p.t, h = p.hero;
+  if (t === 1) ultFuse(p);
   p.inv = Math.max(p.inv, 3);
   if (h === 'costaud') {
     if (t === 1) ultBanner('SEISME', '#ff8a3a');
@@ -2459,7 +2477,7 @@ function relTick() {
 }
 
 /* ---------- menus ---------- */
-function toTitle() { if ((state === 'play' || state === 'spec') && !recorded) recordScores(); if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { repRestore(); if ((state === 'play' || state === 'spec') && !recorded) recordScores(); if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
@@ -2574,7 +2592,9 @@ const MENU_ALL = [
 const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
-  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + 4) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
+  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + MODEN.length) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
+  { title: true, label: () => 'REVOIR MA MEILLEURE PARTIE' + repInfo('nfer_rep_best'), act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
+  { title: true, label: () => 'REVOIR MA DERNIÈRE PARTIE' + repInfo('nfer_rep_last'), act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
   { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
   { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
@@ -2610,6 +2630,7 @@ function step() {
   if (toastT > 0) toastT--;
   if (catchReady) runCatchUp();
   if (pendingJoin && state === 'title') { const pc = pendingJoin; pendingJoin = ''; NAMES[0] = myName; state = 'online'; olStage = 'connecting'; joinGame(pc); return; }
+  if (REP && state === 'play' && MENUK) { toTitle(); return; }
   if (state === 'play' && MENUK) { if (menuOpen && menuSub) { menuSub = false; menuIdx2 = 0; } else { menuOpen = !menuOpen; menuIdx2 = 0; menuSub = false; } }
   if (state !== 'play') { menuOpen = false; menuSub = false; }
   if (state === 'title') {
@@ -2663,6 +2684,7 @@ function step() {
     if (menuOpen) return;
     if (PAUSE) paused = !paused;
     if (paused) return;
+    if (repFrame()) return;
   }
   simStep();
   if (online) netAfterFrame();
@@ -2670,18 +2692,20 @@ function step() {
 
 /* ---------- MODES DE JEU : histoire, boss rush, défi du jour, chaos + mutations de boss ---------- */
 /* GMODE est envoyé avec la difficulté (df = DIFF + 4 * GMODE) : tout le monde joue le même mode. Tout ce qui est aléatoire passe par rng(). */
-let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0;
-try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 3); } catch (e) { GMODE = 0; }
-const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS'];
-const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.'];
+let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0, TRS = -1, TRP = false;
+try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 4); } catch (e) { GMODE = 0; }
+const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS', 'TRAÎTRE'];
+const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.', 'À 3 joueurs ou plus : l\'un de vous, tiré au sort en secret, doit faire perdre l\'équipe sans se faire repérer.'];
 const DAYMN = ['ENNEMIS TURBO', 'ENNEMIS FRAGILES MAIS BRUTAUX', 'PAS DE SPÉCIAL', 'TOUS LES ENNEMIS ONT UN PISTOLET', 'UNE SEULE VIE'];
 const CHAN = ['GRAVITÉ LUNAIRE', 'ENNEMIS TURBO', 'PLUIE DE BOMBES', 'TOUS ARMÉS', 'COMMANDES INVERSÉES'];
 const MUTN = ['ENRAGÉ', 'BLINDÉ', 'ESSAIM', 'FISSION'];
-function setDf(v) { v = v === undefined ? 1 : v | 0; DIFF = clamp(v & 3, 0, 2); GMODE = (v >> 2) & 7; if (GMODE > 3) GMODE = 0; }
+function setDf(v) { v = v === undefined ? 1 : v | 0; DIFF = clamp(v & 3, 0, 2); GMODE = (v >> 2) & 7; if (GMODE >= MODEN.length) GMODE = 0; }
 const dfWire = () => DIFF + 4 * GMODE;
 function dailySeed() { const d = new Date(); return (((d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) * 2654435761) >>> 0) || 1; }
 function modeSeed(s) { return GMODE === 2 ? dailySeed() : s; }
-function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
+function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; TRS = -1; TRP = false;
+  if (GMODE === 4) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }
+  DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
 /* niveau en boss rush : seulement la vague du boss, déclenchée tout de suite */
 function rushLevel(L) { const bw = L.waves[L.waves.length - 1]; return Object.assign({}, L, { waves: [Object.assign({}, bw, { cam: 0 })], events: [], story: null }); }
 function modEnemy(e) {                                  /* appelé à chaque apparition d'ennemi */
@@ -2697,6 +2721,7 @@ function modEnemy(e) {                                  /* appelé à chaque app
 }
 function updModes() {
   if (GMODE === 0 || !LV) return;
+  if (GMODE === 4 && TRS < 0) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }      // le traître est tiré dès que 3 joueurs sont là (même image chez tout le monde)
   if (DAYM === 2) for (const p of PS) p.sp = 0;
   for (const e of E) {                                  /* mutations de boss */
     if (e.type !== 'boss' || e.gone || e.dying || e.mut === undefined) continue;
@@ -2721,8 +2746,48 @@ function updModes() {
 }
 function drawModeHud() {
   if (GMODE === 0) return;
+  if (GMODE === 4) {
+    const me = online ? localSlot : 0;
+    if (TRP && TRS >= 0 && PS[TRS]) txt('LE TRAÎTRE : ' + (PS[TRS].name || '?'), W / 2, 240, 8, '#ff5a5a', 'center');
+    else if (me === TRS) { txt(simF < 900 ? 'TU ES LE TRAÎTRE : fais perdre l\'équipe sans te faire repérer (3 coups sur un allié te démasquent)' : 'TRAÎTRE', W / 2, 240, 7, '#ff5a5a', 'center'); }
+    else if (TRS < 0) txt('TRAÎTRE : il faut au moins 3 joueurs (partie normale)', W / 2, 240, 7, '#9a9ac0', 'center');
+  }
   let s = MODEN[GMODE]; if (GMODE === 2 && DAYM >= 0) s += ' · ' + DAYMN[DAYM]; if (GMODE === 3 && CHK >= 0) s += ' · ' + CHAN[CHK] + ' ' + Math.max(0, Math.ceil((CHU - CHT) / 60)) + 's';
   txt(s, W / 2, 252, 7, GMODE === 3 && CHK >= 0 ? '#ff7ad8' : '#ffcf6a', 'center');
+}
+/* ---------- REPLAYS : la partie ne dépend que de la graine et des touches, on enregistre donc les touches (solo) et on rejoue ---------- */
+let REP = null, RECL = [], REPI = 0, REPSD = 0, REPBAK = null, REPCFG = null;
+function rleEnc(a) { const o = []; let i = 0; while (i < a.length) { let j = i; while (j < a.length && a[j] === a[i]) j++; o.push(a[i] + '*' + (j - i)); i = j; } return o.join(','); }
+function rleDec(s) { const a = []; for (const t of s.split(',')) { const q = t.split('*'); for (let k = 0; k < +q[1]; k++) a.push(+q[0]); } return a; }
+function repGet(key) { try { const s = lsGet(key, ''); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function repSave(kind) {
+  try {
+    if (REP || online || !REPCFG || RECL.length < 120 || !PS[0]) return;
+    const r = Object.assign({}, REPCFG, { score: PS[0].score, lv: levelIdx + 1, win: kind === 'win', frames: RECL.length, d: rleEnc(RECL), date: Date.now() });
+    const js = JSON.stringify(r);
+    lsSet('nfer_rep_last', js);
+    const b = repGet('nfer_rep_best'); if (!b || r.score > b.score) lsSet('nfer_rep_best', js);
+  } catch (e) { /* stockage plein : on ignore */ }
+}
+function repInfo(key) { const r = repGet(key); return r ? ' (' + r.score + ' pts, niv. ' + r.lv + ')' : ' (aucune)'; }
+function repPlay(key) {
+  const r = repGet(key); if (!r) return false;
+  REPBAK = { lvl: startLevel, df: dfWire(), ff: FRIENDLY, sel: SEL[0].c, name: NAMES[0] };
+  SEL[0].c = Math.max(0, HERO_KEYS.indexOf(r.hero)); nPlayers = 1; startLevel = r.lvl0 | 0; setDf(r.df); FRIENDLY = !!r.ff; NAMES[0] = r.name || 'REPLAY';
+  REP = { seed: r.seed }; RECL = rleDec(r.d); REPI = 0;
+  startGame();
+  return true;
+}
+function repRestore() {
+  if (!REP) return;
+  REP = null;
+  if (REPBAK) { startLevel = REPBAK.lvl; setDf(REPBAK.df); FRIENDLY = REPBAK.ff; SEL[0].c = REPBAK.sel; NAMES[0] = REPBAK.name; REPBAK = null; }
+}
+/* appelée avant chaque image de simulation hors ligne : enregistre les touches, ou les impose pendant un replay (true = replay terminé) */
+function repFrame() {
+  if (REP) { if (REPI >= RECL.length) { toTitle(); return true; } applyMasks([RECL[REPI++], 0, 0, 0]); return false; }
+  if (state === 'play') RECL.push(maskOf(HLD[0]));
+  return false;
 }
 /* ====================================================================
    RENDU
@@ -4354,7 +4419,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 19h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 19h40 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -4865,6 +4930,7 @@ function render() {
       endScores(); endStats();
       if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
+    if ((state === 'over' || state === 'win') && GMODE === 4 && TRS >= 0 && PS[TRS]) txt('LE TRAÎTRE ÉTAIT ' + (PS[TRS].name || '?') + (state === 'over' && !PS[TRS].out ? ' : IL A GAGNÉ' : ''), W / 2, 164, 10, '#ff5a5a', 'center');
   }
 }
 

@@ -617,8 +617,24 @@ function blast(p, cx, cy, rx, ry, dmg, kd, stun) {
   }
   for (const b of B) if (!b.gone && Math.abs(b.x - cx) < rx && Math.abs(b.y - cy) < ry) hurt(b, p, { dmg: dmg }, 1);
 }
+function ultFuse(p) {                                   /* deux ultimes lancés presque ensemble et à portée : fusion */
+  p.ultAt = simF;
+  for (const q of PS) {
+    if (q === p || q.out || q.dying || q.ultAt === undefined || simF - q.ultAt > 110 || Math.abs(q.x - p.x) > 200 || simF - (q.fuseAt === undefined ? -999 : q.fuseAt) < 400) continue;
+    p.fuseAt = q.fuseAt = simF;
+    const hn = k => HEROES[k].name.replace(/^L[EA']\s*/, '').replace(/^'/, '');
+    ultBanner('FUSION : ' + hn(p.hero) + ' + ' + hn(q.hero), '#fff27a'); SFX.big();
+    const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+    for (const [r, c] of [[80, '#fff27a'], [160, '#ffb04a'], [260, '#ff6a4a']]) ring(mx, my, r, c, 30);
+    pillar(mx, my, 40, '#fff6c0', 30); shake = Math.max(shake, 18);
+    for (const e of E) if (!e.gone && !e.dying && e.x > cam - 10 && e.x < cam + W + 10) hurt(e, p, { dmg: e.type === 'boss' ? 40 : 60, kd: true, nosp: true }, e.x >= mx ? 1 : -1);
+    for (const z of [p, q]) z.hp = Math.min(z.maxhp, z.hp + 20);
+    return;
+  }
+}
 function updUlt(p, hr) {
   const t = p.t, h = p.hero;
+  if (t === 1) ultFuse(p);
   p.inv = Math.max(p.inv, 3);
   if (h === 'costaud') {
     if (t === 1) ultBanner('SEISME', '#ff8a3a');

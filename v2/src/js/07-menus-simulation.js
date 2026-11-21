@@ -1,5 +1,5 @@
 /* ---------- menus ---------- */
-function toTitle() { if ((state === 'play' || state === 'spec') && !recorded) recordScores(); if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
+function toTitle() { repRestore(); if ((state === 'play' || state === 'spec') && !recorded) recordScores(); if (rel) relClose(); state = 'title'; nPlayers = 1; cam = 0; selT = 0; online = false; roomPending = false; room = false; roomJoin = false; act = [true, false, false, false]; netPaused = 0; LV = LEVELS[0]; levelIdx = 0; NAMES[0] = myName; }
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
@@ -114,7 +114,9 @@ const MENU_ALL = [
 const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
 const OPTS = [
   { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
-  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + 4) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % 4; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
+  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + MODEN.length) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
+  { title: true, label: () => 'REVOIR MA MEILLEURE PARTIE' + repInfo('nfer_rep_best'), act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
+  { title: true, label: () => 'REVOIR MA DERNIÈRE PARTIE' + repInfo('nfer_rep_last'), act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
   { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
   { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
   { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
@@ -150,6 +152,7 @@ function step() {
   if (toastT > 0) toastT--;
   if (catchReady) runCatchUp();
   if (pendingJoin && state === 'title') { const pc = pendingJoin; pendingJoin = ''; NAMES[0] = myName; state = 'online'; olStage = 'connecting'; joinGame(pc); return; }
+  if (REP && state === 'play' && MENUK) { toTitle(); return; }
   if (state === 'play' && MENUK) { if (menuOpen && menuSub) { menuSub = false; menuIdx2 = 0; } else { menuOpen = !menuOpen; menuIdx2 = 0; menuSub = false; } }
   if (state !== 'play') { menuOpen = false; menuSub = false; }
   if (state === 'title') {
@@ -203,6 +206,7 @@ function step() {
     if (menuOpen) return;
     if (PAUSE) paused = !paused;
     if (paused) return;
+    if (repFrame()) return;
   }
   simStep();
   if (online) netAfterFrame();

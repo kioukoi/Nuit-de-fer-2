@@ -142,3 +142,9 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - **DÉFI DU JOUR** : la même partie pour tous le même jour (graine = date) avec une règle du jour (ennemis turbo, fragiles mais brutaux, pas de spécial, tous armés d'un pistolet, une seule vie).
 - **CHAOS** : un événement toutes les 25 s pendant 12 s (gravité lunaire, ennemis turbo, pluie de bombes, tous armés, commandes gauche/droite inversées).
 - **Mutations de boss** (tous les modes sauf Histoire) : ENRAGÉ (plus rapide et plus fort), BLINDÉ (+50 % de vie), ESSAIM (appelle des voyous), FISSION (à mi-vie, se dédouble ; le double ne donne pas de vie en plus).
+
+## Replays, fusion d'ultimes, traître
+
+- **Replays** (solo) : la partie est enregistrée (graine + touches). Options > « REVOIR MA MEILLEURE PARTIE » / « REVOIR MA DERNIÈRE PARTIE » (Échap pour quitter). Stockage dans le navigateur uniquement ; pas de fantôme à l'écran, pas de partage.
+- **Fusion d'ultimes** : deux ultimes lancés à moins de 110 images (≈ 2 s) l'un de l'autre et à moins de 200 px déclenchent une explosion qui frappe tous les ennemis de l'écran (60 de dégâts, 40 sur un boss) et soigne 20 PV aux deux.
+- **Mode TRAÎTRE** (Options > MODE, 3 joueurs ou plus en ligne) : l'un des joueurs est tiré au sort et voit seul un message. Ses coups sur les alliés comptent (80 % des dégâts, mortels). Après 3 coups sur des alliés il est démasqué devant tous ; à la fin, l'écran dit qui c'était et s'il a gagné.

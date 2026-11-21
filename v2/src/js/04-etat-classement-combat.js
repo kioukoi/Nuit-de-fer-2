@@ -119,8 +119,9 @@ function startGame() {
   loadLevel(Math.min(startLevel, LEVELS.length - 1));
   hitstop = 0; shake = 0; tgt = null; tgtT = 0; paused = false; recorded = false; lastRank = -1; specOn = false;
   simF = 0; gameStats = null; newAch = []; tutoStep = -1;
-  const sd = online ? netSeed : modeSeed(Date.now() >>> 0);
+  const sd = online ? netSeed : (REP ? REP.seed : modeSeed(Date.now() >>> 0));
   seedRng(sd); modeStart(sd);
+  if (REP) recorded = true; else { RECL = []; REPSD = sd; REPCFG = online ? null : { seed: sd, hero: HERO_KEYS[SEL[0].c], lvl0: startLevel, df: dfWire(), ff: FRIENDLY ? 1 : 0, name: myName }; }
   state = 'play';
 }
 function nextLevel() {
@@ -153,7 +154,7 @@ function checkAch(kind) {
   for (const k of got) if (have.indexOf(k) < 0) { have.push(k); newAch.push(k); }
   if (newAch.length) lsSet('nfer_ach', have.join(','));
 }
-function endGame(kind) { state = kind; endT = 0; recordScores(); try { checkAch(kind); } catch (e) { /* ignoré */ } }
+function endGame(kind) { state = kind; endT = 0; recordScores(); repSave(kind); if (GMODE === 4) TRP = true; try { if (!REP) checkAch(kind); } catch (e) { /* ignoré */ } }
 function spawn(type, side) {
   const x = side > 0 ? cam + W + 16 : cam - 16;
   const e = mkEnemy(type, x, rnd(Y0 + 6, Y1 - 6));
@@ -270,8 +271,8 @@ function updSpec() {
 
 function hurt(t, att, a, dir) {
   if (t.kind === 'b') { breakBarrel(t); return; }
-  const ff = att.kind === 'p' && t.kind === 'p';
-  if (ff && !FRIENDLY) return;
+  const ff = att.kind === 'p' && t.kind === 'p', vsF = ff && GMODE === 6, trF = ff && GMODE === 4 && att.slot === TRS;
+  if (ff && !FRIENDLY && !vsF && !trF) return;
   if (att.kind === 'p' && !ff) {
     a = heroBonus(att, t, a);
     const dm = att.mods.dmg + Math.min(0.3, att.xl * 0.02);
@@ -287,12 +288,13 @@ function hurt(t, att, a, dir) {
     }
   }
   const hp0 = t.hp;
-  let dmgIn = ff ? Math.max(1, Math.round(a.dmg * 0.5)) : a.dmg;
+  let dmgIn = ff ? (vsF ? a.dmg : Math.max(1, Math.round(a.dmg * (trF ? 0.8 : 0.5)))) : a.dmg;
   if (t.kind === 'p' && t.mods.dr > 0) dmgIn = Math.max(1, Math.round(dmgIn * (1 - t.mods.dr)));
   t.hp -= dmgIn; t.flash = 8;
   if (!ff && att.kind === 'p' && t.kind === 'e' && att.mods.ls > 0 && att.hp > 0) att.hp = Math.min(att.maxhp, att.hp + Math.max(1, Math.round(Math.min(dmgIn, hp0) * att.mods.ls)));
-  if (ff && t.hp < 1) t.hp = 1;
-  if (!ff && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
+  if (ff && t.hp < 1 && !vsF && !trF) t.hp = 1;
+  if (trF) { att.tc = (att.tc | 0) + 1; if (att.tc === 3 && !TRP) { TRP = true; ultBanner('LE TRAITRE EST ' + (att.name || '?') + ' !', '#ff4040'); } }
+  if ((!ff || vsF) && att.kind === 'p' && att.st !== 'special' && !a.nosp) att.sp = Math.min(100, att.sp + a.dmg * 2.2 * (1 + att.mods.sp));
   if (!ff && t.kind === 'p') t.sp = Math.min(100, t.sp + a.dmg * 1.6 * (1 + t.mods.sp));
   hitstop = Math.max(hitstop, a.kd ? 6 : 3);
   FX.push({ x: t.x, y: t.y, z: t.z + 20, t: 0, life: a.kd ? 12 : 8, big: !!a.kd });

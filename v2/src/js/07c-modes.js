@@ -1,17 +1,19 @@
 /* ---------- MODES DE JEU : histoire, boss rush, défi du jour, chaos + mutations de boss ---------- */
 /* GMODE est envoyé avec la difficulté (df = DIFF + 4 * GMODE) : tout le monde joue le même mode. Tout ce qui est aléatoire passe par rng(). */
-let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0;
-try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 3); } catch (e) { GMODE = 0; }
-const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS'];
-const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.'];
+let GMODE = 0, DAYM = -1, CHK = -1, CHT = 0, CHU = 0, TRS = -1, TRP = false;
+try { GMODE = clamp(parseInt(lsGet('nfer_md', '0'), 10) || 0, 0, 4); } catch (e) { GMODE = 0; }
+const MODEN = ['HISTOIRE', 'BOSS RUSH', 'DÉFI DU JOUR', 'CHAOS', 'TRAÎTRE'];
+const MODEH = ['Les 10 niveaux, dans l\'ordre', 'Les 10 boss à la suite, sans leurs vagues. Boss mutants.', 'Même partie pour tous aujourd\'hui, avec une règle du jour. Boss mutants.', 'Un événement délirant toutes les 25 s. Boss mutants.', 'À 3 joueurs ou plus : l\'un de vous, tiré au sort en secret, doit faire perdre l\'équipe sans se faire repérer.'];
 const DAYMN = ['ENNEMIS TURBO', 'ENNEMIS FRAGILES MAIS BRUTAUX', 'PAS DE SPÉCIAL', 'TOUS LES ENNEMIS ONT UN PISTOLET', 'UNE SEULE VIE'];
 const CHAN = ['GRAVITÉ LUNAIRE', 'ENNEMIS TURBO', 'PLUIE DE BOMBES', 'TOUS ARMÉS', 'COMMANDES INVERSÉES'];
 const MUTN = ['ENRAGÉ', 'BLINDÉ', 'ESSAIM', 'FISSION'];
-function setDf(v) { v = v === undefined ? 1 : v | 0; DIFF = clamp(v & 3, 0, 2); GMODE = (v >> 2) & 7; if (GMODE > 3) GMODE = 0; }
+function setDf(v) { v = v === undefined ? 1 : v | 0; DIFF = clamp(v & 3, 0, 2); GMODE = (v >> 2) & 7; if (GMODE >= MODEN.length) GMODE = 0; }
 const dfWire = () => DIFF + 4 * GMODE;
 function dailySeed() { const d = new Date(); return (((d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) * 2654435761) >>> 0) || 1; }
 function modeSeed(s) { return GMODE === 2 ? dailySeed() : s; }
-function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
+function modeStart(seed) { CHK = -1; CHT = 0; CHU = 0; TRS = -1; TRP = false;
+  if (GMODE === 4) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }
+  DAYM = GMODE === 2 ? ((seed >>> 7) % DAYMN.length) : -1; if (DAYM === 4) for (const p of PS) p.lives = 1; }
 /* niveau en boss rush : seulement la vague du boss, déclenchée tout de suite */
 function rushLevel(L) { const bw = L.waves[L.waves.length - 1]; return Object.assign({}, L, { waves: [Object.assign({}, bw, { cam: 0 })], events: [], story: null }); }
 function modEnemy(e) {                                  /* appelé à chaque apparition d'ennemi */
@@ -27,6 +29,7 @@ function modEnemy(e) {                                  /* appelé à chaque app
 }
 function updModes() {
   if (GMODE === 0 || !LV) return;
+  if (GMODE === 4 && TRS < 0) { const a = PS.filter(p => !p.out && !p.absent).map(p => p.slot); if (a.length >= 3) TRS = a[Math.floor(rng() * a.length)]; }      // le traître est tiré dès que 3 joueurs sont là (même image chez tout le monde)
   if (DAYM === 2) for (const p of PS) p.sp = 0;
   for (const e of E) {                                  /* mutations de boss */
     if (e.type !== 'boss' || e.gone || e.dying || e.mut === undefined) continue;
@@ -51,6 +54,12 @@ function updModes() {
 }
 function drawModeHud() {
   if (GMODE === 0) return;
+  if (GMODE === 4) {
+    const me = online ? localSlot : 0;
+    if (TRP && TRS >= 0 && PS[TRS]) txt('LE TRAÎTRE : ' + (PS[TRS].name || '?'), W / 2, 240, 8, '#ff5a5a', 'center');
+    else if (me === TRS) { txt(simF < 900 ? 'TU ES LE TRAÎTRE : fais perdre l\'équipe sans te faire repérer (3 coups sur un allié te démasquent)' : 'TRAÎTRE', W / 2, 240, 7, '#ff5a5a', 'center'); }
+    else if (TRS < 0) txt('TRAÎTRE : il faut au moins 3 joueurs (partie normale)', W / 2, 240, 7, '#9a9ac0', 'center');
+  }
   let s = MODEN[GMODE]; if (GMODE === 2 && DAYM >= 0) s += ' · ' + DAYMN[DAYM]; if (GMODE === 3 && CHK >= 0) s += ' · ' + CHAN[CHK] + ' ' + Math.max(0, Math.ceil((CHU - CHT) / 60)) + 's';
   txt(s, W / 2, 252, 7, GMODE === 3 && CHK >= 0 ? '#ff7ad8' : '#ffcf6a', 'center');
 }

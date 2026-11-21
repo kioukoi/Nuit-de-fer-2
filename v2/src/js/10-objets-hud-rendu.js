@@ -290,7 +290,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 19h00 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 19h40 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -801,6 +801,7 @@ function render() {
       endScores(); endStats();
       if (endT > 60) txt(online ? 'ENTRÉE pour rejouer (choix des héros)' : 'ENTRÉE pour revenir au titre', W / 2, 252, 11, '#cbd', 'center');
     }
+    if ((state === 'over' || state === 'win') && GMODE === 4 && TRS >= 0 && PS[TRS]) txt('LE TRAÎTRE ÉTAIT ' + (PS[TRS].name || '?') + (state === 'over' && !PS[TRS].out ? ' : IL A GAGNÉ' : ''), W / 2, 164, 10, '#ff5a5a', 'center');
   }
 }
 
