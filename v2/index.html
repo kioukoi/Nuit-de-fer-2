@@ -724,7 +724,7 @@ function mkPlayer(hero, slot) {
   const hr = HEROES[hero];
   return { kind: 'p', hero, slot, name: '', x: 70 + slot * 26, y: 198 + slot * 26, z: 0, vx: 0, vy: 0, vz: 0, face: 1, hp: hr.hp, maxhp: hr.hp,
     st: 'free', t: 0, stage: 0, buf: false, kick: false, kt: 0, hit: new Set(), inv: 0, flash: 0, walk: 0, mv: false,
-    dying: false, lie: 0, lives: 3, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', nochair: false, chx: 0, chy: 0, xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
+    dying: false, lie: 0, lives: 3, nextUp: 20000, score: 0, cd: 0, out: false, refund: false, sp: 50, weapon: null, wd: 0, ping: 0, cane: hero === 'papy', nochair: false, chx: 0, chy: 0, xp: 0, xl: 0, mods: { dmg: 0, spd: 0, sp: 0, ls: 0, dr: 0 }, specs: {} };
 }
 function mkEnemy(type, x, y) {
   const d = T[type], hp = Math.round((type === 'boss' ? LV.bossHp : d.hp) * (1 + 0.5 * Math.min(3, nPlayers - 1)) * (type === 'boss' ? 1 : LV.hpM) * DIFFM[DIFF]);
@@ -742,6 +742,13 @@ function loadLevel(i) {
   cam = 0; camLimit = LEN - W; waveI = 0; waveActive = false; goT = 0; endT = 0; introT = 170; EV = null; evDone = {};
   if (LV.story) startStory(LV.chap, LV.story, false); else storyOn = false;
 }
+const MAXLIVES = 5;
+/* vies bonus : à 20 000 points, à 50 000, puis tous les 50 000 ; et une vie pour toute l'équipe à chaque boss vaincu (5 vies maximum) */
+function giveLife(p, txt) {
+  if (p.lives >= MAXLIVES) { p.score += 500; FX.push({ x: p.x, y: p.y, z: 58, t: 0, life: 70, txt: '+500', col: '#ffd34d' }); return; }
+  p.lives++; SFX.lvl(); FX.push({ x: p.x, y: p.y, z: 58, t: 0, life: 90, txt: txt || '1UP', col: '#7aff8a' });
+}
+function chkUp() { for (const p of PS) if (!p.out && !p.dying) while (p.score >= p.nextUp) { const th = p.nextUp; p.nextUp += th < 50000 ? 30000 : 50000; giveLife(p, '1UP  ' + th + ' PTS'); } }
 function startStory(chap, lines, last) { storyD = { chap, lines }; storyTot = lines.join('').length; storyC = 0; storyA = 0; storyH = 0; storyOn = true; storyEnd = !!last; }
 function updStory() {
   storyA++;
@@ -938,6 +945,7 @@ function hurt(t, att, a, dir) {
     t.hp = 0; t.dying = true; knock(t, dir);
     if (t.kind === 'e' && att.kind === 'p') att.kills = (att.kills | 0) + 1;
     if (t.kind === 'e' && att.kind === 'p') gainXp(att, Math.round(T[t.type].score / 4 * (a.ally ? 0.35 : 1)));
+    if (t.kind === 'e' && t.type === 'boss' && att.kind === 'p') for (const q of PS) if (!q.out) giveLife(q, 'BOSS VAINCU : +1 VIE');
     SFX.ko(); if (t.kind === 'e') SFX.vox(t.type === 'boss' ? 2.2 : (T[t.type].sc || 1), true);
     return;
   }
@@ -2514,6 +2522,7 @@ function simStep() {
   FX = FX.filter(f => f.t < f.life);
   E = E.filter(e => !e.gone);
   B = B.filter(b => !b.gone);
+  chkUp();
   updEvents();
   updWaves();
 
@@ -4262,7 +4271,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 11h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 11h45 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

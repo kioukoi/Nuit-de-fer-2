@@ -122,3 +122,7 @@ Chaque boss a 3 phases (à 66 % et 33 % de vie) : il devient plus rapide, encha�
 - **Poursuite** : un véhicule (camion au Port, jeep à l'Aérodrome) traverse l'écran ; il ne touche que sa voie (zone délimitée par les pointillés rouges), on l'évite en changeant de rangée ou en sautant.
 - **Ascenseur qui s'effondre** (Usine, Toit) : la cabine tombe sous un cercle d'avertissement.
 - **Éboulement** (Catacombes, Château) : chutes de pierres successives.
+
+## Vies
+
+On démarre avec 3 vies (5 au maximum). Vie bonus à **20 000 points**, à **50 000**, puis tous les **50 000**. Chaque **boss vaincu** donne **+1 vie à toute l'équipe**. Au plafond, la vie bonus devient +500 points. Passer au niveau suivant relève un joueur hors jeu (1 vie, 50 % de vie).

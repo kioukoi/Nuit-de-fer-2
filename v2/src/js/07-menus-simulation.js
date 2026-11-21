@@ -87,6 +87,7 @@ function simStep() {
   FX = FX.filter(f => f.t < f.life);
   E = E.filter(e => !e.gone);
   B = B.filter(b => !b.gone);
+  chkUp();
   updEvents();
   updWaves();
 
