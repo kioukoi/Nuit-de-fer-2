@@ -290,7 +290,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 08h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 11h30 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -403,6 +403,13 @@ function drawHzGround() {
       g.strokeStyle = h.fire ? 'rgba(255,150,40,' + (0.5 + 0.4 * k) + ')' : 'rgba(255,230,160,' + (0.5 + 0.4 * k) + ')'; g.lineWidth = h.fire ? 5 : 3;
       g.beginPath(); g.ellipse(sx, h.y, h.r, h.r / 2.2, 0, 0, 7); g.stroke();
       g.strokeStyle = h.fire ? 'rgba(255,240,160,.9)' : '#fff'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(sx, h.y, h.r, h.r / 2.2, 0, 0, 7); g.stroke();
+    } else if (h.k === 'gas' && h.fire) {
+      const k = h.t / h.life, al = Math.min(1, h.t / 20, (1 - k) * 4);
+      g.globalAlpha = al * 0.7; g.fillStyle = '#6a2a10'; g.beginPath(); g.ellipse(sx, h.y, h.r, h.r * 0.45, 0, 0, 7); g.fill();
+      g.fillStyle = '#ff8a20'; g.beginPath(); g.ellipse(sx, h.y, h.r * 0.8, h.r * 0.34, 0, 0, 7); g.fill();
+      g.fillStyle = '#ffe070'; g.beginPath(); g.ellipse(sx, h.y, h.r * 0.45, h.r * 0.2, 0, 0, 7); g.fill();
+      for (let i = 0; i < 6; i++) { const ph = (tick * 0.8 + i * 9) % 22; g.fillStyle = i % 2 ? '#ff6a20' : '#ffd040'; g.fillRect(sx - h.r * 0.6 + i * h.r * 0.24, h.y - ph * 0.9, 3, 4); }
+      g.globalAlpha = 1;
     } else if (h.k === 'gas') {
       const k = h.t / h.life, al = Math.min(1, h.t / 20, (1 - k) * 4);
       for (let i = 0; i < 9; i++) {
@@ -410,6 +417,9 @@ function drawHzGround() {
         g.globalAlpha = al * 0.32; g.fillStyle = i % 2 ? '#c6e08a' : '#e4f0b8'; g.beginPath(); g.ellipse(px, py, 14, 8, 0, 0, 7); g.fill();
       }
       g.globalAlpha = 1;
+    } else if (h.k === 'beam') {
+      if (h.t < h.warn) { const f = h.t / h.warn; g.fillStyle = 'rgba(255,50,50,' + (0.06 + 0.2 * f) + ')'; g.fillRect(0, h.y - 10, W, 20); g.strokeStyle = ((tick >> 2) & 1) ? 'rgba(255,80,80,.9)' : 'rgba(255,200,200,.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, h.y); g.lineTo(W, h.y); g.stroke(); }
+      else if (h.dmg > 0) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(0, h.y - 5, W, 10); g.fillStyle = 'rgba(255,160,80,.7)'; g.fillRect(0, h.y - 10, W, 20); }
     } else if (h.k === 'jet') {
       const x0 = h.dir > 0 ? 0 : 0;
       if (h.t < h.warn) {
@@ -420,7 +430,7 @@ function drawHzGround() {
         g.fillStyle = 'rgba(255,255,255,.85)';
         for (let k = 0; k < 40; k++) { const px = ((tick * 11 * h.dir + k * 53) % W + W) % W; g.fillRect(px, h.y - 12 + ((k * 7 + tick) % 22), 9, 2); }
       }
-    } else if (h.k === 'lift' && h.t < h.warn) {
+    } else if (h.k === 'lift' && h.t >= 0 && h.t < h.warn) {
       const f = h.t / h.warn;
       g.fillStyle = 'rgba(0,0,0,' + (0.12 + f * 0.3) + ')'; g.beginPath(); g.ellipse(sx, h.y, h.r * (0.4 + f * 0.6), h.r * 0.5 * (0.4 + f * 0.6), 0, 0, 7); g.fill();
       g.strokeStyle = ((tick >> 2) & 1) ? '#ff4040' : '#ffd0d0'; g.lineWidth = 1; g.beginPath(); g.ellipse(sx, h.y, h.r, h.r * 0.5, 0, 0, 7); g.stroke();
@@ -441,6 +451,7 @@ function drawChase() {
   const sx = Math.round(EV.x - cam), y = 214, jeep = EV.ev.v === 'jeep';
   if (sx < -90) { if ((tick >> 3) & 1) { g.fillStyle = 'rgba(255,60,40,.5)'; g.fillRect(0, 60, 14, H - 120); txt('>>', 20, H / 2 - 8, 16, '#ff6a4a', 'left'); } return; }
   const bob = Math.sin(tick * 0.9) * 0.8;
+  g.strokeStyle = 'rgba(255,70,50,.55)'; g.lineWidth = 1; g.setLineDash([6, 5]); g.beginPath(); g.moveTo(0, 192); g.lineTo(W, 192); g.moveTo(0, 236); g.lineTo(W, 236); g.stroke(); g.setLineDash([]);
   g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(sx, y + 24, 70, 12, 0, 0, 7); g.fill();
   g.fillStyle = 'rgba(255,240,180,.16)'; g.beginPath(); g.moveTo(sx + 36, y - 4 + bob); g.lineTo(sx + 190, y - 30); g.lineTo(sx + 190, y + 26); g.closePath(); g.fill();
   g.fillStyle = jeep ? '#4a5a3a' : '#c8c8d0'; g.fillRect(sx - 70, y - 44 + bob, 70, 56); g.strokeStyle = '#111'; g.lineWidth = 1.2; g.strokeRect(sx - 70, y - 44 + bob, 70, 56);
@@ -454,9 +465,11 @@ function drawHzTop() {
   for (const h of HZ) {
     if (h.k === 'lift') {
       const f = Math.min(1, h.t / h.warn), sx = Math.round(h.x - cam);
+      if (h.t < 0) continue;
       if (h.t < h.warn) {
         const cy = h.y - 18 - (1 - f * f) * 260;
-        if (h.rock) { g.fillStyle = '#6a625a'; g.beginPath(); g.moveTo(sx - 16, cy); g.lineTo(sx - 8, cy - 16); g.lineTo(sx + 10, cy - 12); g.lineTo(sx + 17, cy + 2); g.lineTo(sx + 4, cy + 12); g.closePath(); g.fill(); g.strokeStyle = '#2a2622'; g.lineWidth = 1.2; g.stroke(); }
+        if (h.bomb) { g.fillStyle = '#2a2a30'; g.beginPath(); g.ellipse(sx, cy, 7, 10, 0, 0, 7); g.fill(); g.strokeStyle = OL; g.lineWidth = 1; g.stroke(); g.fillStyle = '#d02828'; g.fillRect(sx - 5, cy - 14, 10, 4); g.fillRect(sx - 1, cy - 18, 2, 5); }
+        else if (h.rock) { g.fillStyle = '#6a625a'; g.beginPath(); g.moveTo(sx - 16, cy); g.lineTo(sx - 8, cy - 16); g.lineTo(sx + 10, cy - 12); g.lineTo(sx + 17, cy + 2); g.lineTo(sx + 4, cy + 12); g.closePath(); g.fill(); g.strokeStyle = '#2a2622'; g.lineWidth = 1.2; g.stroke(); }
         else {
           g.strokeStyle = '#444'; g.lineWidth = 1; g.beginPath(); g.moveTo(sx - 12, cy - 30); g.lineTo(sx - 12, -10); g.moveTo(sx + 12, cy - 30); g.lineTo(sx + 12, -10); g.stroke();
           g.fillStyle = '#9aa0ac'; g.fillRect(sx - 22, cy - 30, 44, 50); g.strokeStyle = '#1a1a22'; g.lineWidth = 1.4; g.strokeRect(sx - 22, cy - 30, 44, 50);
@@ -593,9 +606,12 @@ function drawTrap(t) {
   if (t.t === 'belt' || sx < -40 || sx > W + 40) return;
   if (t.t === 'cable') {
     const live = c >= t.per - 70, warn = c >= t.per - 100 && !live;
-    g.strokeStyle = '#111'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(sx + 12, t.y - 120); g.quadraticCurveTo(sx + 18, t.y - 50, sx + 3, t.y - 6); g.lineTo(sx, t.y - 2); g.stroke();
-    g.strokeStyle = '#444'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(sx + 12, t.y - 120); g.quadraticCurveTo(sx + 18, t.y - 50, sx + 3, t.y - 6); g.stroke();
-    g.fillStyle = '#c0a020'; g.fillRect(sx - 2, t.y - 4, 5, 3);
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(sx - 14, t.y + 1, 22, 4, 0, 0, 7); g.fill();
+    g.fillStyle = '#6a6e78'; g.fillRect(sx - 36, t.y - 13, 13, 13); g.strokeStyle = OL; g.lineWidth = 1; g.strokeRect(sx - 36, t.y - 13, 13, 13);
+    g.fillStyle = '#e0b020'; g.fillRect(sx - 36, t.y - 6, 13, 2.4); g.fillStyle = '#2a2a30'; g.fillRect(sx - 33, t.y - 11, 7, 3);
+    g.strokeStyle = '#111'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(sx - 23, t.y - 3); g.bezierCurveTo(sx - 17, t.y + 3, sx - 10, t.y - 6, sx - 3, t.y - 1); g.stroke();
+    g.strokeStyle = '#4a4a52'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(sx - 23, t.y - 3.8); g.bezierCurveTo(sx - 17, t.y + 2.2, sx - 10, t.y - 6.8, sx - 3, t.y - 1.8); g.stroke();
+    g.fillStyle = '#c0702a'; g.fillRect(sx - 3, t.y - 3, 4, 3);
     if (live) {
       g.strokeStyle = '#bff6ff'; g.lineWidth = 1.2;
       for (let k = 0; k < 3; k++) { g.beginPath(); let x = sx, y = t.y - 3; g.moveTo(x, y); for (let s = 0; s < 4; s++) { x += (Math.random() - 0.5) * 14; y -= 2 + Math.random() * 9; g.lineTo(x, y); } g.stroke(); }

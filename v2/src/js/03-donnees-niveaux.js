@@ -142,9 +142,9 @@ const LEVELS = [
       { cam: 120, spawn: [['thug', 1], ['thug', -1], ['thug', 1]] },
       { cam: 480, spawn: [['thug', 1], ['thrower', -1], ['thug', -1], ['thug', 1]] },
       { cam: 820, spawn: [['brute', 1], ['thug', -1], ['thug', 1]] },
-      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['pisteur', 1], ['thug', -1]] },
+      { cam: 1160, spawn: [['thrower', 1], ['thrower', -1], ['thug', 1], ['thug', -1]] },
       { cam: 1480, spawn: [['brute', 1], ['brute', -1], ['thrower', 1]] },
-      { cam: 1760, spawn: [['brute', 1], ['pisteur', -1], ['thug', 1], ['thrower', -1]] },
+      { cam: 1760, spawn: [['brute', 1], ['brute', -1], ['thug', 1], ['thrower', -1]] },
       { cam: 1920, boss: true, spawn: [['boss', 1]] }
     ] },
   { id: 2, bpm: 108, tr: 3, name: 'L\'USINE', place: 'Fonderie abandonnée', bg: 'factory', hpM: 1.25, dmgM: 1.2, spdM: 1.1, coolM: 0.85, bossName: 'LE CONTREMAÎTRE', bossHp: 290, summon: ['soudeur', 'marin'],
@@ -217,7 +217,7 @@ const LEVELS = [
       wv(1250, 'blinde:2 mercenaire:2 tireur:1'), wv(1440, 'tireur:3 mercenaire:2 blinde:1'), wv(1620, 'blinde:2 mercenaire:3 tireur:2'), wv(1790, 'blinde:2 tireur:2 mercenaire:2'), BOSSW],
     traps: [{ t: 'cable', x: 360, y: 214, per: 210, ph: 0 }, { t: 'cable', x: 760, y: 200, per: 220, ph: 70 }, { t: 'cable', x: 1180, y: 232, per: 210, ph: 120 }, { t: 'cable', x: 1620, y: 208, per: 220, ph: 30 },
       { t: 'steam', x: 560, y: 226, per: 200, ph: 40 }, { t: 'steam', x: 980, y: 198, per: 200, ph: 110 }, { t: 'steam', x: 1440, y: 222, per: 200, ph: 10 },
-      { t: 'belt', x: 640, w: 200, dir: -1 }, { t: 'belt', x: 1260, w: 240, dir: 1 }] },
+      { t: 'crate', x: 640, y: 214, per: 230, ph: 60 }, { t: 'crate', x: 1260, y: 202, per: 240, ph: 150 }] },
   { id: 8, bpm: 128, tr: -1, name: 'L\'AÉRODROME', place: 'Piste privée, à l\'aube', bg: 'aero', hpM: 2.15, dmgM: 1.8, spdM: 1.36, coolM: 0.5, bossName: 'LE CHEF DE PISTE', bossHp: 600, summon: ['agent', 'tireur'],
     tint: { boss: { shirt: '#ff8a1a', pants: '#2a2a32', skin: '#a8703e', hair: '#e8e8e8', acc: '#e8e8e8' } },
     weapons: [[210, 218, 'tuyau'], [490, 232, 'pave'], [770, 206, 'batte'], [1050, 228, 'tuyau'], [1330, 210, 'pave'], [1610, 230, 'batte'], [1870, 212, 'tuyau'], [770, 224, 'grenade'], [1330, 222, 'mitraillette'], [1870, 226, 'pistolet']],
@@ -268,16 +268,16 @@ LEVELS[4].traps = [
     lv.waves.forEach((w, wi) => w.spawn.forEach((s, si) => { if (m[s[0]] && (li === 3 || (wi + si) % 2 === 0)) s[0] = m[s[0]]; })); });
 })();
 /* attaques spéciales des boss par phase (cumulatives) et attaque ultime */
-LEVELS[0].bspec = [['leap'], ['leap', 'wave'], ['leap', 'wave']]; LEVELS[0].ult = 'rush';
-LEVELS[1].bspec = [['wave'], ['wave', 'leap'], ['wave', 'leap']]; LEVELS[1].ult = 'rain';
-LEVELS[2].bspec = [['quake'], ['quake', 'leap'], ['quake', 'leap']]; LEVELS[2].ult = 'furnace';
-LEVELS[3].bspec = [['shots'], ['shots', 'blink'], ['shots', 'blink']]; LEVELS[3].ult = 'storm';
-LEVELS[4].bspec = [['shots'], ['shots', 'escort'], ['shots', 'blink', 'escort']]; LEVELS[4].ult = 'jets';
-LEVELS[5].bspec = [['quake'], ['quake', 'wave'], ['quake', 'wave', 'leap']]; LEVELS[5].ult = 'rain'; LEVELS[5].ultTxt = 'LE PLAFOND S\'EFFONDRE : FUYEZ LES MARQUES !';
-LEVELS[6].bspec = [['shots'], ['shots', 'blink'], ['shots', 'blink', 'escort']]; LEVELS[6].ult = 'storm'; LEVELS[6].ultTxt = 'PLUIE DE JETONS : FUYEZ LES MARQUES !';
-LEVELS[7].bspec = [['leap'], ['leap', 'shots'], ['leap', 'shots', 'wave']]; LEVELS[7].ult = 'rush'; LEVELS[7].ultTxt = 'LE COLONEL CHARGE : ESQUIVEZ !';
-LEVELS[8].bspec = [['wave', 'shots'], ['wave', 'shots', 'blink'], ['wave', 'shots', 'blink', 'escort']]; LEVELS[8].ult = 'jets'; LEVELS[8].ultTxt = 'SOUFFLE DES RÉACTEURS : SORTEZ DES JETS !';
-LEVELS[9].bspec = [['shots', 'quake'], ['shots', 'blink', 'leap', 'wave'], ['shots', 'blink', 'escort', 'quake', 'leap', 'wave']]; LEVELS[9].ult = 'furnace'; LEVELS[9].ultTxt = 'SAUTEZ PAR-DESSUS LES ONDES !';
+LEVELS[0].bspec = [['flurry'], ['flurry', 'leap'], ['flurry', 'leap', 'wave']]; LEVELS[0].bossSc = 1.4; LEVELS[0].ult = 'rush';
+LEVELS[1].bspec = [['hook'], ['hook', 'wave'], ['hook', 'wave', 'leap']]; LEVELS[1].bossSc = 1.5; LEVELS[1].ult = 'rain';
+LEVELS[2].bspec = [['quake'], ['quake', 'pools'], ['pools', 'quake', 'leap']]; LEVELS[2].bossSc = 1.75; LEVELS[2].ult = 'furnace';
+LEVELS[3].bspec = [['fan'], ['fan', 'blink'], ['fan', 'blink', 'escort']]; LEVELS[3].bossSc = 1.3; LEVELS[3].ult = 'storm';
+LEVELS[4].bspec = [['spin'], ['spin', 'shots'], ['spin', 'shots', 'escort']]; LEVELS[4].bossSc = 1.45; LEVELS[4].ult = 'jets';
+LEVELS[5].bspec = [['burrow'], ['burrow', 'quake'], ['burrow', 'quake', 'pools']]; LEVELS[5].bossSc = 1.6; LEVELS[5].ult = 'rain'; LEVELS[5].ultTxt = 'LE PLAFOND S\'EFFONDRE : FUYEZ LES MARQUES !';
+LEVELS[6].bspec = [['rows'], ['rows', 'blink'], ['rows', 'blink', 'escort']]; LEVELS[6].bossSc = 1.4; LEVELS[6].ult = 'storm'; LEVELS[6].ultTxt = 'PLUIE DE JETONS : FUYEZ LES MARQUES !';
+LEVELS[7].bspec = [['snipe'], ['snipe', 'leap'], ['snipe', 'leap', 'rows']]; LEVELS[7].bossSc = 1.5; LEVELS[7].ult = 'rush'; LEVELS[7].ultTxt = 'LE COLONEL CHARGE : ESQUIVEZ !';
+LEVELS[8].bspec = [['carpet'], ['carpet', 'wave'], ['carpet', 'wave', 'snipe']]; LEVELS[8].bossSc = 1.65; LEVELS[8].ult = 'jets'; LEVELS[8].ultTxt = 'SOUFFLE DES RÉACTEURS : SORTEZ DES JETS !';
+LEVELS[9].bspec = [['nova', 'fan'], ['nova', 'blink', 'spin', 'snipe'], ['nova', 'blink', 'escort', 'carpet', 'burrow', 'pools']]; LEVELS[9].bossSc = 1.8; LEVELS[9].ult = 'furnace'; LEVELS[9].ultTxt = 'SAUTEZ PAR-DESSUS LES ONDES !';
 /* ---------- histoire : un carton avant chaque niveau (chap = titre du chapitre) ---------- */
 const STORY = [
   ['Racket', ['Quartier nord, minuit. Le Chef et sa bande font payer chaque commerce.', 'Sur chaque vitrine, un compas peint à la bombe. Personne n\'ose parler. Ce soir, quelqu\'un va leur répondre.', 'Nettoie la rue et remonte jusqu\'au Chef.']],

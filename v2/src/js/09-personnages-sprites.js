@@ -168,7 +168,7 @@ function drawWeapon(name, hx, hy, ang) {
 }
 
 function drawChar(e) {
-  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = d.sc || 1, S = e.kind === 'a' ? kopPal(e.skin | 0) : isP ? pal(d) : palV(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
+  const isP = e.kind === 'p' || e.kind === 'a', d = isP ? HEROES[e.hero] : T[e.type], s = (e.type === 'boss' && LV.bossSc) ? LV.bossSc : (d.sc || 1), S = e.kind === 'a' ? kopPal(e.skin | 0) : isP ? pal(d) : palV(e, d), kind = isP ? e.hero : e.type, type = BASEMAP[kind] || kind;
   const sx = Math.round(e.x - cam), sy = Math.round(e.y - e.z);
   g.fillStyle = 'rgba(0,0,0,.35)';
   g.beginPath(); g.ellipse(sx, Math.round(e.y) + 1, 12 * s * (1 - Math.min(0.5, e.z / 80)), 3 * s, 0, 0, 7); g.fill();

@@ -267,6 +267,57 @@ function updBspec(e) {
         for (const q of livePlayers()) if (Math.abs(q.x - e.x) < 32 && Math.abs(q.y - e.y) < 18 && q.z < 20) bossHurt(e, q, 18, q.x >= e.x ? 1 : -1);
       }
       end(68); break;
+    case 'flurry':                                        /* enchaînement de coups en avançant */
+      if (t < 12) e.face = p.x >= e.x ? 1 : -1;
+      if (t === 12 || t === 22 || t === 32 || t === 44) { e.x = clamp(e.x + e.face * 8, cam + 8, cam + W - 8); e.hit = new Set(); SFX.whoosh(); }
+      if (t === 14 || t === 24 || t === 34) strike(e, { reach: 34, dmg: Math.round(10 * dm), kd: false });
+      if (t === 46) strike(e, { reach: 42, dmg: Math.round(17 * dm), kd: true });
+      end(68); break;
+    case 'hook':                                          /* grappin : attire le joueur aligné vers le boss */
+      if (t < 20) e.face = p.x >= e.x ? 1 : -1;
+      if (t >= 22 && t <= 30) { const u = Math.min(1, (t - 22) / 8); bolt(e.x, e.y, 32, e.x + e.face * u * 240, e.y, 26, '#d8c890', 3); }
+      if (t === 30) {
+        SFX.big();
+        for (const q of livePlayers()) if (q.st !== 'down' && !(q.inv > 0) && Math.abs(q.y - e.y) < 16 && (q.x - e.x) * e.face > 0 && Math.abs(q.x - e.x) < 240) { q.x = e.x + e.face * 26; bossHurt(e, q, 15, e.face); }
+      }
+      end(58); break;
+    case 'pools':                                         /* flaques de métal en fusion qui restent au sol */
+      if (t === 20) { SFX.big(); shake = Math.max(shake, 5); const al = livePlayers(); for (let i = 0; i < 3; i++) { const q = al[i % Math.max(1, al.length)] || p; HZ.push({ k: 'gas', fire: true, dmg: 7, x: clamp(q.x + (rng() - 0.5) * 90, cam + 20, cam + W - 20), y: clamp(q.y + (rng() - 0.5) * 40, Y0 + 4, Y1 - 4), r: 32, t: 0, life: 300 }); } }
+      end(50); break;
+    case 'fan':                                           /* éventail de projectiles */
+      if (t < 24) e.face = p.x >= e.x ? 1 : -1;
+      if (t === 26 || t === 42) { SFX.whoosh(); for (const vy of [-0.72, -0.36, 0, 0.36, 0.72]) PJ.push({ x: e.x + e.face * 12, y: clamp(e.y, Y0, Y1), z: 22, vx: e.face * 3.2, vy: vy, life: 110, rot: 0, orb: true, dmg: 9, dm }); }
+      end(62); break;
+    case 'spin':                                          /* toupie : fonce sur sa cible en tournant */
+      if (t < 14) e.face = p.x >= e.x ? 1 : -1;
+      if (t >= 14 && t <= 58) {
+        e.x = clamp(e.x + Math.sign(p.x - e.x) * Math.min(2.4, Math.abs(p.x - e.x)), cam + 8, cam + W - 8); e.y = clamp(e.y + Math.sign(p.y - e.y) * Math.min(1.5, Math.abs(p.y - e.y)), Y0 + 4, Y1 - 4);
+        if (t % 8 === 0) { e.hit = new Set(); SFX.whoosh(); ring(e.x, e.y, 34, '#c8d8ff', 12); }
+        for (const q of livePlayers()) if (!e.hit.has(q) && Math.abs(q.x - e.x) < 34 && Math.abs(q.y - e.y) < 18 && q.z < 24) { e.hit.add(q); bossHurt(e, q, 13, q.x >= e.x ? 1 : -1); }
+      }
+      end(74); break;
+    case 'burrow':                                        /* s'enfouit, des mains jaillissent sous les joueurs, puis il resurgit */
+      if (t === 1) { e.hide = true; e.mk = true; }
+      if (t < 48) e.inv = 30;
+      if (t === 8 || t === 22) { for (const q of livePlayers()) HZ.push({ k: 'lift', x: clamp(q.x + (rng() - 0.5) * 30, cam + 16, cam + W - 16), y: q.y, t: 0, warn: 40, r: 24, dmg: 14, dm, rock: true }); }
+      if (t === 48) { e.x = clamp(p.x + (rng() < 0.5 ? -50 : 50), cam + 24, cam + W - 24); e.y = clamp(p.y, Y0 + 4, Y1 - 4); e.hide = false; e.mk = false; shake = Math.max(shake, 8); SFX.big(); HZ.push({ k: 'ring', x: e.x, y: e.y, r: 4, max: 55, spd: 2.6, dmg: 13, dm, hit: new Set() }); }
+      end(68); break;
+    case 'rows':                                          /* trois rangées de jetons traversent l'écran */
+      if (t === 8) { const lanes = [Y0 + 12, Y0 + 44, Y0 + 76, Y1 - 8]; lanes.splice(Math.floor(rng() * 4), 1); e.rl = lanes; for (const y of lanes) HZ.push({ k: 'beam', y: y, t: 0, warn: 36, dmg: 0, dm }); }
+      if (t === 44) { SFX.big(); e.rl.forEach((y, i) => { const dir = i % 2 ? -1 : 1; PJ.push({ x: dir > 0 ? cam - 6 : cam + W + 6, y: y, z: 12, vx: dir * 3.6, life: 200, rot: 0, orb: true, dmg: 11, dm }); }); }
+      end(76); break;
+    case 'snipe':                                         /* tir de précision : la rangée est marquée, il faut en sortir */
+      if (t === 1) e.ty = clamp(p.y, Y0 + 6, Y1 - 6);
+      if (t < 30) e.face = p.x >= e.x ? 1 : -1;
+      if (t === 6) HZ.push({ k: 'beam', y: e.ty, t: 0, warn: 44, dmg: 22, dm });
+      end(70); break;
+    case 'carpet':                                        /* tapis de bombes devant lui */
+      if (t === 10) { SFX.big(); for (let i = 0; i < 6; i++) HZ.push({ k: 'lift', x: clamp(e.x + e.face * (50 + i * 58), cam + 10, cam + W - 10), y: clamp(e.y + (i % 2 ? 12 : -12), Y0 + 6, Y1 - 6), t: -i * 9, warn: 34, r: 26, dmg: 18, dm, rock: true, bomb: true }); }
+      end(104); break;
+    case 'nova':                                          /* double onde de choc puis salve en croix */
+      if (t === 20 || t === 46) { SFX.big(); shake = Math.max(shake, 9); HZ.push({ k: 'ring', x: e.x, y: e.y, r: 6, max: 210, spd: 2.7, dmg: 20, dm, hit: new Set() }); ring(e.x, e.y, 40, '#e0b0ff', 20); }
+      if (t === 64) { SFX.whoosh(); for (const s of [1, -1]) for (const vy of [-0.5, 0, 0.5]) PJ.push({ x: e.x + s * 12, y: clamp(e.y, Y0, Y1), z: 22, vx: s * 3.3, vy: vy, life: 110, rot: 0, orb: true, dmg: 10, dm }); }
+      end(90); break;
     case 'wave':
       if (t < 24) e.face = p.x >= e.x ? 1 : -1;
       if (t === 26) {
@@ -329,8 +380,15 @@ function updHz() {
       if (h.r >= h.max) h.dead = true;
     } else if (h.k === 'gas') {
       h.t++;
-      if (h.t % 36 === 0) for (const q of livePlayers()) if (!(q.inv > 0) && q.st !== 'down' && q.z < 20 && Math.abs(q.x - h.x) < h.r && Math.abs(q.y - h.y) < h.r * 0.55) hurt(q, { kind: 'e' }, { dmg: 4, kd: false, nosp: true }, q.face ? -q.face : 1);
+      if (h.t % 36 === 0) for (const q of livePlayers()) if (!(q.inv > 0) && q.st !== 'down' && q.z < 20 && Math.abs(q.x - h.x) < h.r && Math.abs(q.y - h.y) < h.r * 0.55) hurt(q, { kind: 'e' }, { dmg: h.dmg || 4, kd: false, nosp: true }, q.face ? -q.face : 1);
       if (h.t >= h.life) h.dead = true;
+    } else if (h.k === 'beam') {                          /* rayon / tir de précision sur une rangée : l'avertissement rouge précède l'impact */
+      h.t++;
+      if (h.t === h.warn && h.dmg > 0) {
+        shake = Math.max(shake, 8); SFX.big();
+        for (const q of livePlayers()) if (q.st !== 'down' && q.z < 24 && Math.abs(q.y - h.y) < 11 && !(q.inv > 0)) hurt(q, { kind: 'e' }, { dmg: Math.round(h.dmg * h.dm), kd: true }, q.x >= cam + W / 2 ? -1 : 1);
+      }
+      if (h.t >= h.warn + 8) h.dead = true;
     } else if (h.k === 'jet') {
       h.t++;
       if (h.t >= h.warn && h.t < h.warn + h.dur) {
@@ -345,7 +403,7 @@ function updHz() {
     } else if (h.k === 'lift') {                          /* cabine d'ascenseur / bloc de roche qui s'écrase */
       h.t++;
       if (h.t === h.warn) {
-        shake = Math.max(shake, h.rock ? 7 : 15); SFX.big(); if (!h.rock) SFX.zap();
+        shake = Math.max(shake, h.bomb ? 9 : h.rock ? 7 : 15); SFX.big(); if (!h.rock) SFX.zap();
         for (const q of livePlayers()) if (!(q.inv > 0) && q.st !== 'down' && Math.abs(q.x - h.x) < h.r && Math.abs(q.y - h.y) < h.r * 0.55 && q.z < 40) hurt(q, { kind: 'e' }, { dmg: Math.round(h.dmg * h.dm), kd: true }, q.x >= h.x ? 1 : -1);
         for (const e of E) if (!e.gone && !e.dying && e.type !== 'boss' && Math.abs(e.x - h.x) < h.r && Math.abs(e.y - h.y) < h.r * 0.55) hurt(e, { kind: 'e' }, { dmg: 40, kd: true, nosp: true }, e.x >= h.x ? 1 : -1);
         for (const b of B) if (!b.gone && Math.abs(b.x - h.x) < h.r && Math.abs(b.y - h.y) < h.r * 0.55) breakBarrel(b);
@@ -784,9 +842,9 @@ function updEvents() {
     if (t === 90 || t === 190 || t === 280) spawn('thug', 1);
     if (t > 40 && t % 24 === 0) { SFX.whoosh(); shake = Math.max(shake, EV.x > cam - 30 ? 3 : 1); }
     if (t > 40 && t % 4 === 0) FX.push({ x: EV.x - 40, y: clamp(EV.y0 || 205, Y0, Y1) + (t % 12) - 6, z: 4, t: 0, life: 14, big: false });
-    for (const q of livePlayers()) if (q.st !== 'down' && Math.abs(q.x - EV.x) < 32 && !(q.inv > 0) && (EV.hit[q.slot] | 0) < simF - 100) { EV.hit[q.slot] = simF; hurt(q, { kind: 'e' }, { dmg: Math.round(22 * dm), kd: true }, 1); q.x += 14; }
-    for (const m of E) if (!m.gone && !m.dying && m.type !== 'boss' && m.st !== 'down' && Math.abs(m.x - EV.x) < 30) hurt(m, { kind: 'e' }, { dmg: 40, kd: true, nosp: true }, 1);
-    for (const b of B) if (!b.gone && Math.abs(b.x - EV.x) < 30) breakBarrel(b);
+    for (const q of livePlayers()) if (q.st !== 'down' && Math.abs(q.x - EV.x) < 32 && Math.abs(q.y - 214) < 22 && q.z < 14 && !(q.inv > 0) && (EV.hit[q.slot] | 0) < simF - 100) { EV.hit[q.slot] = simF; hurt(q, { kind: 'e' }, { dmg: Math.round(22 * dm), kd: true }, 1); q.x += 14; }
+    for (const m of E) if (!m.gone && !m.dying && m.type !== 'boss' && m.st !== 'down' && Math.abs(m.x - EV.x) < 30 && Math.abs(m.y - 214) < 22) hurt(m, { kind: 'e' }, { dmg: 40, kd: true, nosp: true }, 1);
+    for (const b of B) if (!b.gone && Math.abs(b.x - EV.x) < 30 && Math.abs(b.y - 214) < 22) breakBarrel(b);
     if (EV.x >= EV.end || t > 900) { SFX.big(); shake = 10; for (let k = 0; k < 8; k++) FX.push({ x: EV.x - 10 + k * 5, y: 200, z: 6 + k * 4, t: 0, life: 22, big: true }); EV = null; camLimit = waveActive ? camLimit : LEN - W; }
   } else {
     const n = e.k === 'rocks' ? 9 : 3, gap = e.k === 'rocks' ? 34 : 86;
