@@ -2293,7 +2293,7 @@ function adaptDelay() {
   stallEv = 0;
   want = Math.max(4, Math.min(40, want));
   if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
-  else if (want < curDelay && tick - lastDelayAdj > 120) { curDelay--; lastDelayAdj = tick; }
+  else if (want < curDelay && tick - lastDelayAdj > 45) { curDelay--; lastDelayAdj = tick; }
 }
 function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
@@ -2339,7 +2339,7 @@ function netFrameReady() {
   if (!ok) {
     if (stallT === 0) stallEv++;
     stallT++;
-    if (stallT === 6 && curDelay < 40) { curDelay = Math.min(40, curDelay + 2); lastDelayAdj = tick; }     // à-coup : on prend tout de suite plus de marge
+    if (stallT === 6 && curDelay < 40 && !act.some((a, s) => a && s !== localSlot && tick - lastRx[s] > 45)) { curDelay = Math.min(40, curDelay + 2); lastDelayAdj = tick; }     // à-coup : on prend tout de suite plus de marge
     if (stallT % 3 === 0) sendIn();
     return false;
   }
@@ -4276,7 +4276,7 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 13h25 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 13h50 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
@@ -4787,15 +4787,23 @@ function render() {
 
 /* ---------- boucle principale (pas fixe à 60 Hz) ---------- */
 let last = performance.now(), acc = 0;
-function frame(now) {
+function advance(now) {
   acc += Math.min(online ? 600 : 100, now - last); last = now;
   if (acc > 600) acc = 600;
-  try { while (acc >= 1000 / 60) { if (step() === 'stall') break; acc -= 1000 / 60; } } catch (e) { acc = 0; try { console.error(e); } catch (e2) { /* ignoré */ } }   // une erreur ne doit jamais figer la boucle   // en ligne : on n'avance pas sans les touches de l'autre, puis on rattrape le retard
+  try { while (acc >= 1000 / 60) { if (step() === 'stall') break; acc -= 1000 / 60; } } catch (e) { acc = 0; try { console.error(e); } catch (e2) { /* ignoré */ } }   // une erreur ne doit jamais figer la boucle   // en ligne : on n'avance pas sans les touche
+}
+function frame(now) {
+  advance(performance.now());
   try { ambUpdate(); } catch (e) { /* ignoré */ }
   try { render(); } catch (e) { try { console.error(e); } catch (e2) { /* ignoré */ } }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+/* Onglet masqué ou fenêtre recouverte : le navigateur coupe requestAnimationFrame, la partie de ce joueur se figeait et tous les autres attendaient (le délai montait). Un minuteur dans un Worker n'est pas bridé : il continue de faire avancer la simulation (sans dessin) tant que l'animation est coupée. */
+try {
+  const wk = new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},16)'], { type: 'text/javascript' })));
+  wk.onmessage = () => { if (online && state === 'play' && performance.now() - last > 50) advance(performance.now()); };
+} catch (e) { /* pas de Worker : on garde la boucle d'animation seule */ }
 </script>
 </body>
 </html>

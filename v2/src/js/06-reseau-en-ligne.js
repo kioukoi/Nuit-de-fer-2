@@ -445,7 +445,7 @@ function adaptDelay() {
   stallEv = 0;
   want = Math.max(4, Math.min(40, want));
   if (want > curDelay) { curDelay = want; lastDelayAdj = tick; }
-  else if (want < curDelay && tick - lastDelayAdj > 120) { curDelay--; lastDelayAdj = tick; }
+  else if (want < curDelay && tick - lastDelayAdj > 45) { curDelay--; lastDelayAdj = tick; }
 }
 function sendSel() { netSend({ t: 'sel', p: localSlot, c: SEL[localSlot].c, lock: SEL[localSlot].lock }); }
 function beginOnline(seed) {
@@ -491,7 +491,7 @@ function netFrameReady() {
   if (!ok) {
     if (stallT === 0) stallEv++;
     stallT++;
-    if (stallT === 6 && curDelay < 40) { curDelay = Math.min(40, curDelay + 2); lastDelayAdj = tick; }     // à-coup : on prend tout de suite plus de marge
+    if (stallT === 6 && curDelay < 40 && !act.some((a, s) => a && s !== localSlot && tick - lastRx[s] > 45)) { curDelay = Math.min(40, curDelay + 2); lastDelayAdj = tick; }     // à-coup : on prend tout de suite plus de marge
     if (stallT % 3 === 0) sendIn();
     return false;
   }
