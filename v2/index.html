@@ -515,7 +515,7 @@ const LEVELS = [
     barrels: [[310, 194], [590, 224], [870, 190], [1150, 220], [1430, 192], [1710, 218]],
     waves: [wv(120, 'valet:3 tireur:1'), wv(320, 'armure:1 valet:2 tireur:1'), wv(510, 'tireur:2 valet:3'), wv(700, 'armure:2 valet:2 tireur:1'), wv(880, 'mercenaire:3 tireur:2 valet:1'),
       wv(1060, 'armure:2 tireur:2 valet:2'), wv(1240, 'armure:1 mercenaire:3 tireur:3'), wv(1420, 'armure:3 valet:2 tireur:2'), wv(1600, 'armure:2 valet:3 tireur:3'), wv(1770, 'armure:3 tireur:3 mercenaire:2'), BOSSW],
-    traps: [{ t: 'bolt', per: 200, ph: 0 }, { t: 'bolt', per: 250, ph: 120 },
+    traps: [{ t: 'bolt', per: 320, ph: 0 }, { t: 'bolt', per: 400, ph: 190 },
       { t: 'fire', x: 420, y: 214, per: 220, ph: 0 }, { t: 'fire', x: 820, y: 198, per: 230, ph: 70 }, { t: 'fire', x: 1260, y: 230, per: 220, ph: 140 }, { t: 'fire', x: 1700, y: 206, per: 230, ph: 40 },
       { t: 'crate', sk: 'rock', x: 560, y: 226, per: 230, ph: 50 }, { t: 'crate', sk: 'rock', x: 1040, y: 204, per: 240, ph: 150 }, { t: 'crate', sk: 'rock', x: 1500, y: 224, per: 230, ph: 100 }] }
 ];
@@ -534,7 +534,7 @@ LEVELS[2].traps = [
   { t: 'belt', x: 520, w: 210, dir: -1 }, { t: 'belt', x: 1230, w: 260, dir: 1 }
 ];
 LEVELS[3].traps = [
-  { t: 'bolt', per: 210, ph: 0 }, { t: 'bolt', per: 270, ph: 140 },
+  { t: 'bolt', per: 330, ph: 0 }, { t: 'bolt', per: 420, ph: 200 },
   { t: 'cable', x: 700, y: 212, per: 220, ph: 60 }, { t: 'cable', x: 1500, y: 200, per: 220, ph: 150 }, { t: 'cable', x: 1050, y: 232, per: 230, ph: 0 }
 ];
 LEVELS[4].traps = [
@@ -1151,7 +1151,7 @@ function updTraps() {
         }
         if (c === t.per - 1 && t.tx !== undefined) {
           shake = Math.max(shake, 10); SFX.zap();
-          for (const q of ents) if (Math.abs(q.x - t.tx) < 17 && Math.abs(q.y - t.ty) < 13) trapHit(q, 55, 'shock');
+          for (const q of ents) if (Math.abs(q.x - t.tx) < 14 && Math.abs(q.y - t.ty) < 10) trapHit(q, 30, 'shock');
           t.hitT = 14;
         }
         if (t.hitT > 0) t.hitT--;
@@ -1230,10 +1230,10 @@ function updBspec(e) {
       end(150); break;
     case 'rain': case 'storm':
       if (t === 1) {
-        const al = livePlayers(), n = k === 'storm' ? 9 : 8;
+        const al = livePlayers(), n = k === 'storm' ? 6 : 8;
         for (let i = 0; i < n; i++) {
           const q = al[i % Math.max(1, al.length)] || p;
-          HZ.push({ k: 'strike', fx: k === 'storm' ? 'bolt' : 'anchor', x: clamp(q.x + (rng() - 0.5) * 70, cam + 20, cam + W - 20), y: clamp(q.y + (rng() - 0.5) * 40, Y0 + 4, Y1 - 4), t: -i * 13, warn: 56, r: 22, dmg: k === 'storm' ? 30 : 28, dm });
+          HZ.push({ k: 'strike', fx: k === 'storm' ? 'bolt' : 'anchor', x: clamp(q.x + (rng() - 0.5) * 70, cam + 20, cam + W - 20), y: clamp(q.y + (rng() - 0.5) * 40, Y0 + 4, Y1 - 4), t: -i * 13, warn: 56, r: 22, dmg: k === 'storm' ? 22 : 28, dm });
         }
       }
       if (k === 'storm' && (t === 60 || t === 100)) { for (const dy of [-16, 0, 16]) PJ.push({ x: e.x + e.face * 12, y: clamp(e.y + dy, Y0, Y1), z: 22, vx: e.face * 3.6, life: 120, rot: 0, orb: true, dmg: 9, dm }); }
@@ -3811,7 +3811,7 @@ function drawTitle() {
   txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('version 01h45 · indices sur l Architecte', W / 2, 264, 7, '#667', 'center');
+  txt('version 02h00 · éclairs adoucis', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);

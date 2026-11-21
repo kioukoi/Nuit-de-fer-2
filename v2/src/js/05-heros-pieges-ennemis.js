@@ -281,7 +281,7 @@ function updTraps() {
         }
         if (c === t.per - 1 && t.tx !== undefined) {
           shake = Math.max(shake, 10); SFX.zap();
-          for (const q of ents) if (Math.abs(q.x - t.tx) < 17 && Math.abs(q.y - t.ty) < 13) trapHit(q, 55, 'shock');
+          for (const q of ents) if (Math.abs(q.x - t.tx) < 14 && Math.abs(q.y - t.ty) < 10) trapHit(q, 30, 'shock');
           t.hitT = 14;
         }
         if (t.hitT > 0) t.hitT--;
@@ -360,10 +360,10 @@ function updBspec(e) {
       end(150); break;
     case 'rain': case 'storm':
       if (t === 1) {
-        const al = livePlayers(), n = k === 'storm' ? 9 : 8;
+        const al = livePlayers(), n = k === 'storm' ? 6 : 8;
         for (let i = 0; i < n; i++) {
           const q = al[i % Math.max(1, al.length)] || p;
-          HZ.push({ k: 'strike', fx: k === 'storm' ? 'bolt' : 'anchor', x: clamp(q.x + (rng() - 0.5) * 70, cam + 20, cam + W - 20), y: clamp(q.y + (rng() - 0.5) * 40, Y0 + 4, Y1 - 4), t: -i * 13, warn: 56, r: 22, dmg: k === 'storm' ? 30 : 28, dm });
+          HZ.push({ k: 'strike', fx: k === 'storm' ? 'bolt' : 'anchor', x: clamp(q.x + (rng() - 0.5) * 70, cam + 20, cam + W - 20), y: clamp(q.y + (rng() - 0.5) * 40, Y0 + 4, Y1 - 4), t: -i * 13, warn: 56, r: 22, dmg: k === 'storm' ? 22 : 28, dm });
         }
       }
       if (k === 'storm' && (t === 60 || t === 100)) { for (const dy of [-16, 0, 16]) PJ.push({ x: e.x + e.face * 12, y: clamp(e.y + dy, Y0, Y1), z: 22, vx: e.face * 3.6, life: 120, rot: 0, orb: true, dmg: 9, dm }); }

@@ -234,7 +234,7 @@ const LEVELS = [
     barrels: [[310, 194], [590, 224], [870, 190], [1150, 220], [1430, 192], [1710, 218]],
     waves: [wv(120, 'valet:3 tireur:1'), wv(320, 'armure:1 valet:2 tireur:1'), wv(510, 'tireur:2 valet:3'), wv(700, 'armure:2 valet:2 tireur:1'), wv(880, 'mercenaire:3 tireur:2 valet:1'),
       wv(1060, 'armure:2 tireur:2 valet:2'), wv(1240, 'armure:1 mercenaire:3 tireur:3'), wv(1420, 'armure:3 valet:2 tireur:2'), wv(1600, 'armure:2 valet:3 tireur:3'), wv(1770, 'armure:3 tireur:3 mercenaire:2'), BOSSW],
-    traps: [{ t: 'bolt', per: 200, ph: 0 }, { t: 'bolt', per: 250, ph: 120 },
+    traps: [{ t: 'bolt', per: 320, ph: 0 }, { t: 'bolt', per: 400, ph: 190 },
       { t: 'fire', x: 420, y: 214, per: 220, ph: 0 }, { t: 'fire', x: 820, y: 198, per: 230, ph: 70 }, { t: 'fire', x: 1260, y: 230, per: 220, ph: 140 }, { t: 'fire', x: 1700, y: 206, per: 230, ph: 40 },
       { t: 'crate', sk: 'rock', x: 560, y: 226, per: 230, ph: 50 }, { t: 'crate', sk: 'rock', x: 1040, y: 204, per: 240, ph: 150 }, { t: 'crate', sk: 'rock', x: 1500, y: 224, per: 230, ph: 100 }] }
 ];
@@ -253,7 +253,7 @@ LEVELS[2].traps = [
   { t: 'belt', x: 520, w: 210, dir: -1 }, { t: 'belt', x: 1230, w: 260, dir: 1 }
 ];
 LEVELS[3].traps = [
-  { t: 'bolt', per: 210, ph: 0 }, { t: 'bolt', per: 270, ph: 140 },
+  { t: 'bolt', per: 330, ph: 0 }, { t: 'bolt', per: 420, ph: 200 },
   { t: 'cable', x: 700, y: 212, per: 220, ph: 60 }, { t: 'cable', x: 1500, y: 200, per: 220, ph: 150 }, { t: 'cable', x: 1050, y: 232, per: 230, ph: 0 }
 ];
 LEVELS[4].traps = [
