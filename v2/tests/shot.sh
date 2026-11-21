@@ -4,7 +4,7 @@ name=$1; js=$2
 python3 - "$name" "$js" <<'PY'
 import sys
 n,js=sys.argv[1],sys.argv[2]
-h=open('/home/claude/game/index.html',encoding='utf8').read()
+h=open('${GAME:-tests/.build/index.html}',encoding='utf8').read()
 h=h.replace('</body>','<script>setTimeout(function(){'+js+'},200)</script></body>')
 open('/home/claude/test/shots/%s.html'%n,'w',encoding='utf8').write(h)
 PY

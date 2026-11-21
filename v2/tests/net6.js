@@ -1,7 +1,7 @@
 'use strict';
 // Deux instances du jeu reliées par un faux réseau (latence simulée) : vérifie la synchro lockstep.
 const fs = require('fs'), vm = require('vm');
-const html = fs.readFileSync('/home/claude/game/index.html', 'utf8');
+const html = fs.readFileSync((process.env.GAME || require('path').join(__dirname, '.build', 'index.html')), 'utf8');
 const code = html.split('<script>').pop().split('</script>')[0];
 const LAT = +process.argv[2] || 3;      // latence en images (aller simple)
 const FRAMES = +process.argv[3] || 3000;

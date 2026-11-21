@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm');
-const html=fs.readFileSync('/home/claude/game/index.html','utf8');
+const html=fs.readFileSync((process.env.GAME || require('path').join(__dirname, '.build', 'index.html')),'utf8');
 const code=html.split('<script>').pop().split('</script>')[0];
 const mkCtx=()=>new Proxy({}, {get(t,k){if(k==='createLinearGradient'||k==='createRadialGradient')return()=>({addColorStop(){}});if(k==='measureText')return()=>({width:30});if(k in t)return t[k];return()=>{};},set(t,k,v){t[k]=v;return true;}});
 const ctx=mkCtx();
