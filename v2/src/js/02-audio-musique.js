@@ -105,16 +105,39 @@ function mVoice(dl, f, d, type, v, att, lp) {
     o.start(t); o.stop(t + d + 0.05);
   } catch (e) { /* ignoré */ }
 }
+/* un style musical par niveau : accords, basse, motif de la mélodie (indices dans l'accord, -1 = silence), timbres et batterie ; plus intense et plus rapide pendant un boss */
+const MSTY = {
+  0: { ch: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], bass: [45, 41, 36, 43], lead: [0, 1, 2, 1, 2, 1, 0, 2], dr: 'rock' },
+  1: { ch: [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55]], bass: [38, 34, 41, 36], lead: [0, 2, 1, 2, 0, 2, 1, -1], dr: 'half', lt: 'triangle' },
+  2: { ch: [[52, 55, 59], [52, 55, 59], [48, 52, 55], [50, 54, 57]], bass: [40, 40, 36, 38], lead: [0, -1, 0, -1, 2, -1, 1, -1], dr: 'indus', lt: 'square', lv: 0.02, llp: 1400, pad: 'sawtooth' },
+  3: { ch: [[48, 51, 55], [44, 48, 51], [51, 55, 58], [46, 50, 53]], bass: [36, 32, 39, 34], lead: [0, 1, 2, 1, 0, 1, 2, 1], dr: 'rock', lt: 'triangle' },
+  4: { ch: [[55, 58, 62], [51, 55, 58], [46, 50, 53], [53, 57, 60]], bass: [43, 39, 34, 41], lead: [2, -1, 2, 2, -1, 1, -1, 0], dr: 'march', lt: 'square', lv: 0.022, llp: 1800 },
+  5: { ch: [[57, 60, 64], [46, 50, 53], [57, 60, 64], [52, 56, 59]], bass: [33, 34, 33, 40], lead: [0, -1, -1, 1, -1, -1, 2, -1], dr: 'half', lv: 0.04 },
+  6: { ch: [[50, 53, 57], [55, 59, 62], [48, 52, 55], [57, 61, 64]], bass: [38, 43, 36, 45], lead: [0, 2, 1, 2, 0, 1, 2, 1], dr: 'swing', lt: 'triangle' },
+  7: { ch: [[57, 60, 64], [57, 60, 64], [55, 59, 62], [53, 57, 60]], bass: [33, 33, 31, 29], lead: [0, 0, 1, 0, 2, 0, 1, 0], dr: 'train', lt: 'square', lv: 0.02, llp: 1600 },
+  8: { ch: [[48, 52, 55], [55, 59, 62], [57, 60, 64], [53, 57, 60]], bass: [36, 43, 45, 41], lead: [0, 2, 1, 2, 2, 1, 0, 1], dr: 'rock', lt: 'square', lv: 0.022, llp: 2200 },
+  9: { ch: [[50, 53, 57], [46, 50, 53], [43, 46, 50], [57, 61, 64]], bass: [38, 34, 31, 33], lead: [2, 1, 0, 1, 2, 1, 0, 2], dr: 'epic', lt: 'sawtooth', lv: 0.022, llp: 1800, pad: 'sawtooth' }
+};
+let MBOSS = false;
 function musicStep(dl, bar, s) {
-  const sd = 60 / BPM / 4, ch = CHORDS[bar], fight = waveActive || (state === 'play' && E.length > 0);
-  if (s === 0) for (const n of ch) mVoice(dl, mf(n), sd * 15, 'triangle', 0.02, 0.35, 900);
-  if (s === 0 || s === 6 || s === 8 || s === 14) mVoice(dl, mf(BASSN[bar] + (s === 6 || s === 14 ? 12 : 0)), sd * 3.2, 'sawtooth', 0.07, 0.01, 420);
-  if (s % 2 === 0) { const k = [0, 1, 2, 1, 2, 1, 0, 2][s >> 1]; mVoice(dl, mf(ch[k] + 12), sd * 3, 'sine', 0.035, 0.008, 0); }
+  const st = (state === 'play' && LV && MSTY[LV.id]) || MSTY[0], sd = 60 / BPM / 4 / (MBOSS ? 1.12 : 1), ch = st.ch[bar], fight = waveActive || (state === 'play' && E.length > 0);
+  if (s === 0) for (const n of ch) mVoice(dl, mf(n), sd * 15, st.pad || 'triangle', st.pad ? 0.014 : 0.02, 0.35, 900);
+  const bn = st.bass[bar];
+  if (s === 0 || s === 6 || s === 8 || s === 14) mVoice(dl, mf(bn + (s === 6 || s === 14 ? 12 : 0)), sd * 3.2, 'sawtooth', 0.07, 0.01, 420);
+  else if (MBOSS && s % 2 === 0) mVoice(dl, mf(bn), sd * 1.6, 'sawtooth', 0.055, 0.005, 380);
+  if (s % 2 === 0) { const k = st.lead[s >> 1]; if (k >= 0) mVoice(dl, mf(ch[k] + (MBOSS ? 12 : 12)), sd * 3, MBOSS ? 'sawtooth' : (st.lt || 'sine'), MBOSS ? 0.026 : (st.lv || 0.035), 0.008, MBOSS ? 2400 : (st.llp || 0)); }
   if (s % 4 === 3) mVoice(dl, mf(ch[(s >> 2) % 3] + 24), sd * 2, 'sine', 0.012, 0.005, 0);
-  if (fight) {
-    if (s === 0 || s === 8 || s === 10) tone(125, 0.15, 'sine', 0.3, -85, dl);
-    if (s === 4 || s === 12) { nz(0.13, 0.16, 'bandpass', 1900, 1100, 0.9, dl); tone(190, 0.08, 'triangle', 0.08, -60, dl); }
-    if (s % 2 === 0 && s !== 4 && s !== 12) nz(0.03, 0.05, 'highpass', 7000, 7000, 0.7, dl);
+  if (MBOSS && s % 2 === 1) mVoice(dl, mf(ch[(s >> 1) % 3] + 24), sd * 1.4, 'square', 0.01, 0.004, 3000);
+  if (fight || MBOSS) {
+    const dr = MBOSS ? 'train' : st.dr;
+    const kick = (v) => tone(125, 0.15, 'sine', v || 0.3, -85, dl), snare = (v) => { nz(0.13, v || 0.16, 'bandpass', 1900, 1100, 0.9, dl); tone(190, 0.08, 'triangle', 0.08, -60, dl); }, hat = (v) => nz(0.03, v || 0.05, 'highpass', 7000, 7000, 0.7, dl);
+    if (dr === 'rock') { if (s === 0 || s === 8 || s === 10) kick(); if (s === 4 || s === 12) snare(); if (s % 2 === 0 && s !== 4 && s !== 12) hat(); }
+    else if (dr === 'half') { if (s === 0 || s === 10) kick(); if (s === 8) snare(0.2); if (s % 4 === 2) hat(0.04); }
+    else if (dr === 'indus') { if (s % 4 === 0) kick(0.34); if (s === 6 || s === 14) nz(0.09, 0.18, 'bandpass', 900, 500, 2.2, dl); if (s % 4 === 2) hat(0.04); }
+    else if (dr === 'march') { if (s === 0 || s === 8) kick(); if (s === 4 || s === 12) snare(0.18); if (s === 6 || s === 14) snare(0.07); }
+    else if (dr === 'swing') { if (s === 0 || s === 8) kick(0.22); if (s === 4 || s === 12) nz(0.1, 0.09, 'bandpass', 2600, 1800, 0.8, dl); if (s % 4 === 0) hat(0.06); if (s % 4 === 3) hat(0.04); }
+    else if (dr === 'train') { if (s % 4 === 0) kick(0.32); if (s === 4 || s === 12) snare(0.17); hat(0.032); }
+    else if (dr === 'epic') { if (s === 0 || s === 8 || s === 10) kick(0.34); if (s === 4 || s === 12) snare(0.2); if (s === 14 || s === 15) tone(90, 0.12, 'sine', 0.22, -40, dl); if (s % 2 === 0 && s !== 4 && s !== 12) hat(); }
   } else if (s === 0 || s === 8) tone(110, 0.12, 'sine', 0.1, -60, dl);
 }
 function musicTick() {
@@ -125,11 +148,12 @@ function musicTick() {
   try {
     if (!MUS) { MUS = AC.createGain(); MUS.gain.value = 0.5; MUS.connect(out()); }
     const now = AC.currentTime;
+    MBOSS = state === 'play' && !storyOn && E.some(e => e.type === 'boss' && !e.gone && !e.dying);
     if (mNext < now - 0.3) mNext = now + 0.05;
     BUSOVR = MUS;
     while (mNext < now + 0.3) {
       musicStep(mNext - now, (mStep >> 4) & 3, mStep & 15);
-      mNext += 60 / BPM / 4; mStep++;
+      mNext += 60 / (BPM * (MBOSS ? 1.12 : 1)) / 4; mStep++;
     }
   } catch (e) { /* ignoré */ } finally { BUSOVR = null; }
 }
