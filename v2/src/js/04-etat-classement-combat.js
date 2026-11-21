@@ -12,7 +12,7 @@ function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèê
 function setMyName(s) { const n = cleanName(s); if (n) { myName = n; lsSet('nfer_name', n); NAMES[online ? localSlot : 0] = n; } }
 /* classement mondial (Supabase) : renseigner SB_URL et SB_KEY (clé « anon public », sans danger dans une page web) ; vide = classement local seulement */
 const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobHNvY2xyamF1anJ2bHhnc3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjY0NjQsImV4cCI6MjExMDc0MjQ2NH0.SJHSrMGDHjFNdoQFVtnHxuDZiViZfFptLD5CsRFjLaY';
-let gScores = null, gStatus = 'idle';
+let gScores = null, gAll = [], gStatus = 'idle', gRankMsg = '';
 const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
 const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
 let gErr = '';
@@ -27,7 +27,14 @@ function sbPost(ent, tries) {
   const body = JSON.stringify({ name: String(ent.n).slice(0, 10), score: ent.s, level: ent.lv, win: !!ent.win, hero: ent.h || '' });
   try {
     sbFetch(SB_URL + '/rest/v1/scores', { method: 'POST', keepalive: true, headers: Object.assign(sbHead(), { Prefer: 'return=minimal' }), body })
-      .then(r => { if (r.ok) gScores = null; else if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); }, () => { if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); });
+      .then(r => { if (r.ok) { gScores = null; sbRank(ent.s, 0); } else if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); }, () => { if (tries < 3) setTimeout(() => sbPost(ent, tries + 1), 4000); });
+  } catch (e) { /* ignoré */ }
+}
+/* rang mondial du score qu'on vient d'enregistrer : nombre de scores strictement meilleurs + 1 (affiché sur l'écran de fin) */
+function sbRank(s, tries) {
+  try {
+    sbFetch(SB_URL + '/rest/v1/scores?select=score&score=gt.' + (s | 0) + '&limit=1', { method: 'GET', headers: Object.assign(sbHead(), { Prefer: 'count=exact' }) })
+      .then(r => { const m = /\/(\d+)$/.exec(r.headers.get('content-range') || ''); if (r.ok && m) { lastRank = +m[1]; gRankMsg = ''; } else if (!r.ok && tries < 2) setTimeout(() => sbRank(s, tries + 1), 3000); }, () => { if (tries < 2) setTimeout(() => sbRank(s, tries + 1), 3000); });
   } catch (e) { /* ignoré */ }
 }
 function sbLoad(tries) {
@@ -35,9 +42,10 @@ function sbLoad(tries) {
   tries = tries || 0; gStatus = 'load';
   const fail = why => { if (tries < 2) setTimeout(() => sbLoad(tries + 1), 1500); else { gStatus = 'err'; gErr = why; } };
   try {
-    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=80', { headers: sbHead() })
+    sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=300', { headers: sbHead() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-      .then(rows => { { const seen = {}; gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })).filter(r => { const k = String(r.n).toUpperCase(); if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 10); } gStatus = 'ok'; gErr = ''; },
+      .then(rows => { { const seen = {}; gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero }))
+.filter(r => { const k = String(r.n).toUpperCase(); if (seen[k]) return false; seen[k] = 1; return true; }); gAll = gScores; gScores = gAll.slice(0, 10); } gStatus = 'ok'; gErr = ''; },
         e => fail(e && e.name === 'AbortError' ? 'délai dépassé (réseau lent ou bloqué)' : (e && /^HTTP/.test(e.message) ? e.message : 'connexion impossible (pare-feu, VPN, bloqueur de pubs ?)')));
   } catch (e) { gStatus = 'err'; gErr = 'navigateur non compatible'; }
 }

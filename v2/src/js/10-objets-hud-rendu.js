@@ -290,18 +290,18 @@ function drawTitle() {
   if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
   txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
   txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 17h35 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('version 18h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
 }
 function drawOptions() {
   g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
-  txt('OPTIONS', W / 2, 40, 22, '#ffcf4a', 'center');
+  txt('OPTIONS', W / 2, 38, 22, '#ffcf4a', 'center');
   const L = optList('title').concat([{ label: () => 'RETOUR' }]);
   L.forEach((it, i) => {
     const on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 84 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
+    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 74 + i * 20, 11, on ? '#fff' : '#9a9ac0', 'center');
   });
   const cur = L[optIdx];
-  if (cur && cur.hint) txt(cur.hint(), W / 2, 238, 8, '#cbd', 'center');
+  if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
   txt('Haut / Bas · Gauche / Droite : modifier · Entrée · Échap : retour', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 function drawNameEntry() {
@@ -325,8 +325,11 @@ function drawScores() {
   l.slice(0, 10).forEach((s, i) => {
     const y = 68 + i * 17, col = i === 0 ? '#ffd34d' : (i < 3 ? '#e8e8f0' : '#9aa');
     const hn = (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, '');
-    txt(String(i + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, y, 11, col, 'center');
+    txt(String(i + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, y, 11, String(s.n).toUpperCase() === String(myName).toUpperCase() ? '#7dffa0' : col, 'center');
   });
+  { const mi = gAll.findIndex(s => String(s.n).toUpperCase() === String(myName).toUpperCase());      // mon meilleur score, même s'il est hors du top 10
+    if (mi >= 10) { const s = gAll[mi], hn = (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, ''); txt('...', W / 2, 232, 9, '#8a8ab0', 'center'); txt(String(mi + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, 246, 11, '#7dffa0', 'center'); }
+    else if (mi < 0 && gAll.length >= 10) txt('Votre nom (' + myName + ') n\'est pas encore dans les 300 meilleurs', W / 2, 240, 8, '#8a8ab0', 'center'); }
   txt('ENTRÉE : retour', W / 2, 258, 8, '#8a8ab0', 'center');
 }
 function drawRelays(y) {
@@ -710,7 +713,8 @@ function endStats() {
   newAch.slice(0, 3).forEach((k, i) => { const a = ACHS.find(z => z[0] === k); if (a) txt('SUCCÈS : ' + a[1] + ' — ' + a[2], W / 2, y + 13 + i * 11, 8, '#ffd34d', 'center'); });
 }
 function endScores() {
-  if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD !' : 'Classement : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
+  if (lastRank >= 0) txt(lastRank === 0 ? 'NOUVEAU RECORD MONDIAL !' : 'Classement mondial : n°' + (lastRank + 1), W / 2, 130, 10, '#ffd34d', 'center');
+  else if (recorded && sbOn() && PS[online ? localSlot : 0] && PS[online ? localSlot : 0].score > 0) txt('Enregistrement du score…', W / 2, 130, 8, '#8a8ab0', 'center');
   PS.forEach((p, i) => p.absent || txt(String(p.name || 'J' + (i + 1)) + (online && i === localSlot ? ' (vous)' : '') + '  ' + String(p.score).padStart(6, '0'), W / 2, 148 + i * 14, 12, PCOL[i & 3], 'center'));
 }
 
