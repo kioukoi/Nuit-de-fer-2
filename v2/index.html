@@ -2624,7 +2624,7 @@ const OB = v => v ? 'OUI' : 'NON';
 /* cat : onglet des options (0 JEU, 1 SON ET ÉCRAN, 2 CRÉATION) ; n : nom ; v : valeur affichée à droite ; adj : gauche/droite ; act : Entrée */
 const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION', 'COMMANDES'];
 const KLAB = { left: 'ALLER À GAUCHE', right: 'ALLER À DROITE', up: 'ALLER EN HAUT', down: 'ALLER EN BAS', punch: 'FRAPPER', jump: 'SAUTER', special: 'ATTAQUE SPÉCIALE', throw: 'LANCER L\'ARME' };
-let kSlot = 0;
+let kSlot = 0, kResetT = 0;
 const kRows = ACT.map(a => ({
   cat: 3, title: true, n: KLAB[a],
   v: () => KCAP && KCAP.a === a ? 'APPUYEZ SUR UNE TOUCHE…' : KEYS_SOLO[a].map((k, i) => (kSlot === i ? '[' + kname(k) + ']' : kname(k))).join('  '),
@@ -2649,8 +2649,8 @@ const OPTS = [
   { cat: 2, title: true, n: 'CODE DE NIVEAU', v: () => CUSTOM.slice(0, 14) + (CUSTOM.length > 14 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
   { cat: 2, title: true, n: 'REVOIR MA MEILLEURE PARTIE', act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, v: () => repInfo('nfer_rep_best').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
   { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
-  ...kRows,
-  { cat: 3, title: true, n: 'RÉINITIALISER LES TOUCHES', act: () => { Object.assign(KEYS_SOLO, JSON.parse(KEYS_DEF)); keysSave(); SFX.pick(); }, hint: () => 'Remet les touches par défaut : flèches ou ZQSD, J, K, L, Espace' }
+  { cat: 3, title: true, n: 'RÉINITIALISER LES TOUCHES', v: () => tick < kResetT ? 'FAIT ✔' : '', act: () => { kResetT = tick + 120; Object.assign(KEYS_SOLO, JSON.parse(KEYS_DEF)); keysSave(); SFX.pick(); }, hint: () => 'Remet les touches par défaut : flèches ou ZQSD, J, K, L, Espace' },
+  ...kRows
 ];
 OPTS.forEach(o => { o.label = () => o.n + (o.v ? ' : ' + o.v() : ''); });          // texte simple pour le menu en jeu
 let menuSub = false, optIdx = 0, optTab = 0;
