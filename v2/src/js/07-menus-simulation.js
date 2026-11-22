@@ -119,7 +119,17 @@ const toggleMus = () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn 
 const toggleSfx = () => { sfxOn = !sfxOn; if (sfxOn) SFX.pick(); };
 const OB = v => v ? 'OUI' : 'NON';
 /* cat : onglet des options (0 JEU, 1 SON ET ÉCRAN, 2 CRÉATION) ; n : nom ; v : valeur affichée à droite ; adj : gauche/droite ; act : Entrée */
-const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION'];
+const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION', 'COMMANDES'];
+const KLAB = { left: 'ALLER À GAUCHE', right: 'ALLER À DROITE', up: 'ALLER EN HAUT', down: 'ALLER EN BAS', punch: 'FRAPPER', jump: 'SAUTER', special: 'ATTAQUE SPÉCIALE', throw: 'LANCER L\'ARME' };
+let kSlot = 0;
+const kRows = ACT.map(a => ({
+  cat: 3, title: true, n: KLAB[a],
+  v: () => KCAP && KCAP.a === a ? 'APPUYEZ SUR UNE TOUCHE…' : KEYS_SOLO[a].map((k, i) => (kSlot === i ? '[' + kname(k) + ']' : kname(k))).join('  '),
+  adj: () => { kSlot = 1 - kSlot; SFX.move(); },
+  act: () => { KCAP = { a, slot: kSlot }; },
+  clk: mid => { kSlot = mid ? 1 : 0; KCAP = { a, slot: kSlot }; SFX.pick(); },
+  hint: () => 'Entrée : changer la touche entre crochets · Gauche / Droite : touche 1 ou 2 · Fixes : Entrée, Échap, P (pause)'
+}));
 const OPTS = [
   { cat: 0, title: true, n: 'NOM DU JOUEUR', v: () => myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } }, hint: () => 'Le nom affiché en jeu et dans le classement mondial' },
   { cat: 0, title: true, n: 'NIVEAU DE DÉPART', v: () => (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : choisir parmi les niveaux débloqués' : 'Terminez un niveau pour débloquer le suivant' },
@@ -135,7 +145,9 @@ const OPTS = [
   { cat: 2, title: true, n: 'ÉDITEUR DE NIVEAU', act: () => { SFX.pick(); edOpen(); }, hint: () => 'Compose tes vagues, puis joue-les en mode NIVEAU PERSO' },
   { cat: 2, title: true, n: 'CODE DE NIVEAU', v: () => CUSTOM.slice(0, 14) + (CUSTOM.length > 14 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
   { cat: 2, title: true, n: 'REVOIR MA MEILLEURE PARTIE', act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, v: () => repInfo('nfer_rep_best').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
-  { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' }
+  { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
+  ...kRows,
+  { cat: 3, title: true, n: 'RÉINITIALISER LES TOUCHES', act: () => { Object.assign(KEYS_SOLO, JSON.parse(KEYS_DEF)); keysSave(); SFX.pick(); }, hint: () => 'Remet les touches par défaut : flèches ou ZQSD, J, K, L, Espace' }
 ];
 OPTS.forEach(o => { o.label = () => o.n + (o.v ? ' : ' + o.v() : ''); });          // texte simple pour le menu en jeu
 let menuSub = false, optIdx = 0, optTab = 0;
@@ -189,6 +201,7 @@ function step() {
   }
   if (state === 'options') {
     const rows = optRows(optTab), n = rows.length, lr = RAW.left || RAW.right, d = RAW.right ? 1 : -1;
+    if (KCAP) return;
     if (MENUK) { state = 'title'; SFX.move(); return; }
     if (RAW.up) { optIdx = optIdx <= -1 ? n : optIdx - 1; SFX.move(); }
     if (RAW.down) { optIdx = optIdx >= n ? -1 : optIdx + 1; SFX.move(); }

@@ -7,13 +7,11 @@
 <style>
   html,body{margin:0;height:100%;background:#0b0b14;color:#aab;font-family:ui-monospace,Menlo,Consolas,monospace}
   body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-  canvas{width:min(100vw,calc((100vh - 48px) * 16 / 9));aspect-ratio:16/9;image-rendering:auto;background:#000;display:block;outline:none}
-  #help{font-size:12px;text-align:center;padding:0 8px;line-height:1.5}
+  canvas{width:min(100vw,calc(100vh * 16 / 9));aspect-ratio:16/9;image-rendering:auto;background:#000;display:block;outline:none}
   kbd{background:#22223a;border:1px solid #3a3a5a;border-radius:3px;padding:0 5px;color:#dde}
 
   #touch{display:none;position:fixed;left:0;right:0;bottom:0;height:46vh;max-height:230px;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   body.touch #touch{display:block}
-  body.touch #help{display:none}
   #pad{position:absolute;left:2vw;bottom:14px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.25)}
   #knob{position:absolute;left:50px;top:50px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
   .tb{position:absolute;width:66px;height:66px;border-radius:50%;background:rgba(255,200,60,.22);border:2px solid rgba(255,220,120,.6);color:#fff;font:bold 12px ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
@@ -25,10 +23,6 @@
 </head>
 <body>
 <canvas id="c" width="1440" height="810" tabindex="0"></canvas>
-<div id="help">
-  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> (double appui sur →/← : sprint) · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> attaque spéciale (jauge SP) · <kbd>L</kbd> lancer l'arme · <kbd>Espace</kbd> sauter (puis <kbd>J</kbd> en l'air : coup de pied) · <i>(gauche : <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> à la place de J K L)</i> · <kbd>Échap</kbd> menu · <kbd>P</kbd> pause · <kbd>M</kbd> musique · marchez sur une arme ou une potion pour la ramasser · attention aux pièges (câbles, caisses, vapeur…)<br>
-  <b>En ligne</b> : mêmes touches, chacun sur son ordinateur (un joueur crée la partie, l'autre saisit le code)
-</div>
 <div id="touch">
   <div id="pad"><div id="knob"></div></div>
   <div class="tb" id="bP" data-k="KeyJ">Frapper</div>
@@ -96,8 +90,21 @@ let REPLAY = false;          // vrai pendant le rattrapage d'une partie en cours
 const ACT = ['left', 'right', 'up', 'down', 'punch', 'jump', 'special', 'throw'];
 const KEYS_SOLO = {
   left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
-  punch: ['KeyJ', 'KeyF'], jump: ['Space'], special: ['KeyK', 'KeyG'], throw: ['KeyL', 'KeyH']
+  punch: ['KeyJ', 'KeyF'], jump: ['Space', ''], special: ['KeyK', 'KeyG'], throw: ['KeyL', 'KeyH']
 };
+/* touches modifiables (options > COMMANDES) : deux touches par action, enregistrées dans le navigateur */
+const KEYS_DEF = JSON.stringify(KEYS_SOLO);
+try { const sv = JSON.parse(localStorage.getItem('nfer_keys') || 'null'); if (sv) for (const a in KEYS_SOLO) if (Array.isArray(sv[a]) && sv[a].length === 2) KEYS_SOLO[a] = sv[a].map(String); } catch (e) { /* ignoré */ }
+const keysSave = () => { try { localStorage.setItem('nfer_keys', JSON.stringify(KEYS_SOLO)); } catch (e) { /* ignoré */ } };
+let KCAP = null, KLM = null;                                   // KCAP : { a, slot } pendant la capture d'une touche
+try { if (navigator.keyboard && navigator.keyboard.getLayoutMap) navigator.keyboard.getLayoutMap().then(m => { KLM = m; }).catch(() => {}); } catch (e) { /* ignoré */ }
+function kname(c) {
+  if (!c) return '—';
+  const m = KLM && KLM.get(c); if (m && m.length === 1) return m.toUpperCase();
+  const F = { Space: 'ESPACE', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Enter: 'ENTRÉE', ShiftLeft: 'MAJ G', ShiftRight: 'MAJ D', ControlLeft: 'CTRL G', ControlRight: 'CTRL D', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Backquote: '²' };
+  if (F[c]) return F[c];
+  return c.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Numpad/, 'PAV ');
+}
 const KEYS_P1 = { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], punch: ['KeyF'], jump: ['KeyG'], special: ['KeyH'], throw: ['KeyT'] };
 const KEYS_P2 = {
   left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
@@ -108,6 +115,15 @@ let nPlayers = 1;
 const HLD = [{}, {}, {}, {}], PRS = [{}, {}, {}, {}], OLD = [{}, {}, {}, {}];
 let START = false, PAUSE = false, MENUK = false, oldS = false, oldP = false, oldE = false;
 addEventListener('keydown', e => {
+  if (KCAP) {                                                  // capture d'une touche pour les commandes
+    e.preventDefault(); const c = KCAP; KCAP = null;
+    if (e.code !== 'Escape') {
+      const row = KEYS_SOLO[c.a], old = row[c.slot];
+      for (const a in KEYS_SOLO) KEYS_SOLO[a].forEach((k, i) => { if (k === e.code && !(a === c.a && i === c.slot)) KEYS_SOLO[a][i] = old; });   // échange si la touche servait déjà
+      row[c.slot] = e.code; keysSave();
+    }
+    return;
+  }
   keys[e.code] = true;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
   if (state === 'name') {
@@ -2606,7 +2622,17 @@ const toggleMus = () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn 
 const toggleSfx = () => { sfxOn = !sfxOn; if (sfxOn) SFX.pick(); };
 const OB = v => v ? 'OUI' : 'NON';
 /* cat : onglet des options (0 JEU, 1 SON ET ÉCRAN, 2 CRÉATION) ; n : nom ; v : valeur affichée à droite ; adj : gauche/droite ; act : Entrée */
-const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION'];
+const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION', 'COMMANDES'];
+const KLAB = { left: 'ALLER À GAUCHE', right: 'ALLER À DROITE', up: 'ALLER EN HAUT', down: 'ALLER EN BAS', punch: 'FRAPPER', jump: 'SAUTER', special: 'ATTAQUE SPÉCIALE', throw: 'LANCER L\'ARME' };
+let kSlot = 0;
+const kRows = ACT.map(a => ({
+  cat: 3, title: true, n: KLAB[a],
+  v: () => KCAP && KCAP.a === a ? 'APPUYEZ SUR UNE TOUCHE…' : KEYS_SOLO[a].map((k, i) => (kSlot === i ? '[' + kname(k) + ']' : kname(k))).join('  '),
+  adj: () => { kSlot = 1 - kSlot; SFX.move(); },
+  act: () => { KCAP = { a, slot: kSlot }; },
+  clk: mid => { kSlot = mid ? 1 : 0; KCAP = { a, slot: kSlot }; SFX.pick(); },
+  hint: () => 'Entrée : changer la touche entre crochets · Gauche / Droite : touche 1 ou 2 · Fixes : Entrée, Échap, P (pause)'
+}));
 const OPTS = [
   { cat: 0, title: true, n: 'NOM DU JOUEUR', v: () => myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } }, hint: () => 'Le nom affiché en jeu et dans le classement mondial' },
   { cat: 0, title: true, n: 'NIVEAU DE DÉPART', v: () => (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : choisir parmi les niveaux débloqués' : 'Terminez un niveau pour débloquer le suivant' },
@@ -2622,7 +2648,9 @@ const OPTS = [
   { cat: 2, title: true, n: 'ÉDITEUR DE NIVEAU', act: () => { SFX.pick(); edOpen(); }, hint: () => 'Compose tes vagues, puis joue-les en mode NIVEAU PERSO' },
   { cat: 2, title: true, n: 'CODE DE NIVEAU', v: () => CUSTOM.slice(0, 14) + (CUSTOM.length > 14 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
   { cat: 2, title: true, n: 'REVOIR MA MEILLEURE PARTIE', act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, v: () => repInfo('nfer_rep_best').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
-  { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' }
+  { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
+  ...kRows,
+  { cat: 3, title: true, n: 'RÉINITIALISER LES TOUCHES', act: () => { Object.assign(KEYS_SOLO, JSON.parse(KEYS_DEF)); keysSave(); SFX.pick(); }, hint: () => 'Remet les touches par défaut : flèches ou ZQSD, J, K, L, Espace' }
 ];
 OPTS.forEach(o => { o.label = () => o.n + (o.v ? ' : ' + o.v() : ''); });          // texte simple pour le menu en jeu
 let menuSub = false, optIdx = 0, optTab = 0;
@@ -2676,6 +2704,7 @@ function step() {
   }
   if (state === 'options') {
     const rows = optRows(optTab), n = rows.length, lr = RAW.left || RAW.right, d = RAW.right ? 1 : -1;
+    if (KCAP) return;
     if (MENUK) { state = 'title'; SFX.move(); return; }
     if (RAW.up) { optIdx = optIdx <= -1 ? n : optIdx - 1; SFX.move(); }
     if (RAW.down) { optIdx = optIdx >= n ? -1 : optIdx + 1; SFX.move(); }
@@ -4548,7 +4577,8 @@ function drawRow(x, y, w, h, it, on, focus) {
   else if (it.act && !(it.n === 'REPRENDRE')) tri(x + w - 13, cy, 1, 3.5, on ? '#ffcf4a' : '#6a66a0');
   hitBox(x, y, w, h, px => {
     if (focus) focus();
-    if (it.adj && v && px > x + w - 26 - vw - 8) { it.adj(px < x + w - 20 - vw / 2 ? -1 : 1); }
+    if (it.clk) it.clk(px > x + w - 20 - vw / 2);
+    else if (it.adj && v && px > x + w - 26 - vw - 8) { it.adj(px < x + w - 20 - vw / 2 ? -1 : 1); }
     else if (it.act) { SFX.pick(); it.act(); } else if (it.adj) it.adj(1);
   }, () => { if (focus && !on) { focus(); SFX.move(); } });
 }
@@ -4599,7 +4629,7 @@ function drawTitle() {
     y += h + 5;
   });
   txt('Flèches / ZQSD : choisir · Entrée : valider · Souris possible', W / 2, 252, 7, '#8a8ab0', 'center');
-  txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 262, 7, '#8a8ab0', 'center');
+  txt(kname(KEYS_SOLO.punch[0]) + ' frapper · ' + kname(KEYS_SOLO.special[0]) + ' spécial · ' + kname(KEYS_SOLO.throw[0]) + ' lancer · ' + kname(KEYS_SOLO.jump[0]) + ' sauter · Échap menu · touches modifiables dans OPTIONS', W / 2, 262, 7, '#8a8ab0', 'center');
   txt('succès ' + doneAch().length + '/' + ACHS.length, 6, 266, 7, '#667', 'left');
   txt('version 22/11 · menus', W - 6, 266, 7, '#667', 'right');
 }
@@ -4609,13 +4639,16 @@ function drawOptions() {
   panel(px, py, pw, ph);
   txt('OPTIONS', px + 16, py + 24, 15, '#ffcf4a', 'left');
   OPT_TABS.forEach((t, i) => {
-    const tw = 112, tx = px + 14 + i * (tw + 6), ty = py + 34, act = i === optTab, foc = act && optIdx === -1;
+    const tw = 84, tx = px + 14 + i * (tw + 5), ty = py + 34, act = i === optTab, foc = act && optIdx === -1;
     rr(tx, ty, tw, 20, 4); g.fillStyle = act ? '#3b3590' : 'rgba(30,26,64,.75)'; g.fill();
     g.strokeStyle = foc ? '#ffcf4a' : act ? '#7a76c0' : '#3a3670'; g.lineWidth = foc ? 1.6 : 1; g.stroke();
     txt(t, tx + tw / 2, ty + 14, 9, act ? '#fff' : '#9a9ac0', 'center');
     hitBox(tx, ty, tw, 20, () => { optTab = i; optIdx = -1; SFX.move(); });
   });
-  rows.forEach((it, i) => drawRow(px + 14, py + 62 + i * 27, pw - 28, 23, it, i === optIdx, () => { optIdx = i; }));
+  const vis = 5, s0 = clamp(optIdx - 2, 0, Math.max(0, n - vis));
+  rows.slice(s0, s0 + vis).forEach((it, k) => { const i = s0 + k; drawRow(px + 14, py + 62 + k * 27, pw - 28, 23, it, i === optIdx, () => { optIdx = i; }); });
+  if (s0 > 0) txt('▲', px + pw - 7, py + 68, 7, '#8a8ab0', 'center');
+  if (s0 + vis < n) txt('▼', px + pw - 7, py + 62 + vis * 27 - 6, 7, '#8a8ab0', 'center');
   const cur = rows[optIdx];
   if (cur && cur.hint) wrapTxt(cur.hint(), 52).slice(0, 3).forEach((l, i) => txt(l, px + 18, py + 204 + i * 11, 8, '#cbd', 'left'));
   const bx = px + pw - 98, by = py + 206, on = optIdx === n;

@@ -300,7 +300,8 @@ function drawRow(x, y, w, h, it, on, focus) {
   else if (it.act && !(it.n === 'REPRENDRE')) tri(x + w - 13, cy, 1, 3.5, on ? '#ffcf4a' : '#6a66a0');
   hitBox(x, y, w, h, px => {
     if (focus) focus();
-    if (it.adj && v && px > x + w - 26 - vw - 8) { it.adj(px < x + w - 20 - vw / 2 ? -1 : 1); }
+    if (it.clk) it.clk(px > x + w - 20 - vw / 2);
+    else if (it.adj && v && px > x + w - 26 - vw - 8) { it.adj(px < x + w - 20 - vw / 2 ? -1 : 1); }
     else if (it.act) { SFX.pick(); it.act(); } else if (it.adj) it.adj(1);
   }, () => { if (focus && !on) { focus(); SFX.move(); } });
 }
@@ -351,7 +352,7 @@ function drawTitle() {
     y += h + 5;
   });
   txt('Flèches / ZQSD : choisir · Entrée : valider · Souris possible', W / 2, 252, 7, '#8a8ab0', 'center');
-  txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 262, 7, '#8a8ab0', 'center');
+  txt(kname(KEYS_SOLO.punch[0]) + ' frapper · ' + kname(KEYS_SOLO.special[0]) + ' spécial · ' + kname(KEYS_SOLO.throw[0]) + ' lancer · ' + kname(KEYS_SOLO.jump[0]) + ' sauter · Échap menu · touches modifiables dans OPTIONS', W / 2, 262, 7, '#8a8ab0', 'center');
   txt('succès ' + doneAch().length + '/' + ACHS.length, 6, 266, 7, '#667', 'left');
   txt('version 22/11 · menus', W - 6, 266, 7, '#667', 'right');
 }
@@ -361,13 +362,16 @@ function drawOptions() {
   panel(px, py, pw, ph);
   txt('OPTIONS', px + 16, py + 24, 15, '#ffcf4a', 'left');
   OPT_TABS.forEach((t, i) => {
-    const tw = 112, tx = px + 14 + i * (tw + 6), ty = py + 34, act = i === optTab, foc = act && optIdx === -1;
+    const tw = 84, tx = px + 14 + i * (tw + 5), ty = py + 34, act = i === optTab, foc = act && optIdx === -1;
     rr(tx, ty, tw, 20, 4); g.fillStyle = act ? '#3b3590' : 'rgba(30,26,64,.75)'; g.fill();
     g.strokeStyle = foc ? '#ffcf4a' : act ? '#7a76c0' : '#3a3670'; g.lineWidth = foc ? 1.6 : 1; g.stroke();
     txt(t, tx + tw / 2, ty + 14, 9, act ? '#fff' : '#9a9ac0', 'center');
     hitBox(tx, ty, tw, 20, () => { optTab = i; optIdx = -1; SFX.move(); });
   });
-  rows.forEach((it, i) => drawRow(px + 14, py + 62 + i * 27, pw - 28, 23, it, i === optIdx, () => { optIdx = i; }));
+  const vis = 5, s0 = clamp(optIdx - 2, 0, Math.max(0, n - vis));
+  rows.slice(s0, s0 + vis).forEach((it, k) => { const i = s0 + k; drawRow(px + 14, py + 62 + k * 27, pw - 28, 23, it, i === optIdx, () => { optIdx = i; }); });
+  if (s0 > 0) txt('▲', px + pw - 7, py + 68, 7, '#8a8ab0', 'center');
+  if (s0 + vis < n) txt('▼', px + pw - 7, py + 62 + vis * 27 - 6, 7, '#8a8ab0', 'center');
   const cur = rows[optIdx];
   if (cur && cur.hint) wrapTxt(cur.hint(), 52).slice(0, 3).forEach((l, i) => txt(l, px + 18, py + 204 + i * 11, 8, '#cbd', 'left'));
   const bx = px + pw - 98, by = py + 206, on = optIdx === n;

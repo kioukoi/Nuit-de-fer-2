@@ -25,8 +25,21 @@ let REPLAY = false;          // vrai pendant le rattrapage d'une partie en cours
 const ACT = ['left', 'right', 'up', 'down', 'punch', 'jump', 'special', 'throw'];
 const KEYS_SOLO = {
   left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
-  punch: ['KeyJ', 'KeyF'], jump: ['Space'], special: ['KeyK', 'KeyG'], throw: ['KeyL', 'KeyH']
+  punch: ['KeyJ', 'KeyF'], jump: ['Space', ''], special: ['KeyK', 'KeyG'], throw: ['KeyL', 'KeyH']
 };
+/* touches modifiables (options > COMMANDES) : deux touches par action, enregistrées dans le navigateur */
+const KEYS_DEF = JSON.stringify(KEYS_SOLO);
+try { const sv = JSON.parse(localStorage.getItem('nfer_keys') || 'null'); if (sv) for (const a in KEYS_SOLO) if (Array.isArray(sv[a]) && sv[a].length === 2) KEYS_SOLO[a] = sv[a].map(String); } catch (e) { /* ignoré */ }
+const keysSave = () => { try { localStorage.setItem('nfer_keys', JSON.stringify(KEYS_SOLO)); } catch (e) { /* ignoré */ } };
+let KCAP = null, KLM = null;                                   // KCAP : { a, slot } pendant la capture d'une touche
+try { if (navigator.keyboard && navigator.keyboard.getLayoutMap) navigator.keyboard.getLayoutMap().then(m => { KLM = m; }).catch(() => {}); } catch (e) { /* ignoré */ }
+function kname(c) {
+  if (!c) return '—';
+  const m = KLM && KLM.get(c); if (m && m.length === 1) return m.toUpperCase();
+  const F = { Space: 'ESPACE', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Enter: 'ENTRÉE', ShiftLeft: 'MAJ G', ShiftRight: 'MAJ D', ControlLeft: 'CTRL G', ControlRight: 'CTRL D', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Backquote: '²' };
+  if (F[c]) return F[c];
+  return c.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Numpad/, 'PAV ');
+}
 const KEYS_P1 = { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], punch: ['KeyF'], jump: ['KeyG'], special: ['KeyH'], throw: ['KeyT'] };
 const KEYS_P2 = {
   left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'],
@@ -37,6 +50,15 @@ let nPlayers = 1;
 const HLD = [{}, {}, {}, {}], PRS = [{}, {}, {}, {}], OLD = [{}, {}, {}, {}];
 let START = false, PAUSE = false, MENUK = false, oldS = false, oldP = false, oldE = false;
 addEventListener('keydown', e => {
+  if (KCAP) {                                                  // capture d'une touche pour les commandes
+    e.preventDefault(); const c = KCAP; KCAP = null;
+    if (e.code !== 'Escape') {
+      const row = KEYS_SOLO[c.a], old = row[c.slot];
+      for (const a in KEYS_SOLO) KEYS_SOLO[a].forEach((k, i) => { if (k === e.code && !(a === c.a && i === c.slot)) KEYS_SOLO[a][i] = old; });   // échange si la touche servait déjà
+      row[c.slot] = e.code; keysSave();
+    }
+    return;
+  }
   keys[e.code] = true;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
   if (state === 'name') {

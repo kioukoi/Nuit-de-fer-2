@@ -160,3 +160,4 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - Options : 3 onglets (JEU, SON ET ÉCRAN, CRÉATION), valeurs alignées à droite avec flèches. Chaque option est `{cat, n, v, adj, act, hint}` dans `OPTS`. Navigation : Haut/Bas, Gauche/Droite (valeur, ou onglet si la ligne n'a pas de valeur), la ligne d'onglets est atteignable en montant.
 - Souris et tactile : chaque écran de menu déclare ses zones (`hitBox`, tableau `HIT` vidé à chaque image) ; les clics sont mis en file (`PTRQ`) et traités dans `step()`. Menu en jeu et classement cliquables aussi.
 - Le menu en jeu (Échap) utilise les mêmes lignes (`drawRow`).
+- Commandes : onglet COMMANDES (2 touches par action, Entrée puis la nouvelle touche, échange automatique si la touche servait déjà, enregistré dans `nfer_keys`). Le texte d'aide HTML sous le jeu est supprimé. Manette et boutons tactiles inchangés.

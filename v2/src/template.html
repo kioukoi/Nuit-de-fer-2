@@ -7,13 +7,11 @@
 <style>
   html,body{margin:0;height:100%;background:#0b0b14;color:#aab;font-family:ui-monospace,Menlo,Consolas,monospace}
   body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-  canvas{width:min(100vw,calc((100vh - 48px) * 16 / 9));aspect-ratio:16/9;image-rendering:auto;background:#000;display:block;outline:none}
-  #help{font-size:12px;text-align:center;padding:0 8px;line-height:1.5}
+  canvas{width:min(100vw,calc(100vh * 16 / 9));aspect-ratio:16/9;image-rendering:auto;background:#000;display:block;outline:none}
   kbd{background:#22223a;border:1px solid #3a3a5a;border-radius:3px;padding:0 5px;color:#dde}
 
   #touch{display:none;position:fixed;left:0;right:0;bottom:0;height:46vh;max-height:230px;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   body.touch #touch{display:block}
-  body.touch #help{display:none}
   #pad{position:absolute;left:2vw;bottom:14px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.25)}
   #knob{position:absolute;left:50px;top:50px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
   .tb{position:absolute;width:66px;height:66px;border-radius:50%;background:rgba(255,200,60,.22);border:2px solid rgba(255,220,120,.6);color:#fff;font:bold 12px ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
@@ -25,10 +23,6 @@
 </head>
 <body>
 <canvas id="c" width="1440" height="810" tabindex="0"></canvas>
-<div id="help">
-  <b>Solo</b> : <kbd>←↑↓→</kbd> ou <kbd>ZQSD</kbd> (double appui sur →/← : sprint) · <kbd>J</kbd> frapper (3 fois = combo) · <kbd>K</kbd> attaque spéciale (jauge SP) · <kbd>L</kbd> lancer l'arme · <kbd>Espace</kbd> sauter (puis <kbd>J</kbd> en l'air : coup de pied) · <i>(gauche : <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> à la place de J K L)</i> · <kbd>Échap</kbd> menu · <kbd>P</kbd> pause · <kbd>M</kbd> musique · marchez sur une arme ou une potion pour la ramasser · attention aux pièges (câbles, caisses, vapeur…)<br>
-  <b>En ligne</b> : mêmes touches, chacun sur son ordinateur (un joueur crée la partie, l'autre saisit le code)
-</div>
 <div id="touch">
   <div id="pad"><div id="knob"></div></div>
   <div class="tb" id="bP" data-k="KeyJ">Frapper</div>
