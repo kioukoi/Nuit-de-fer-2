@@ -154,3 +154,9 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - **ROGUE** : une seule vie par joueur, un bonus tiré au sort à chaque niveau terminé (PV, dégâts, vitesse, spécial, vol de vie, réduction de dégâts, vie en plus, soin). Les vies gagnées sur un boss restent possibles. Pas de routes qui bifurquent, ni de choix parmi plusieurs bonus : le bonus est imposé.
 - **VERSUS** (2 à 4 joueurs en ligne) : arène sans ennemis, caméra fixe, coups entre joueurs à pleins dégâts, une vie, dernier debout gagne. Pas de classement mondial. Les ultimes ne touchent que les ennemis : on se bat surtout aux coups, coups de pied, objets et armes.
 - **NIVEAU PERSO** : décor 1 à 10, jusqu'à 8 vagues, boss final optionnel. Options > « ÉDITEUR DE NIVEAU » (menu au clavier, pas de pose à la souris) construit un code, par exemple `3B:thug*2;brute*1,tireur*1` (décor 3, boss, deux vagues). Options > « CODE DE NIVEAU » permet de coller le code d'un ami. En ligne, le code de l'hôte est envoyé aux autres. Pas de classement mondial.
+
+## Accueil et options (refonte)
+- Accueil : logo dégradé, héros sur les côtés (changent toutes les 7 s), boutons JOUER (avec rappel niveau · mode · difficulté, Gauche/Droite = niveau de départ), EN LIGNE, CLASSEMENT MONDIAL, OPTIONS (avec le nom du joueur). Liste unique `TITLE` (07-menus-simulation.js), dessinée par `drawTitle`.
+- Options : 3 onglets (JEU, SON ET ÉCRAN, CRÉATION), valeurs alignées à droite avec flèches. Chaque option est `{cat, n, v, adj, act, hint}` dans `OPTS`. Navigation : Haut/Bas, Gauche/Droite (valeur, ou onglet si la ligne n'a pas de valeur), la ligne d'onglets est atteignable en montant.
+- Souris et tactile : chaque écran de menu déclare ses zones (`hitBox`, tableau `HIT` vidé à chaque image) ; les clics sont mis en file (`PTRQ`) et traités dans `step()`. Menu en jeu et classement cliquables aussi.
+- Le menu en jeu (Échap) utilise les mêmes lignes (`drawRow`).

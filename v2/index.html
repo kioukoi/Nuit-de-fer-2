@@ -80,7 +80,15 @@ const RS = 3;
 const cv = document.getElementById('c');
 let g = cv.getContext('2d');
 g.imageSmoothingEnabled = false;
-cv.addEventListener('pointerdown', () => { cv.focus(); unlockAudio(); });
+/* souris et tactile dans les menus : chaque écran de menu déclare ses zones cliquables (HIT) à chaque image ; les clics sont traités dans step() */
+let HIT = [], PTRQ = [];
+function ptrHit(e) {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  for (let i = HIT.length - 1; i >= 0; i--) { const h = HIT[i]; if (x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h) return { h, x, y }; }
+  return null;
+}
+cv.addEventListener('pointermove', e => { if (e.pointerType === 'touch') return; const r = ptrHit(e); cv.style.cursor = r ? 'pointer' : 'default'; if (r && r.h.hov) r.h.hov(); });
+cv.addEventListener('pointerdown', e => { cv.focus(); unlockAudio(); const r = ptrHit(e); if (r && r.h.fn) PTRQ.push(() => r.h.fn(r.x)); });
 
 /* ---------- entrées ---------- */
 const SP_COST_VIVE = 50;
@@ -2591,24 +2599,34 @@ const MENU_ALL = [
 ];
 /* options : une seule liste, utilisée par l'accueil (tout) et par le menu en jeu (sans niveau ni nom) */
 const toggleFF = () => { FRIENDLY = !FRIENDLY; lsSet('nfer_ff', FRIENDLY ? '1' : '0'); SFX.pick(); };
+const setMd = d => { GMODE = (GMODE + d + MODEN.length) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); };
+const setDf2 = d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); };
+const toggleShake = () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); };
+const toggleMus = () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; SFX.pick(); };
+const toggleSfx = () => { sfxOn = !sfxOn; if (sfxOn) SFX.pick(); };
+const OB = v => v ? 'OUI' : 'NON';
+/* cat : onglet des options (0 JEU, 1 SON ET ÉCRAN, 2 CRÉATION) ; n : nom ; v : valeur affichée à droite ; adj : gauche/droite ; act : Entrée */
+const OPT_TABS = ['JEU', 'SON ET ÉCRAN', 'CRÉATION'];
 const OPTS = [
-  { title: true, label: () => 'NIVEAU DE DÉPART : ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : changer de niveau' : 'Terminez un niveau pour débloquer le suivant' },
-  { title: true, id: 'md', label: () => 'MODE : ' + MODEN[GMODE], adj: d => { GMODE = (GMODE + d + MODEN.length) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, act: () => { GMODE = (GMODE + 1) % MODEN.length; lsSet('nfer_md', String(GMODE)); SFX.move(); }, hint: () => MODEH[GMODE] },
-  { title: true, label: () => 'ÉDITEUR DE NIVEAU', act: () => { SFX.pick(); edOpen(); }, hint: () => 'Compose tes vagues, puis joue-les en mode NIVEAU PERSO' },
-  { title: true, label: () => 'CODE DE NIVEAU : ' + CUSTOM.slice(0, 16) + (CUSTOM.length > 16 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
-  { title: true, label: () => 'REVOIR MA MEILLEURE PARTIE' + repInfo('nfer_rep_best'), act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
-  { title: true, label: () => 'REVOIR MA DERNIÈRE PARTIE' + repInfo('nfer_rep_last'), act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' },
-  { title: true, label: () => 'NOM : ' + myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } } },
-  { title: true, id: 'df', label: () => 'DIFFICULTÉ : ' + DIFFN[DIFF], adj: d => { DIFF = (DIFF + d + 3) % 3; lsSet('nfer_df', String(DIFF)); SFX.move(); }, act: () => { DIFF = (DIFF + 1) % 3; lsSet('nfer_df', String(DIFF)); SFX.pick(); }, hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
-  { label: () => 'SECOUSSES D\'ÉCRAN : ' + (SHAKEON ? 'OUI' : 'NON'), act: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); SFX.pick(); }, adj: () => { SHAKEON = !SHAKEON; lsSet('nfer_shake', SHAKEON ? '1' : '0'); } },
-  { id: 'ff', label: () => 'DÉGÂTS ENTRE ALLIÉS : ' + (FRIENDLY ? 'OUI' : 'NON'), act: toggleFF, adj: toggleFF, hint: () => 'Coups entre joueurs : oui = les alliés se blessent (moitié des dégâts)' },
-  { label: () => 'MUSIQUE : ' + (musicOn ? 'OUI' : 'NON'), act: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; }, adj: () => { musicOn = !musicOn; if (MUS) MUS.gain.value = musicOn ? 0.5 : 0; } },
-  { label: () => 'BRUITAGES : ' + (sfxOn ? 'OUI' : 'NON'), act: () => { sfxOn = !sfxOn; }, adj: () => { sfxOn = !sfxOn; } },
-  { label: () => 'PLEIN ÉCRAN : ' + (document.fullscreenElement ? 'OUI' : 'NON'), act: () => {
+  { cat: 0, title: true, n: 'NOM DU JOUEUR', v: () => myName, act: () => { SFX.pick(); if (window.IS_TOUCH) { const v = window.prompt('Votre nom (10 caractères max) :', myName); if (v) setMyName(v); } else { nameBuf = ''; state = 'name'; } }, hint: () => 'Le nom affiché en jeu et dans le classement mondial' },
+  { cat: 0, title: true, n: 'NIVEAU DE DÉPART', v: () => (startLevel + 1) + ' · ' + LEVELS[startLevel].name, adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, hint: () => unlocked > 0 ? 'Gauche / Droite : choisir parmi les niveaux débloqués' : 'Terminez un niveau pour débloquer le suivant' },
+  { cat: 0, title: true, id: 'md', n: 'MODE DE JEU', v: () => MODEN[GMODE], adj: setMd, act: () => setMd(1), hint: () => MODEH[GMODE] },
+  { cat: 0, title: true, id: 'df', n: 'DIFFICULTÉ', v: () => DIFFN[DIFF], adj: setDf2, act: () => setDf2(1), hint: () => 'Facile : ennemis plus faibles · Difficile : ennemis plus costauds (choix de l\'hôte en ligne)' },
+  { cat: 0, id: 'ff', n: 'DÉGÂTS ENTRE ALLIÉS', v: () => OB(FRIENDLY), act: toggleFF, adj: toggleFF, hint: () => 'Coups entre joueurs : oui = les alliés se blessent (moitié des dégâts)' },
+  { cat: 1, n: 'MUSIQUE', v: () => OB(musicOn), act: toggleMus, adj: toggleMus },
+  { cat: 1, n: 'BRUITAGES', v: () => OB(sfxOn), act: toggleSfx, adj: toggleSfx },
+  { cat: 1, n: 'SECOUSSES D\'ÉCRAN', v: () => OB(SHAKEON), act: toggleShake, adj: toggleShake, hint: () => 'Tremblements de l\'image lors des gros coups' },
+  { cat: 1, n: 'PLEIN ÉCRAN', v: () => OB(!!document.fullscreenElement), act: () => {
     try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* ignoré */ }
-  } }
+  } },
+  { cat: 2, title: true, n: 'ÉDITEUR DE NIVEAU', act: () => { SFX.pick(); edOpen(); }, hint: () => 'Compose tes vagues, puis joue-les en mode NIVEAU PERSO' },
+  { cat: 2, title: true, n: 'CODE DE NIVEAU', v: () => CUSTOM.slice(0, 14) + (CUSTOM.length > 14 ? '…' : ''), act: () => { SFX.pick(); try { const v = window.prompt('Code du niveau (celui d\'un ami, ou le tien pour le copier) :', CUSTOM); if (v) { CUSTOM = String(v).trim().slice(0, 400); lsSet('nfer_cl', CUSTOM); GMODE = MODEN.indexOf('NIVEAU PERSO'); lsSet('nfer_md', String(GMODE)); } } catch (e) { /* ignoré */ } }, hint: () => 'Colle le code d\'un ami pour jouer son niveau' },
+  { cat: 2, title: true, n: 'REVOIR MA MEILLEURE PARTIE', act: () => { if (!repPlay('nfer_rep_best')) SFX.move(); }, v: () => repInfo('nfer_rep_best').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta meilleure partie solo, touches comprises (Échap pour quitter)' },
+  { cat: 2, title: true, n: 'REVOIR MA DERNIÈRE PARTIE', act: () => { if (!repPlay('nfer_rep_last')) SFX.move(); }, v: () => repInfo('nfer_rep_last').replace(/[()]/g, '').trim(), hint: () => 'Rejoue ta dernière partie solo (Échap pour quitter)' }
 ];
-let menuSub = false, optIdx = 0;
+OPTS.forEach(o => { o.label = () => o.n + (o.v ? ' : ' + o.v() : ''); });          // texte simple pour le menu en jeu
+let menuSub = false, optIdx = 0, optTab = 0;
+const optRows = t => OPTS.filter(o => o.cat === t);
 const optList = ctx => OPTS.filter(o => ctx === 'title' ? true : (!o.title && (o.id !== 'ff' || !online)));
 const subList = () => optList('game').concat([{ label: () => 'RETOUR', act: () => { menuSub = false; menuIdx2 = 0; } }]);
 const menuList = () => MENU_ALL.filter(m => !m.show || m.show());
@@ -2623,11 +2641,21 @@ function navList(L, idx, adjOk) {
 }
 function updMenu() { menuIdx2 = navList(curMenu(), menuIdx2, true); }
 
+/* ---------- accueil : une seule liste, utilisée par la mise à jour, le dessin et la souris ---------- */
+const TITLE = [
+  { n: 'JOUER', big: true, sub: () => 'Niveau ' + (startLevel + 1) + ' · ' + MODEN[GMODE] + ' · ' + DIFFN[DIFF], adj: d => { const n = unlocked + 1; startLevel = (startLevel + d + n) % n; SFX.move(); }, act: () => { nPlayers = 1; initSelect(); state = 'select'; SFX.pick(); } },
+  { n: 'EN LIGNE', sub: () => 'jusqu\'à 4 joueurs', act: () => { goOnlineAuto(); SFX.pick(); } },
+  { n: 'CLASSEMENT MONDIAL', act: () => { state = 'scores'; sbLoad(); SFX.pick(); } },
+  { n: 'OPTIONS', sub: () => myName, act: () => { state = 'options'; optIdx = 0; SFX.pick(); } }
+];
+function titleGo(i) { unlockAudio(); netMsg = ''; NAMES[0] = myName; menuIdx = i; TITLE[i].act(); }
+function optTabGo(t) { optTab = (t + OPT_TABS.length) % OPT_TABS.length; optIdx = Math.min(optIdx, optRows(optTab).length); SFX.move(); }
 /* ---------- boucle de mise à jour ---------- */
 function step() {
   tick++;
   poll();
   RAW = Object.assign({}, PRS[online ? localSlot : 0]);
+  while (PTRQ.length) PTRQ.shift()();
   musicTick();
   relTick();
   if (toastT > 0) toastT--;
@@ -2638,22 +2666,24 @@ function step() {
   if (state !== 'play') { menuOpen = false; menuSub = false; }
   if (state === 'title') {
     cam = 0;
-    if (PRS[0].up) { menuIdx = (menuIdx + 3) % 4; SFX.move(); }
-    if (PRS[0].down) { menuIdx = (menuIdx + 1) % 4; SFX.move(); }
-    if (START || PRS[0].punch || PRS[0].jump) {
-      unlockAudio(); netMsg = '';
-      NAMES[0] = myName;
-      if (menuIdx === 0) { nPlayers = 1; initSelect(); state = 'select'; SFX.pick(); }
-      else if (menuIdx === 1) { goOnlineAuto(); SFX.pick(); }
-      else if (menuIdx === 2) { state = 'scores'; sbLoad(); SFX.pick(); }
-      else if (menuIdx === 3) { state = 'options'; optIdx = 0; SFX.pick(); }
-    }
+    const n = TITLE.length, P = PRS[0];
+    if (P.up) { menuIdx = (menuIdx + n - 1) % n; SFX.move(); }
+    if (P.down) { menuIdx = (menuIdx + 1) % n; SFX.move(); }
+    const it = TITLE[menuIdx];
+    if (it.adj && (P.left || P.right)) it.adj(P.right ? 1 : -1);
+    else if (START || P.punch || P.jump) titleGo(menuIdx);
     return;
   }
   if (state === 'options') {
-    const L = optList('title').concat([{ label: () => 'RETOUR', act: () => { state = 'title'; } }]);
+    const rows = optRows(optTab), n = rows.length, lr = RAW.left || RAW.right, d = RAW.right ? 1 : -1;
     if (MENUK) { state = 'title'; SFX.move(); return; }
-    optIdx = navList(L, optIdx, true);
+    if (RAW.up) { optIdx = optIdx <= -1 ? n : optIdx - 1; SFX.move(); }
+    if (RAW.down) { optIdx = optIdx >= n ? -1 : optIdx + 1; SFX.move(); }
+    const it = rows[optIdx], go = START || RAW.punch || RAW.jump;
+    if (optIdx === -1) { if (lr) optTabGo(optTab + d); }
+    else if (optIdx === n) { if (go) { state = 'title'; SFX.pick(); } }
+    else if (lr) { if (it.adj) it.adj(d); else optTabGo(optTab + d); }
+    else if (go) { SFX.pick(); if (it.act) it.act(); else if (it.adj) it.adj(1); }
     return;
   }
   if (state === 'edit') { updEdit(); return; }
@@ -4450,14 +4480,10 @@ function drawUlt() {
 }
 function drawMenu() {
   g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(0, 0, W, H);
-  const ML = curMenu(), bw = 250, bh = 40 + ML.length * 22 + 26, bx = (W - bw) / 2, by = (H - bh) / 2;
-  g.fillStyle = 'rgba(24,20,48,.96)'; g.fillRect(bx, by, bw, bh);
-  g.strokeStyle = '#4a4690'; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  txt(menuSub ? 'OPTIONS' : 'MENU', W / 2, by + 20, 14, '#ffcf4a', 'center');
-  ML.forEach((it, i) => {
-    const on = i === menuIdx2;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, by + 46 + i * 22, 11, on ? '#fff' : '#9a9ac0', 'center');
-  });
+  const ML = curMenu(), bw = 270, rh = 24, bh = 44 + ML.length * (rh + 4) + 20, bx = (W - bw) / 2, by = Math.round((H - bh) / 2);
+  panel(bx, by, bw, bh);
+  txt(menuSub ? 'OPTIONS' : 'MENU', W / 2, by + 24, 14, '#ffcf4a', 'center');
+  ML.forEach((it, i) => drawRow(bx + 12, by + 36 + i * (rh + 4), bw - 24, rh, it, i === menuIdx2, () => { menuIdx2 = i; }));
   txt((online ? (others() > 0 ? 'Votre héros est protégé, les autres jouent · ' : 'Jeu en pause · ') : '') + (menuSub ? 'Gauche / Droite : modifier · Échap : retour' : 'Haut / Bas · Entrée · Échap : fermer'), W / 2, by + bh - 8, 7, '#8a8ab0', 'center');
 }
 function hud() {
@@ -4494,36 +4520,109 @@ function hud() {
   if (online && desync) txt('DÉSYNCHRONISÉ : relancez la partie', W / 2, 64, 10, '#f66', 'center');
 }
 
-let PREV = null;
+let PREV = null, TPREV = null, vigG = null;
+/* ---------- briques d'interface (menus) ---------- */
+function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function panel(x, y, w, h) {
+  rr(x, y, w, h, 6); g.fillStyle = 'rgba(12,9,30,.9)'; g.fill();
+  g.strokeStyle = '#4a4690'; g.lineWidth = 1; g.stroke();
+}
+function tri(x, y, dir, sz, col) { g.fillStyle = col; g.beginPath(); g.moveTo(x, y - sz); g.lineTo(x + dir * sz * 1.1, y); g.lineTo(x, y + sz); g.closePath(); g.fill(); }
+function hitBox(x, y, w, h, fn, hov) { HIT.push({ x, y, w, h, fn, hov }); }
+function wrapTxt(str, n) {
+  const out = []; let cur = '';
+  String(str).split(' ').forEach(w => { if ((cur + ' ' + w).trim().length > n) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); });
+  if (cur) out.push(cur); return out;
+}
+const valCol = v => v === 'OUI' || v === 'FACILE' ? '#7dffa0' : v === 'NON' ? '#8a8ab0' : v === 'DIFFICILE' ? '#ff8a7a' : '#fff';
+/* une ligne de menu : nom à gauche, valeur à droite avec flèches si on peut la modifier */
+function drawRow(x, y, w, h, it, on, focus) {
+  rr(x, y, w, h, 4); g.fillStyle = on ? '#2e2a78' : 'rgba(30,26,64,.75)'; g.fill();
+  if (on) { g.strokeStyle = '#ffcf4a'; g.lineWidth = 1.2; g.stroke(); g.fillStyle = '#ffcf4a'; g.fillRect(x + 3, y + 4, 2, h - 8); }
+  const name = it.n || it.label(), ty = y + h / 2 + 3.5, v = it.v ? it.v() : '';
+  txt(name, x + 12, ty, 9, on ? '#fff' : '#b4b4d8', 'left');
+  let vw = 0;
+  if (v) { g.font = 'bold 9px monospace'; vw = g.measureText(v).width; txt(v, x + w - 20 - (it.adj ? 4 : 0), ty, 9, on ? valCol(v) : valCol(v) === '#fff' ? '#d8d8f0' : valCol(v), 'right'); }
+  const cy = y + h / 2;
+  if (it.adj) { const rx = x + w - 11, lx = rx - vw - 22; tri(rx - 4, cy, 1, 3.5, on ? '#ffcf4a' : '#6a66a0'); tri(lx + 4, cy, -1, 3.5, on ? '#ffcf4a' : '#6a66a0'); }
+  else if (it.act && !(it.n === 'REPRENDRE')) tri(x + w - 13, cy, 1, 3.5, on ? '#ffcf4a' : '#6a66a0');
+  hitBox(x, y, w, h, px => {
+    if (focus) focus();
+    if (it.adj && v && px > x + w - 26 - vw - 8) { it.adj(px < x + w - 20 - vw / 2 ? -1 : 1); }
+    else if (it.act) { SFX.pick(); it.act(); } else if (it.adj) it.adj(1);
+  }, () => { if (focus && !on) { focus(); SFX.move(); } });
+}
+function drawTitleHero(k, x, face) {
+  const hk = HERO_KEYS[k % HERO_KEYS.length];
+  if (!TPREV) TPREV = {};
+  const e = TPREV[hk] || (TPREV[hk] = mkPlayer(hk, 0));
+  e.x = x; e.y = 232; e.z = 0; e.face = face; e.st = 'free'; e.t = 0; e.name = '';
+  const c0 = cam; cam = 0; drawChar(e); cam = c0;
+}
 function drawTitle() {
-  g.fillStyle = 'rgba(5,3,15,.55)'; g.fillRect(0, 0, W, H);
-  txt('COMPAS NOIR', W / 2, 70, 36, '#ffcf4a', 'center');
-  txt('beat\'em up · 10 niveaux', W / 2, 88, 11, '#cbd', 'center');
-  const items = ['1 JOUEUR', 'EN LIGNE (JUSQU\'À 4 JOUEURS)', 'CLASSEMENT MONDIAL', 'OPTIONS'];
-  items.forEach((o, i) => {
-    const on = i === menuIdx;
-    txt((on ? '> ' : '  ') + o + (on ? ' <' : '  '), W / 2, 130 + i * 24, 13, on ? '#fff' : '#889', 'center');
+  if (!vigG) { vigG = g.createLinearGradient(0, 0, 0, H); vigG.addColorStop(0, 'rgba(4,2,14,.75)'); vigG.addColorStop(0.32, 'rgba(4,2,14,.35)'); vigG.addColorStop(0.62, 'rgba(4,2,14,.5)'); vigG.addColorStop(1, 'rgba(4,2,14,.85)'); }
+  g.fillStyle = vigG; g.fillRect(0, 0, W, H);
+  // héros sur les côtés : ils changent de temps en temps
+  const ph = (tick / 420) | 0, fa = Math.min(1, (420 - tick % 420) / 30, (tick % 420) / 30 + 0.01);
+  g.globalAlpha = Math.max(0, fa);
+  drawTitleHero(ph * 2, 66, 1); drawTitleHero(ph * 2 + 1, W - 66, -1);
+  g.globalAlpha = 1;
+  // logo
+  g.font = 'bold 40px monospace'; g.textAlign = 'center';
+  g.fillStyle = '#2a0f06'; g.fillText('COMPAS NOIR', W / 2 + 3, 62 + 3);
+  g.fillStyle = '#9a4a14'; g.fillText('COMPAS NOIR', W / 2 + 1, 62 + 2);
+  const lg = g.createLinearGradient(0, 30, 0, 64); lg.addColorStop(0, '#fff2a8'); lg.addColorStop(0.5, '#ffcf4a'); lg.addColorStop(1, '#e8861e');
+  g.fillStyle = lg; g.fillText('COMPAS NOIR', W / 2, 62);
+  g.fillStyle = '#ffcf4a'; g.globalAlpha = 0.5; g.fillRect(W / 2 - 110, 83, 220, 1); g.globalAlpha = 1;
+  txt('BEAT\'EM UP · 10 NIVEAUX · 1 À 4 JOUEURS', W / 2, 76, 8, '#cbd', 'center');
+  if (netMsg) txt(netMsg, W / 2, 94, 9, '#f66', 'center');
+  // boutons
+  let y = 100;
+  TITLE.forEach((it, i) => {
+    const on = i === menuIdx, h = it.big ? 40 : 26, bw = it.big ? 240 : 220, x = (W - bw) / 2;
+    rr(x, y, bw, h, 6);
+    const bg = g.createLinearGradient(0, y, 0, y + h);
+    if (on) { bg.addColorStop(0, '#4a43b8'); bg.addColorStop(1, '#2a2578'); } else { bg.addColorStop(0, 'rgba(36,31,80,.92)'); bg.addColorStop(1, 'rgba(18,15,46,.92)'); }
+    g.fillStyle = bg; g.fill();
+    g.strokeStyle = on ? '#ffcf4a' : '#3e3a80'; g.lineWidth = on ? 1.6 : 1; g.stroke();
+    if (it.big) {
+      txt(it.n, W / 2, y + 19, 17, on ? '#fff' : '#dde', 'center');
+      txt(it.sub(), W / 2, y + 33, 8, on ? '#ffe58a' : '#9a9ac0', 'center');
+      if (it.adj) { tri(x + 14, y + h / 2, -1, 5, on ? '#ffcf4a' : '#6a66a0'); tri(x + bw - 14, y + h / 2, 1, 5, on ? '#ffcf4a' : '#6a66a0'); }
+    } else {
+      txt(it.n, x + 16, y + 17, 11, on ? '#fff' : '#b4b4d8', 'left');
+      if (it.sub) txt(it.sub(), x + bw - 14, y + 16.5, 8, on ? '#ffe58a' : '#7a7aa8', 'right');
+    }
+    if (on) tri(x - 9 + Math.sin(tick / 8) * 1.5, y + h / 2, 1, 4, '#ffcf4a');
+    const ix = i;
+    hitBox(x, y, bw, h, px => { if (it.adj && px < x + 30) { menuIdx = ix; it.adj(-1); } else if (it.adj && px > x + bw - 30) { menuIdx = ix; it.adj(1); } else titleGo(ix); }, () => { if (menuIdx !== ix) { menuIdx = ix; SFX.move(); } });
+    y += h + 5;
   });
-  txt('Niveau ' + (startLevel + 1) + ' · ' + LEVELS[startLevel].name + ' · ' + myName + ' · alliés ' + (FRIENDLY ? 'se blessent' : 'protégés'), W / 2, 234, 8, '#8a8ab0', 'center');
-  if (netMsg) txt(netMsg, W / 2, 222, 10, '#f66', 'center');
-  txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 249, 8, '#aab', 'center');
-  txt('succès : ' + doneAch().length + '/' + ACHS.length, 6, 264, 7, '#667', 'left');
-  txt('version 20h10 · COMPAS NOIR', W / 2, 264, 7, '#667', 'center');
+  txt('Flèches / ZQSD : choisir · Entrée : valider · Souris possible', W / 2, 252, 7, '#8a8ab0', 'center');
+  txt('J frapper · K spécial · L lancer · Espace sauter · Échap menu', W / 2, 262, 7, '#8a8ab0', 'center');
+  txt('succès ' + doneAch().length + '/' + ACHS.length, 6, 266, 7, '#667', 'left');
+  txt('version 22/11 · menus', W - 6, 266, 7, '#667', 'right');
 }
 function drawOptions() {
-  g.fillStyle = 'rgba(5,3,15,.82)'; g.fillRect(0, 0, W, H);
-  txt('OPTIONS', W / 2, 30, 18, '#ffcf4a', 'center');
-  const L = optList('title').concat([{ label: () => 'RETOUR' }]);
-  const vis = 11, st0 = clamp(optIdx - 5, 0, Math.max(0, L.length - vis));
-  L.slice(st0, st0 + vis).forEach((it, k) => {
-    const i = st0 + k, on = i === optIdx;
-    txt((on ? '> ' : '  ') + it.label() + (on ? ' <' : '  '), W / 2, 62 + k * 16, 10, on ? '#fff' : '#9a9ac0', 'center');
+  g.fillStyle = 'rgba(4,2,14,.72)'; g.fillRect(0, 0, W, H);
+  const px = 50, py = 8, pw = 380, ph = 244, rows = optRows(optTab), n = rows.length;
+  panel(px, py, pw, ph);
+  txt('OPTIONS', px + 16, py + 24, 15, '#ffcf4a', 'left');
+  OPT_TABS.forEach((t, i) => {
+    const tw = 112, tx = px + 14 + i * (tw + 6), ty = py + 34, act = i === optTab, foc = act && optIdx === -1;
+    rr(tx, ty, tw, 20, 4); g.fillStyle = act ? '#3b3590' : 'rgba(30,26,64,.75)'; g.fill();
+    g.strokeStyle = foc ? '#ffcf4a' : act ? '#7a76c0' : '#3a3670'; g.lineWidth = foc ? 1.6 : 1; g.stroke();
+    txt(t, tx + tw / 2, ty + 14, 9, act ? '#fff' : '#9a9ac0', 'center');
+    hitBox(tx, ty, tw, 20, () => { optTab = i; optIdx = -1; SFX.move(); });
   });
-  if (st0 > 0) txt('▲', W - 14, 62, 9, '#8a8ab0', 'center');
-  if (st0 + vis < L.length) txt('▼', W - 14, 62 + (vis - 1) * 16, 9, '#8a8ab0', 'center');
-  const cur = L[optIdx];
-  if (cur && cur.hint) txt(cur.hint(), W / 2, 242, 8, '#cbd', 'center');
-  txt('Haut / Bas · Gauche / Droite : modifier · Entrée · Échap : retour', W / 2, 258, 8, '#8a8ab0', 'center');
+  rows.forEach((it, i) => drawRow(px + 14, py + 62 + i * 27, pw - 28, 23, it, i === optIdx, () => { optIdx = i; }));
+  const cur = rows[optIdx];
+  if (cur && cur.hint) wrapTxt(cur.hint(), 52).slice(0, 3).forEach((l, i) => txt(l, px + 18, py + 204 + i * 11, 8, '#cbd', 'left'));
+  const bx = px + pw - 98, by = py + 206, on = optIdx === n;
+  rr(bx, by, 84, 24, 5); g.fillStyle = on ? '#3b3590' : 'rgba(30,26,64,.85)'; g.fill(); g.strokeStyle = on ? '#ffcf4a' : '#3a3670'; g.lineWidth = on ? 1.6 : 1; g.stroke();
+  txt('RETOUR', bx + 42, by + 16, 10, on ? '#fff' : '#b4b4d8', 'center');
+  hitBox(bx, by, 84, 24, () => { state = 'title'; SFX.pick(); }, () => { if (optIdx !== n) { optIdx = n; SFX.move(); } });
+  txt('Haut / Bas : ligne · Gauche / Droite : modifier ou changer d\'onglet · Échap : retour', W / 2, 264, 7, '#8a8ab0', 'center');
 }
 function drawNameEntry() {
   g.fillStyle = 'rgba(5,3,15,.8)'; g.fillRect(0, 0, W, H);
@@ -4535,6 +4634,7 @@ function drawNameEntry() {
   txt('ENTRÉE : valider · Échap : annuler', W / 2, 186, 9, '#aab', 'center');
 }
 function drawScores() {
+  hitBox(0, 0, W, H, () => { state = 'title'; SFX.move(); });
   g.fillStyle = 'rgba(5,3,15,.85)'; g.fillRect(0, 0, W, H);
   txt('CLASSEMENT MONDIAL', W / 2, 26, 18, '#ffcf4a', 'center');
   const on = sbOn(), l = gScores || [];
@@ -4968,6 +5068,7 @@ function blindFx() {
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
 }
 function render() {
+  HIT.length = 0;
   applyFx();
   g.setTransform(RS, 0, 0, RS, 0, 0);
   g.save();

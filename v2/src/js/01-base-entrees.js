@@ -9,7 +9,15 @@ const RS = 3;
 const cv = document.getElementById('c');
 let g = cv.getContext('2d');
 g.imageSmoothingEnabled = false;
-cv.addEventListener('pointerdown', () => { cv.focus(); unlockAudio(); });
+/* souris et tactile dans les menus : chaque écran de menu déclare ses zones cliquables (HIT) à chaque image ; les clics sont traités dans step() */
+let HIT = [], PTRQ = [];
+function ptrHit(e) {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  for (let i = HIT.length - 1; i >= 0; i--) { const h = HIT[i]; if (x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h) return { h, x, y }; }
+  return null;
+}
+cv.addEventListener('pointermove', e => { if (e.pointerType === 'touch') return; const r = ptrHit(e); cv.style.cursor = r ? 'pointer' : 'default'; if (r && r.h.hov) r.h.hov(); });
+cv.addEventListener('pointerdown', e => { cv.focus(); unlockAudio(); const r = ptrHit(e); if (r && r.h.fn) PTRQ.push(() => r.h.fn(r.x)); });
 
 /* ---------- entrées ---------- */
 const SP_COST_VIVE = 50;
