@@ -389,25 +389,35 @@ function drawNameEntry() {
   txt('Tapez votre nom (10 caractères max)', W / 2, 170, 9, '#cbd', 'center');
   txt('ENTRÉE : valider · Échap : annuler', W / 2, 186, 9, '#aab', 'center');
 }
+const GVIEWS = ['MEILLEURS JOUEURS', 'MEILLEURES PARTIES', 'DERNIÈRES PARTIES'];
+function ageTxt(t) { const m = Math.max(0, (Date.now() - t) / 60000); return m < 1 ? 'à l\'instant' : m < 60 ? Math.round(m) + ' min' : m < 1440 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' j'; }
 function drawScores() {
   hitBox(0, 0, W, H, () => { state = 'title'; SFX.move(); });
   g.fillStyle = 'rgba(5,3,15,.85)'; g.fillRect(0, 0, W, H);
-  txt('CLASSEMENT MONDIAL', W / 2, 26, 18, '#ffcf4a', 'center');
-  const on = sbOn(), l = gScores || [];
-  txt('#  NOM         SCORE  NIV  PERSONNAGE', W / 2, 50, 9, '#8a8ab0', 'center');
+  txt('CLASSEMENT MONDIAL', W / 2, 22, 16, '#ffcf4a', 'center');
+  GVIEWS.forEach((t, i) => {
+    const tw = 140, tx = W / 2 - 215 + i * 146, on = i === gView;
+    rr(tx, 30, tw, 16, 4); g.fillStyle = on ? '#3b3590' : 'rgba(30,26,64,.75)'; g.fill(); g.strokeStyle = on ? '#ffcf4a' : '#3a3670'; g.lineWidth = 1; g.stroke();
+    txt(t, tx + tw / 2, 42, 8, on ? '#fff' : '#9a9ac0', 'center');
+    hitBox(tx, 30, tw, 16, () => { gView = i; SFX.move(); });
+  });
+  const on = sbOn(), src = gView === 0 ? gScores : gView === 1 ? (gScores ? gRaw : null) : (gScores ? gRec : null), l = src || [];
+  txt(gView === 2 ? '#  NOM         SCORE  NIV  PERSONNAGE  QUAND' : '#  NOM         SCORE  NIV  PERSONNAGE', W / 2, 62, 9, '#8a8ab0', 'center');
   if (!on) txt('Classement indisponible', W / 2, 130, 11, '#f88', 'center');
   else if (gStatus === 'load' && !gScores) txt('Chargement…', W / 2, 130, 11, '#cbd', 'center');
   else if (gStatus === 'err' && !gScores) { txt('Classement mondial injoignable', W / 2, 120, 11, '#f88', 'center'); txt(gErr, W / 2, 138, 8, '#fb9', 'center'); txt('K : réessayer', W / 2, 154, 9, '#cbd', 'center'); }
   else if (!l.length) txt('Aucun score pour le moment', W / 2, 130, 11, '#cbd', 'center');
+  const mine = s => String(s.n).toUpperCase() === String(myName).toUpperCase(), hname = s => (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, '');
+  const line = (i, s) => String(i + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hname(s).padEnd(10, ' ') + (gView === 2 ? '  ' + ageTxt(s.t) : '');
   l.slice(0, 10).forEach((s, i) => {
-    const y = 68 + i * 17, col = i === 0 ? '#ffd34d' : (i < 3 ? '#e8e8f0' : '#9aa');
-    const hn = (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, '');
-    txt(String(i + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, y, 11, String(s.n).toUpperCase() === String(myName).toUpperCase() ? '#7dffa0' : col, 'center');
+    const y = 80 + i * 16, col = i === 0 && gView !== 2 ? '#ffd34d' : (i < 3 && gView !== 2 ? '#e8e8f0' : '#9aa');
+    txt(line(i, s), W / 2, y, 10, mine(s) ? '#7dffa0' : col, 'center');
   });
-  { const mi = gAll.findIndex(s => String(s.n).toUpperCase() === String(myName).toUpperCase());      // mon meilleur score, même s'il est hors du top 10
-    if (mi >= 10) { const s = gAll[mi], hn = (HEROES[s.h] ? HEROES[s.h].name : '?').replace(/^L[EA']\s*/, '').replace(/^'/, ''); txt('...', W / 2, 232, 9, '#8a8ab0', 'center'); txt(String(mi + 1).padStart(2, ' ') + ' ' + String(s.n).padEnd(10, ' ') + ' ' + String(s.s).padStart(6, '0') + '  ' + (s.win ? 'FIN' : 'N' + s.lv).padEnd(3, ' ') + '  ' + hn.padEnd(10, ' '), W / 2, 246, 11, '#7dffa0', 'center'); }
-    else if (mi < 0 && gAll.length >= 10) txt('Votre nom (' + myName + ') n\'est pas encore dans les 300 meilleurs', W / 2, 240, 8, '#8a8ab0', 'center'); }
-  txt('ENTRÉE : retour', W / 2, 258, 8, '#8a8ab0', 'center');
+  if (gView === 0) { const mi = gAll.findIndex(mine);      // mon meilleur score, même s'il est hors du top 10
+    if (mi >= 10) { txt('...', W / 2, 246, 8, '#8a8ab0', 'center'); txt(line(mi, gAll[mi]), W / 2, 257, 10, '#7dffa0', 'center'); return; }
+  }
+  txt(gView === 0 ? 'Un seul score par joueur : le meilleur. Vos parties plus faibles sont dans les autres onglets.' : gView === 1 ? 'Toutes les parties, plusieurs lignes possibles pour un même joueur.' : 'Les 10 dernières parties enregistrées, tous joueurs.', W / 2, 246, 7, '#8a8ab0', 'center');
+  txt('Gauche / Droite : changer de liste · K : actualiser · Entrée : retour', W / 2, 260, 7, '#8a8ab0', 'center');
 }
 function drawRelays(y) {
   if (!rel) return;

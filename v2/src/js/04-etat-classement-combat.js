@@ -12,7 +12,7 @@ function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.!?\-éèê
 function setMyName(s) { const n = cleanName(s); if (n) { myName = n; lsSet('nfer_name', n); NAMES[online ? localSlot : 0] = n; } }
 /* classement mondial (Supabase) : renseigner SB_URL et SB_KEY (clé « anon public », sans danger dans une page web) ; vide = classement local seulement */
 const SB_URL = 'https://rhlsoclrjaujrvlxgsxx.supabase.co', SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJobHNvY2xyamF1anJ2bHhnc3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxNjY0NjQsImV4cCI6MjExMDc0MjQ2NH0.SJHSrMGDHjFNdoQFVtnHxuDZiViZfFptLD5CsRFjLaY';
-let gScores = null, gAll = [], gStatus = 'idle', gRankMsg = '';
+let gScores = null, gAll = [], gRaw = [], gRec = [], gView = 0, gStatus = 'idle', gRankMsg = '';
 const sbOn = () => !!(SB_URL && SB_KEY && typeof fetch === 'function');
 const sbHead = () => ({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' });
 let gErr = '';
@@ -40,11 +40,12 @@ function sbRank(s, tries) {
 function sbLoad(tries) {
   if (!sbOn()) return;
   tries = tries || 0; gStatus = 'load';
+  try { sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero,created_at&order=created_at.desc&limit=10', { headers: sbHead() }).then(r => r.ok ? r.json() : [], () => []).then(rows => { gRec = (rows || []).map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero, t: Date.parse(r.created_at) || 0 })); }); } catch (e) { /* ignoré */ }
   const fail = why => { if (tries < 2) setTimeout(() => sbLoad(tries + 1), 1500); else { gStatus = 'err'; gErr = why; } };
   try {
     sbFetch(SB_URL + '/rest/v1/scores?select=name,score,level,win,hero&order=score.desc&limit=300', { headers: sbHead() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-      .then(rows => { { const seen = {}; gScores = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero }))
+      .then(rows => { { const seen = {}; gRaw = rows.map(r => ({ n: r.name, s: r.score, lv: r.level, win: r.win, h: r.hero })); gScores = gRaw.slice()
 .filter(r => { const k = String(r.n).toUpperCase(); if (seen[k]) return false; seen[k] = 1; return true; }); gAll = gScores; gScores = gAll.slice(0, 10); } gStatus = 'ok'; gErr = ''; },
         e => fail(e && e.name === 'AbortError' ? 'délai dépassé (réseau lent ou bloqué)' : (e && /^HTTP/.test(e.message) ? e.message : 'connexion impossible (pare-feu, VPN, bloqueur de pubs ?)')));
   } catch (e) { gStatus = 'err'; gErr = 'navigateur non compatible'; }

@@ -220,6 +220,7 @@ function step() {
   }
   if (state === 'scores') {
     if (RAW.special) { gScores = null; sbLoad(); SFX.move(); }
+    if (RAW.left || RAW.right) { gView = (gView + (RAW.right ? 1 : 2)) % 3; SFX.move(); }
     if (START || MENUK || PRS[0].punch || PRS[0].jump) { state = 'title'; SFX.move(); }
     return;
   }

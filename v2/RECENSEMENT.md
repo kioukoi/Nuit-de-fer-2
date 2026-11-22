@@ -161,3 +161,4 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - Souris et tactile : chaque écran de menu déclare ses zones (`hitBox`, tableau `HIT` vidé à chaque image) ; les clics sont mis en file (`PTRQ`) et traités dans `step()`. Menu en jeu et classement cliquables aussi.
 - Le menu en jeu (Échap) utilise les mêmes lignes (`drawRow`).
 - Commandes : onglet COMMANDES (2 touches par action, Entrée puis la nouvelle touche, échange automatique si la touche servait déjà, enregistré dans `nfer_keys`). Le texte d'aide HTML sous le jeu est supprimé. Manette et boutons tactiles inchangés.
+- Classement mondial : 3 listes (MEILLEURS JOUEURS = un score par nom, MEILLEURES PARTIES = toutes les parties, DERNIÈRES PARTIES = les 10 plus récentes avec l'ancienneté), Gauche/Droite ou clic pour changer.
