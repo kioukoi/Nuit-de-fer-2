@@ -241,7 +241,12 @@ const SPECS = {
   gitan: [['Grande famille', 'spécial +35% plus vite', { sp: 0.35 }], ['Sang chaud', '+12% de dégâts', { dmg: 0.12 }], ['Débrouillard', '+10% de vitesse, +10 PV', { spd: 0.10, pv: 10 }]],
   magicien: [['Illusionniste', '+14% de dégâts', { dmg: 0.14 }], ['Tour de passe-passe', 'spécial +30% plus vite', { sp: 0.30 }], ['Cape enchantée', '-10% de dégâts reçus', { dr: 0.10 }]],
   electricien: [['Haute tension', '+12% de dégâts', { dmg: 0.12 }], ['Gants isolants', '-10% de dégâts reçus', { dr: 0.10 }], ['Batterie', 'spécial +30% plus vite', { sp: 0.30 }]],
-  livreur: [['Mollets d\'acier', '+10% de vitesse', { spd: 0.10 }], ['Casque renforcé', '-10% de dégâts reçus', { dr: 0.10 }], ['Pourboire', 'spécial +30% plus vite', { sp: 0.30 }]]
+  livreur: [['Mollets d\'acier', '+10% de vitesse', { spd: 0.10 }], ['Casque renforcé', '-10% de dégâts reçus', { dr: 0.10 }], ['Pourboire', 'spécial +30% plus vite', { sp: 0.30 }]],
+  enedis: [['Casque isolant', '-10% de dégâts reçus', { dr: 0.10 }], ['Nacelle', '+12% de vitesse', { spd: 0.12 }], ['Groupe électrogène', 'spécial +30% plus vite', { sp: 0.30 }]],
+  pompier: [['Lance renforcée', '+12% de dégâts', { dmg: 0.12 }], ['Tenue d\'intervention', '-12% de dégâts reçus', { dr: 0.12 }], ['Endurance', '+20 PV max', { pv: 20 }]],
+  policier: [['Entraînement', '+12% de dégâts', { dmg: 0.12 }], ['Gilet pare-balles', '-10% de dégâts reçus', { dr: 0.10 }], ['Renfort radio', 'spécial +30% plus vite', { sp: 0.30 }]],
+  plombier: [['Grosse clé', '+14% de dégâts', { dmg: 0.14 }], ['Salopette épaisse', '-8% de dégâts reçus, +10 PV', { dr: 0.08, pv: 10 }], ['Pression maximale', 'spécial +30% plus vite', { sp: 0.30 }]],
+  cuistot: [['Coup de main', 'vole 8% des dégâts', { ls: 0.08 }], ['Grand chef', '+12% de dégâts', { dmg: 0.12 }], ['Mise en place', 'spécial +30% plus vite', { sp: 0.30 }]]
 };
 let specOn = false, specT = 0, specCh = [0, 0, 0, 0], specLk = [false, false, false, false];
 const specSkip = p => p.absent || (online && !act[p.slot]);

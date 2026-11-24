@@ -162,3 +162,8 @@ Le TIREUR tire à distance (un coup toutes les 1,2 s environ) et lance parfois u
 - Le menu en jeu (Échap) utilise les mêmes lignes (`drawRow`).
 - Commandes : onglet COMMANDES (2 touches par action, Entrée puis la nouvelle touche, échange automatique si la touche servait déjà, enregistré dans `nfer_keys`). Le texte d'aide HTML sous le jeu est supprimé. Manette et boutons tactiles inchangés.
 - Classement mondial : 3 listes (MEILLEURS JOUEURS = un score par nom, MEILLEURES PARTIES = toutes les parties, DERNIÈRES PARTIES = les 10 plus récentes avec l'ancienneté), Gauche/Droite ou clic pour changer.
+
+## Nouveaux héros (métiers) et choix à la souris
+- 5 héros ajoutés à la fin de `HERO_KEYS` : LE TECHNICIEN (Enedis, spécial « Coupure générale » : tous les ennemis à l'écran sonnés), LE POMPIER (« Grande lance » : jet d'eau qui repousse ; ignifugé, les pièges de feu ne le touchent pas), LE POLICIER (« Interpellation » : menottes une à une sur chaque ennemi), LE PLOMBIER (« Déluge » : geysers sous les ennemis), LE CUISTOT (« Coup de feu » : cône de flammes ; nourriture x1,5). Chacun a sa tenue, son couvre-chef et 3 spécialisations (`SPECS`).
+- Écran de choix : 10 héros par ligne (`SELPER`), 2 lignes ; la souris survole (sélection) et clique (valider ; re-clic sur son héros pour annuler).
+- Test : `sh tests/lancer.sh heros.js` (spécial de chaque nouveau héros, 600 images sans erreur).

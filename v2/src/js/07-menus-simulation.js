@@ -3,6 +3,7 @@ function toTitle() { repRestore(); if ((state === 'play' || state === 'spec') &&
 function initSelect() {
   SEL = [{ c: 0, lock: false }, { c: 1, lock: false }, { c: 2, lock: false }, { c: 3, lock: false }]; selT = 0; cam = 0;
 }
+const SELPER = 10;                    // héros par ligne sur l'écran de choix
 function tryLock(i) {
   const s = SEL[i];
   const taken = SEL.slice(0, nPlayers).some((o, j) => j !== i && o.lock && o.c === s.c && (!online || act[j]));
@@ -17,7 +18,7 @@ function updSelect() {
   for (const i of slots) {
     const s = SEL[i];
     if (!s.lock) {
-      const nh = HERO_KEYS.length, per = 7;
+      const nh = HERO_KEYS.length, per = SELPER;
       if (PRS[i].left) { s.c = (s.c + nh - 1) % nh; SFX.move(); changed = true; }
       if (PRS[i].right) { s.c = (s.c + 1) % nh; SFX.move(); changed = true; }
       if (PRS[i].up || PRS[i].down) { s.c = s.c < per ? Math.min(s.c + per, nh - 1) : s.c - per; SFX.move(); changed = true; }

@@ -76,7 +76,7 @@ function withW(att, a) {
   const m = att.kind === 'e' ? 1 + (w.mul - 1) * 0.6 : w.mul;
   return Object.assign({}, a, { reach: a.reach + w.reach, dmg: Math.round(a.dmg * m) });
 }
-const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle', 'gitan', 'magicien', 'electricien', 'livreur'];
+const HERO_KEYS = ['cogneur', 'vive', 'costaud', 'ombre', 'boxeur', 'medic', 'fauteuil', 'papy', 'dalto', 'aveugle', 'gitan', 'magicien', 'electricien', 'livreur', 'enedis', 'pompier', 'policier', 'plombier', 'cuistot'];
 const HEROES = {
   cogneur: { trait: 'Régénère hors combat', name: 'LE COGNEUR', role: 'Équilibré', special: 'Tourbillon', sc: 1, hp: 100, spd: 1.5, jump: 4.4, dmg: 1, reach: 0, rate: 1, slam: 0, cost: 100,
     col: { shirt: '#2f6fd0', pants: '#3b4f8a', skin: '#e6b48c', hair: '#3a2418', acc: '#e03030', acc2: '#f2f2f2', shoe: '#f2f2f2' } },
@@ -106,7 +106,18 @@ const HEROES = {
   electricien: { trait: 'Insensible aux chocs', name: 'L\'ÉLECTRICIEN', role: 'Courant fort', special: 'Court-circuit', sc: 1, hp: 95, spd: 1.4, jump: 4.4, dmg: 1.05, reach: 0, rate: 0.95, slam: 0, cost: 100,
     col: { shirt: '#f08a1c', pants: '#2a4a8a', skin: '#d9a37a', hair: '#3a2a1a', acc: '#f5d020', acc2: '#ffffff', shoe: '#4a3a2a' } },
   livreur: { trait: 'Vélo : très rapide', name: 'LE LIVREUR', role: 'Livraison express', special: 'Tournée express', sc: 1, hp: 80, spd: 1.75, jump: 4.4, dmg: 0.85, reach: 0, rate: 0.85, slam: 0, cost: 100,
-    col: { shirt: '#1fb5a3', pants: '#1d2530', skin: '#6b4430', hair: '#14100e', acc: '#1fb5a3', acc2: '#ffffff', shoe: '#e8e8ee' } }
+    col: { shirt: '#1fb5a3', pants: '#1d2530', skin: '#6b4430', hair: '#14100e', acc: '#1fb5a3', acc2: '#ffffff', shoe: '#e8e8ee' } },
+  /* métiers : technicien Enedis, pompier, policier, plombier, cuistot */
+  enedis: { trait: 'Spécial : coupe le courant aux ennemis', name: 'LE TECHNICIEN', role: 'Réseau Enedis', special: 'Coupure générale', sc: 1, hp: 105, spd: 1.4, jump: 4.4, dmg: 1.0, reach: 1, rate: 0.95, slam: 0, cost: 100,
+    col: { shirt: '#1d63b8', pants: '#1b2a4a', skin: '#d8a47c', hair: '#3a2a1a', acc: '#8cc63f', acc2: '#ffffff', shoe: '#3a3a44' } },
+  pompier: { trait: 'Ignifugé : insensible au feu', name: 'LE POMPIER', role: 'Lance à incendie', special: 'Grande lance', sc: 1.1, hp: 125, spd: 1.2, jump: 4.0, dmg: 1.25, reach: 3, rate: 1.1, slam: 0, cost: 100,
+    col: { shirt: '#2d3a5e', pants: '#1f2438', skin: '#c28a62', hair: '#2a1c12', acc: '#f0c82a', acc2: '#d0d0d8', shoe: '#2a2a2a' } },
+  policier: { trait: 'Menottes : ennemis étourdis', name: 'LE POLICIER', role: 'Ordre public', special: 'Interpellation', sc: 1, hp: 100, spd: 1.45, jump: 4.4, dmg: 1.0, reach: 0, rate: 0.95, slam: 0, cost: 100,
+    col: { shirt: '#2a52a8', pants: '#161c2e', skin: '#e0b08a', hair: '#1a1410', acc: '#f0c030', acc2: '#ffffff', shoe: '#14141c' } },
+  plombier: { trait: 'Clé à molette, déluge', name: 'LE PLOMBIER', role: 'Clé à molette', special: 'Déluge', sc: 1.05, hp: 110, spd: 1.3, jump: 4.2, dmg: 1.2, reach: 2, rate: 1.1, slam: 0, cost: 100,
+    col: { shirt: '#c43d2f', pants: '#2d5fa8', skin: '#d9a37a', hair: '#3a2418', acc: '#6a4a2a', acc2: '#f2f2f2', shoe: '#4a3a2a' } },
+  cuistot: { trait: 'Plats : soins x1,5', name: 'LE CUISTOT', role: 'Cuisine de feu', special: 'Coup de feu', sc: 1.05, hp: 100, spd: 1.35, jump: 4.2, dmg: 1.1, reach: 2, rate: 1.0, slam: 0, cost: 100,
+    col: { shirt: '#f4f4f8', pants: '#2a2a3a', skin: '#e0b08a', hair: '#3a2a20', acc: '#d83a2a', acc2: '#ffffff', shoe: '#2a2a2a' } }
 };
 for (const k of HERO_KEYS) {
   const h = HEROES[k];

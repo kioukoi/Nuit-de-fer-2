@@ -156,7 +156,7 @@ function updPlayer(p) {
           if (!p.weapon && p.st === 'free') { p.weapon = it.type; p.wd = it.wd; it.got = true; SFX.pick(); }
         } else if (it.type === 'energy') { p.sp = Math.min(HEROES[p.hero].cost, p.sp + 40); it.got = true; SFX.pick(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: 'ÉNERGIE', col: '#5ae0ff' });
         } else if (it.type === 'shield') { p.inv = Math.max(p.inv, 200); it.got = true; SFX.lvl(); FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 36, txt: 'BOUCLIER', col: '#ffd34d' });
-        } else { const hh = it.heal * (p.hero === 'medic' ? 2 : 1); p.hp = Math.min(p.maxhp, p.hp + hh); it.got = true; SFX.pick(); if (p.hero === 'medic') FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: '+' + hh, col: '#6f6' }); }
+        } else { const hh = it.heal * (p.hero === 'medic' ? 2 : p.hero === 'cuistot' ? 1.5 : 1); p.hp = Math.min(p.maxhp, p.hp + hh); it.got = true; SFX.pick(); if (p.hero === 'medic') FX.push({ x: p.x, y: p.y, z: p.z + 44, t: 0, life: 30, txt: '+' + hh, col: '#6f6' }); }
       }
     }
     IT = IT.filter(i => !i.got);
@@ -168,6 +168,7 @@ function updPlayer(p) {
 function trapHit(q, dmg, kind) {
   if (q.tcd > 0 || q.inv > 0 || q.hp <= 0) return;
   if (kind === 'shock' && ((q.hero === 'fauteuil' && !q.nochair) || q.hero === 'electricien')) { q.tcd = 90; FX.push({ x: q.x, y: q.y, z: q.z + 44, t: 0, life: 30, txt: 'ISOLÉ !', col: '#9df' }); return; }
+  if (kind === 'burn' && q.hero === 'pompier') { q.tcd = 90; FX.push({ x: q.x, y: q.y, z: q.z + 44, t: 0, life: 30, txt: 'IGNIFUGE !', col: '#ffb060' }); return; }
   q.tcd = 90; q.hp -= dmg; q.flash = 8;
   hitstop = Math.max(hitstop, 5); shake = Math.max(shake, 8);
   FX.push({ x: q.x, y: q.y, z: q.z + 40, t: 0, life: 36, txt: '-' + dmg, col: '#ff5050' });
@@ -693,6 +694,54 @@ function updUlt(p, hr) {
     }
     if (t === 42) { for (const e of liveE()) pillar(e.x, e.y, 10, '#c8f6ff', 16); blast(p, cam + W / 2, p.y, W, 130, 16, true, 50); ring(p.x, p.y, 100, '#8fe0ff', 24); shake = 12; SFX.zap(); }
     if (t >= 52) p.st = 'free';
+  } else if (h === 'enedis') {
+    if (t === 1) ultBanner('COUPURE GENERALE', '#8cc63f');
+    if (t === 10) {
+      for (const e of liveE()) {
+        pillar(e.x, e.y, 10, '#ffe84a', 18); hurt(e, p, { dmg: 8, kd: false, nosp: true }, e.x >= p.x ? 1 : -1);
+        if (!e.dying && e.type !== 'boss' && e.st !== 'down') { e.st = 'hurt'; e.t = -100; e.vx = 0; e.shock = 100; e.hit = new Set(); }
+      }
+      ring(p.x, p.y, 120, '#8cc63f', 26); ring(p.x, p.y, 200, '#ffe84a', 30); shake = 10; SFX.zap();
+    }
+    if (t >= 34) p.st = 'free';
+  } else if (h === 'pompier') {
+    if (t === 1) ultBanner('GRANDE LANCE', '#6ec6ff');
+    if (t >= 6 && t <= 42) {
+      for (const e of liveE()) { const d = (e.x - p.x) * p.face; if (d > -10 && d < 170 && Math.abs(e.y - p.y) < 36 && e.type !== 'boss') e.x += p.face * 2.4; }
+      if (t % 6 === 0) { p.hit = new Set(); blast(p, p.x + p.face * 70, p.y, 85, 30, 7, false, 20); }
+      if (t % 2 === 0) ring(p.x + p.face * (20 + (t % 12) * 12), p.y, 14, '#9ad8ff', 10);
+      if (t % 8 === 0) { shake = Math.max(shake, 3); SFX.whoosh(); }
+    }
+    if (t === 46) { blast(p, p.x + p.face * 90, p.y, 110, 40, 22, true); ring(p.x + p.face * 90, p.y, 90, '#6ec6ff', 24); pillar(p.x + p.face * 90, p.y, 22, '#bfe8ff', 22); shake = 12; SFX.big(); }
+    if (t >= 58) p.st = 'free';
+  } else if (h === 'policier') {
+    if (t === 1) ultBanner('INTERPELLATION', '#6a9bff');
+    if (t >= 6 && t <= 42 && t % 6 === 0) {
+      const L = liveE().sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x)), e = L.length ? L[(t / 6 - 1) % L.length] : null;
+      if (e) {
+        bolt(p.x, p.y, 34, e.x, e.y, 22, t % 12 ? '#ff4a4a' : '#4a8aff', 10); hurt(e, p, { dmg: 11, kd: false, nosp: true }, e.x >= p.x ? 1 : -1);
+        if (!e.dying && e.type !== 'boss' && e.st !== 'down') { e.st = 'hurt'; e.t = -70; e.vx = 0; e.hit = new Set(); }
+        FX.push({ x: e.x, y: e.y, z: e.z + 46, t: 0, life: 36, txt: 'MENOTTES !', col: '#9ec0ff' }); ring(e.x, e.y, 18, '#4a8aff', 14); SFX.hit();
+      }
+    }
+    if (t === 46) { ring(p.x, p.y, 140, '#ff4a4a', 22); ring(p.x, p.y, 110, '#4a8aff', 26); blast(p, cam + W / 2, p.y, W, 130, 10, true); shake = 10; SFX.big(); }
+    if (t >= 56) p.st = 'free';
+  } else if (h === 'plombier') {
+    if (t === 1) ultBanner('DELUGE', '#6ec6ff');
+    if (t >= 8 && t <= 44 && t % 6 === 0) {
+      const L = liveE(), tg = L.length ? L[(t / 6) % L.length | 0] : null, tx = tg ? tg.x : clamp(p.x + p.face * 60, cam + 20, cam + W - 20), ty = tg ? tg.y : p.y;
+      pillar(tx, ty, 16, '#9ad8ff', 22); ring(tx, ty, 34, '#6ec6ff', 20); blast(p, tx, ty, 38, 28, 13, t >= 38); shake = Math.max(shake, 4); SFX.hit();
+    }
+    if (t === 48) { blast(p, cam + W / 2, p.y, W, 130, 8, true); ring(p.x, p.y, 130, '#6ec6ff', 26); shake = 10; SFX.big(); }
+    if (t >= 58) p.st = 'free';
+  } else if (h === 'cuistot') {
+    if (t === 1) ultBanner('COUP DE FEU', '#ff8a2a');
+    if (t >= 6 && t <= 40 && t % 4 === 0) {
+      p.hit = new Set(); const fx = p.x + p.face * (30 + (t % 12) * 4);
+      blast(p, fx, p.y, 52, 30, 9, false); ring(fx, p.y, 22 + (t % 12), '#ff8a2a', 12); FX.push({ x: fx, y: p.y, z: 18, t: 0, life: 10, big: true }); shake = Math.max(shake, 3); SFX.whoosh();
+    }
+    if (t === 44) { blast(p, p.x + p.face * 70, p.y, 100, 40, 26, true); ring(p.x + p.face * 70, p.y, 100, '#ffb050', 24); pillar(p.x + p.face * 70, p.y, 24, '#ffd070', 22); shake = 12; SFX.big(); }
+    if (t >= 56) p.st = 'free';
   } else if (h === 'medic') {
     if (t === 1) ultBanner('DEFIBRILLATEUR', '#6fff9a');
     if (t === 10) {

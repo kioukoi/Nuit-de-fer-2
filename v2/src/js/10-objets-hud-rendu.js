@@ -454,30 +454,36 @@ function drawOnline() {
 function drawSelect() {
   g.fillStyle = 'rgba(5,3,15,.78)'; g.fillRect(0, 0, W, H);
   txt(nPlayers >= 2 ? 'CHOISISSEZ VOS HÉROS' : 'CHOISISSEZ VOTRE HÉROS', W / 2, 18, 12, '#ffcf4a', 'center');
-  const CW = 66, X0 = 45, CH = 100, n = HERO_KEYS.length, per = 7;
+  const CW = 46, X0 = 33, CH = 100, n = HERO_KEYS.length, per = SELPER;
   const pos = i => ({ cx: X0 + (i % per) * CW, y0: 22 + Math.floor(i / per) * 104 });
   if (!PREV || PREV.length !== n) PREV = HERO_KEYS.map((k, i) => Object.assign(mkPlayer(k, 0), { x: pos(i).cx, y: pos(i).y0 + 76 }));
   const c0 = cam; cam = 0;
   HERO_KEYS.forEach((k, i) => {
     const hr = HEROES[k], { cx, y0 } = pos(i), e = PREV[i];
-    g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(cx - 32, y0, 64, CH);
-    g.strokeStyle = '#3a3670'; g.lineWidth = 1; g.strokeRect(cx - 31.5, y0 + 0.5, 63, CH - 1);
-    txt(hr.name.replace('LE ', '').replace('LA ', ''), cx, y0 + 10, 7, '#fff', 'center');
+    g.fillStyle = 'rgba(30,26,60,.92)'; g.fillRect(cx - 22, y0, 44, CH);
+    g.strokeStyle = '#3a3670'; g.lineWidth = 1; g.strokeRect(cx - 21.5, y0 + 0.5, 43, CH - 1);
+    { const nm = hr.name.replace('LE ', '').replace('LA ', '').replace('L\'', ''); txt(nm, cx, y0 + 10, nm.length > 8 ? 6 : 7, '#fff', 'center'); }
+    { const ls = online ? localSlot : 0, ii = i;      // souris : survol = sélection, clic = valider (re-clic sur son héros validé : annuler)
+      hitBox(cx - 22, y0, 44, CH, () => {
+        const s = SEL[ls]; if (roomJoin && jselSent) return;
+        if (s.lock) { if (s.c === ii && !jselSent) { s.lock = false; if (online && !roomJoin) sendSel(); SFX.move(); } return; }
+        s.c = ii; if (tryLock(ls)) { if (online && !roomJoin) sendSel(); }
+      }, () => { const s = SEL[ls]; if (!online && !s.lock && s.c !== ii) { s.c = ii; SFX.move(); } }); }
     const locked = SEL.slice(0, nPlayers).some((s, j) => s.lock && s.c === i && (!online || act[j]));
     if (locked) { e.st = 'attack'; e.stage = (tick >> 5) % 3; e.t = (tick >> 1) % hr.atk[e.stage].dur; } else { e.st = 'free'; e.t = 0; }
     e.name = '';
     drawChar(e);
-    txt('PV', cx - 29, y0 + 83, 6, '#9ab'); bar(cx - 17, y0 + 79, 46, 3, hr.hp / 130, '#4ccf4c');
-    txt('VIT', cx - 29, y0 + 89, 6, '#9ab'); bar(cx - 17, y0 + 85, 46, 3, hr.spd / 1.95, '#4aa8ff');
-    txt('FOR', cx - 29, y0 + 95, 6, '#9ab'); bar(cx - 17, y0 + 91, 46, 3, hr.dmg / 1.45, '#e0663a');
+    txt('PV', cx - 20, y0 + 83, 6, '#9ab'); bar(cx - 9, y0 + 79, 30, 3, hr.hp / 130, '#4ccf4c');
+    txt('VIT', cx - 20, y0 + 89, 6, '#9ab'); bar(cx - 9, y0 + 85, 30, 3, hr.spd / 1.95, '#4aa8ff');
+    txt('FOR', cx - 20, y0 + 95, 6, '#9ab'); bar(cx - 9, y0 + 91, 30, 3, hr.dmg / 1.45, '#e0663a');
   });
   cam = c0;
   for (let i = 0; i < nPlayers; i++) {
     if (online && !act[i] && !(roomJoin && i === localSlot)) continue;
     const s = SEL[i], { cx, y0 } = pos(s.c), col = ['#4aa8ff', '#ff9a3a', '#6ae06a', '#ff7ad0'][i & 3];
     g.strokeStyle = col; g.lineWidth = 2;
-    g.strokeRect(cx - 34 + i * 3, y0 - 2 + i * 3, 68 - i * 6, CH + 4 - i * 6);
-    txt(String(NAMES[i] || 'J' + (i + 1)).slice(0, 8) + (s.lock ? ' ✔' : ''), i < 2 ? cx - 30 : cx + 30, y0 + 19, 6, col, i < 2 ? 'left' : 'right');
+    g.strokeRect(cx - 24 + i * 3, y0 - 2 + i * 3, 48 - i * 6, CH + 4 - i * 6);
+    txt(String(NAMES[i] || 'J' + (i + 1)).slice(0, 8) + (s.lock ? ' ✔' : ''), i < 2 ? cx - 20 : cx + 20, y0 + 19, 6, col, i < 2 ? 'left' : 'right');
   }
   { const hk = HERO_KEYS[(SEL[online ? localSlot : 0] || SEL[0]).c], hh = HEROES[hk]; txt(hh.name + ' — ' + hh.role, W / 2, 242, 8, '#ffd34d', 'center'); txt('Spécial : ' + hh.special + '  ·  ' + hh.trait, W / 2, 254, 7, '#8fe0a8', 'center'); }
   txt(roomJoin ? (jselSent ? 'Synchronisation avec la partie en cours…' : 'Vous rejoignez la partie de ' + (NAMES[0] || 'l\'hôte') + ' : choisissez un héros (Frapper)') : roomPending ? 'Partie en ligne : vos amis (jusqu\'à 3) cliquent sur EN LIGNE et choisissent avec vous' : online ? 'En ligne : la partie démarre quand tous les joueurs sont prêts' : '← → ↑ ↓ : choisir · Frapper : valider · Spécial : annuler', W / 2, 266, 8, roomJoin && jselSent ? '#ffd34d' : '#aab', 'center');

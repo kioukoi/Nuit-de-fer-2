@@ -10,7 +10,7 @@ function shade(hex, k) {
   if (k < 0) { r *= 1 + k; gg *= 1 + k; b *= 1 + k; } else { r += (255 - r) * k; gg += (255 - gg) * k; b += (255 - b) * k; }
   return '#' + [r, gg, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 }
-const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug', rodeur: 'thug', mineur: 'brute', torche: 'thrower', croupier: 'thug', videur: 'thug', parieur: 'thrower', mercenaire: 'thug', blinde: 'thug', tireur: 'thug', agent: 'thug', mecano: 'thug', pisteur: 'thug', valet: 'thug', armure: 'thug' };
+const BASEMAP = { ombre: 'cogneur', boxeur: 'costaud', medic: 'cogneur', fauteuil: 'cogneur', dalto: 'cogneur', aveugle: 'cogneur', gitan: 'costaud', magicien: 'cogneur', electricien: 'cogneur', livreur: 'cogneur', enedis: 'cogneur', pompier: 'costaud', policier: 'cogneur', plombier: 'costaud', cuistot: 'cogneur', crs: 'thug', crsc: 'thug', crsgaz: 'thug', marin: 'thug', soudeur: 'brute', garde: 'thug', rodeur: 'thug', mineur: 'brute', torche: 'thrower', croupier: 'thug', videur: 'thug', parieur: 'thrower', mercenaire: 'thug', blinde: 'thug', tireur: 'thug', agent: 'thug', mecano: 'thug', pisteur: 'thug', valet: 'thug', armure: 'thug' };
 const SUIT = { croupier: 1, videur: 1, agent: 1, valet: 1, mecano: 1, mercenaire: 1, blinde: 1, tireur: 1, armure: 1, pisteur: 1, garde: 1 };     /* manches longues : bras couverts */
 function palT(e, d) {
   const t = LV && LV.tint && LV.tint[e.type];
@@ -202,7 +202,7 @@ function drawChar(e) {
   } else if (isP && st === 'special' && e.hero === 'costaud') {
     if (e.t < 12) { lean = -2; fhx = 4; fhy = -44; bhx = -1; bhy = -43; ffx = 4; bfx = -5; }
     else { lean = 6; hipY = -12; fhx = 14; fhy = -8; bhx = 10; bhy = -8; ffx = 7; bfx = -5; ring = Math.min(34, (e.t - 12) * 3.2); }
-  } else if (isP && st === 'special' && (e.hero === 'ombre' || e.hero === 'magicien')) {
+  } else if (isP && st === 'special' && (e.hero === 'ombre' || e.hero === 'magicien' || e.hero === 'pompier' || e.hero === 'plombier' || e.hero === 'cuistot')) {
     lean = 3; ffx = 7; bfx = -5; bhx = 6; bhy = -24; fhx = e.t < 7 ? 4 : 18; fhy = e.t < 7 ? -31 : -27;
   } else if (isP && st === 'special' && e.hero === 'boxeur') {
     if (e.t < 6) { lean = 6; hipY = -12; ffx = 8; bfx = -5; fhx = 8; fhy = -22; bhx = 4; bhy = -20; }
@@ -210,7 +210,7 @@ function drawChar(e) {
   } else if (isP && st === 'special' && e.hero === 'papy') {
     if (e.t < 14) { lean = -3; fhx = 5; fhy = -46; bhx = -1; bhy = -42; ffx = 3; bfx = -5; }
     else { lean = 5; fhx = 20; fhy = -16; bhx = 6; bhy = -22; ffx = 7; bfx = -4; }
-  } else if (isP && st === 'special' && (e.hero === 'medic' || e.hero === 'aveugle' || e.hero === 'gitan' || e.hero === 'electricien')) {
+  } else if (isP && st === 'special' && (e.hero === 'medic' || e.hero === 'aveugle' || e.hero === 'gitan' || e.hero === 'electricien' || e.hero === 'enedis' || e.hero === 'policier')) {
     fhx = 6; fhy = -44; bhx = -3; bhy = -43; ffx = 4; bfx = -4; ring = e.t > 6 ? Math.min(34, (e.t - 6) * 2.4) : 0;
   } else if (isP && st === 'special') { spin = true; ffx = 8; bfx = -8; fhx = 17; fhy = -26; bhx = -17; bhy = -26; }
   else if (isP && st === 'rush') { lean = 8; ffx = 7; ffy = -5; bfx = -2; bfy = -4; fhx = 13; fhy = -22; bhx = 9; bhy = -20; }
@@ -329,6 +329,24 @@ function drawChar(e) {
       poly([[cf(0.05) - 1.6, ty], [cf(0.05) + 2.4, ty], [cf(0.35) + 0.4, ty + 6], [cf(0.05) - 0.4, ty + 6]], '#f2f2f2', false);
       g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(cf(0.4) + 0.4, ty + 5); g.lineTo(cf(0.9) + 0.2, by); g.stroke();
       g.fillStyle = '#4a3a22'; for (const k of [0.5, 0.68, 0.86]) g.fillRect(cf(k) - 0.4, shY + 14 * k - 0.4, 1.4, 1.4);
+      break;
+    case 'enedis':
+      band(3, 5.2, '#f4e21a'); band(8.6, 10.8, '#f4e21a'); band(3.9, 4.3, '#d9d9d9'); band(9.5, 9.9, '#d9d9d9');
+      g.fillStyle = S.acc; g.fillRect(cf(0.2) - 0.8, shY + 1.2, 2.2, 1.6);
+      break;
+    case 'pompier':
+      band(7.6, 9.8, S.acc); band(10.2, 10.8, S.acc2); band(12, 14, '#14182a');
+      break;
+    case 'policier':
+      band(12, 14, '#14141c'); rrect(cf(0.9) - 1.6, shY + 12, 3.2, 1.9, 0.5, '#d9a21b', false);
+      poly([[cf(0.3) - 1, ty + 2.4], [cf(0.3) + 1.8, ty + 2.4], [cf(0.3) + 1.6, ty + 5], [cf(0.3) - 0.8, ty + 5]], '#f0c030', false);
+      break;
+    case 'plombier':
+      band(4.4, 14, S.pants); g.fillStyle = '#e8c020'; g.fillRect(cf(0.2) - 0.7, shY + 4.8, 1.4, 1.4); g.fillRect(cf(0.85) - 0.7, shY + 4.8, 1.4, 1.4);
+      break;
+    case 'cuistot':
+      g.fillStyle = '#9a9aa8'; for (const k of [0.2, 0.45, 0.7, 0.95]) g.fillRect(cf(k) + 0.9, shY + 14 * k - 0.6, 1.3, 1.3);
+      band(0, 2, S.acc);
       break;
     case 'vive':
       band(0, 7.2, S.shirt); band(6.4, 7.6, S.shirtD); band(12, 14, S.pants); band(12, 12.8, S.pantsL);
@@ -532,6 +550,31 @@ function drawChar(e) {
       g.beginPath(); g.ellipse(HX - 0.2, HY - 4.4, 6.8, 4.6, 0, Math.PI, 0); g.closePath(); g.fillStyle = S.acc; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
       g.fillStyle = shade(S.acc, -0.2); g.fillRect(HX - 6.8, HY - 4.6, 13.6, 1.5); g.fillRect(HX + 1.6, HY - 4.6, 6.4, 2.2);
       g.fillStyle = '#6a4a10'; g.fillRect(HX - 0.8, HY - 8.6, 1.6, 4);
+      break;
+    case 'enedis':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 4.4, 6.9, 4.8, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#f4f4f8'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      g.fillStyle = S.shirt; g.fillRect(HX - 6.8, HY - 4.7, 13.6, 1.5); g.fillRect(HX + 1.6, HY - 4.7, 6.6, 2.2);
+      g.fillStyle = S.acc; g.fillRect(HX - 0.9, HY - 8.9, 1.8, 4.3);
+      break;
+    case 'pompier':
+      g.beginPath(); g.ellipse(HX - 0.2, HY - 4.2, 7, 4.8, 0, Math.PI, 0); g.closePath(); g.fillStyle = '#b3241a'; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      poly([[HX - 7.4, HY - 4.2], [HX + 8.4, HY - 4.2], [HX + 7, HY - 2.6], [HX - 6.6, HY - 2.6]], '#8a1a12');
+      g.fillStyle = '#d6d6dc'; g.fillRect(HX - 0.8, HY - 9.6, 1.8, 5.2);
+      rrect(HX + 1.6, HY - 7.2, 3.6, 2.6, 0.8, S.acc, false);
+      break;
+    case 'policier':
+      rrect(HX - 6.2, HY - 7.8, 12.4, 5, 1.6, '#1c2e66', OL);
+      poly([[HX - 1, HY - 3.2], [HX + 8.2, HY - 3.2], [HX + 7.4, HY - 1.6], [HX - 1, HY - 1.8]], '#111826');
+      g.fillStyle = '#e8e8f0'; g.fillRect(HX - 6.2, HY - 4.6, 12.4, 1.2); g.fillStyle = S.acc; g.fillRect(HX + 1.4, HY - 6.6, 2.2, 2);
+      break;
+    case 'plombier':
+      g.beginPath(); g.ellipse(HX - 0.4, HY - 3.8, 6.8, 3.8, 0, Math.PI, 0); g.closePath(); g.fillStyle = S.acc; g.fill(); g.lineWidth = LW; g.strokeStyle = OL; g.stroke();
+      poly([[HX + 1.6, HY - 3.6], [HX + 9, HY - 3.2], [HX + 8.4, HY - 1.8], [HX + 1.6, HY - 2.4]], shade(S.acc, -0.25));
+      g.fillStyle = '#2a1a10'; g.fillRect(HX + 0.6, HY + 2.2, 5.4, 1.3);
+      break;
+    case 'cuistot':
+      ell(HX - 3.6, HY - 10.6, 3.6, 3.4, '#f8f8fc'); ell(HX + 0.2, HY - 12, 4, 3.8, '#f8f8fc'); ell(HX + 3.8, HY - 10.4, 3.4, 3.2, '#f8f8fc');
+      rrect(HX - 5.2, HY - 7.4, 10.4, 3.8, 0.8, '#f8f8fc', OL); g.fillStyle = '#dcdce6'; g.fillRect(HX - 5, HY - 5.2, 10, 1.2);
       break;
     case 'rodeur':
       poly([[HX - 6.6, HY + 3], [HX - 6.8, HY - 6.4], [HX, HY - 9], [HX + 6.4, HY - 6], [HX + 6.6, HY - 1.2], [HX + 3, HY - 3.6], [HX - 3.4, HY - 3.2]], shade(S.shirt, -0.12));
